@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: Crypto Polymath REST API
+  description: Crypto Polymath REST api for external services.
+  version: 1.0.0
+  contact:
+    name: Alexey Porandaikin
+    email: porandaikinaleksei@gmail.com
+
+servers:
+  - url: localhost/api
+  - url: http://localhost:8081/api
+
+paths:
+  /server:
+    get:
+      tags:
+        - server
+      responses:
+        200:
+          description: get server info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /prices/exchange/{exchange}:
+    get:
+      tags:
+        - price
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: return last prices for exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricesResponse'
+              examples:
+                normal:
+                  $ref: '#/components/examples/PricesResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /prices/symbol/{symbol}:
+    get:
+      tags:
+        - price
+      parameters:
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: return last prices from all exchanges for symbol
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricesResponse'
+              examples:
+                normal:
+                  $ref: '#/components/examples/PricesResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /price/{exchange}/{symbol}:
+    get:
+      tags:
+        - price
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: return last price for exchange and symbol
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+              examples:
+                normal:
+                  $ref: '#/components/examples/PriceResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /candlestick/{exchange}/{symbol}/{unit}/{interval}:
+    get:
+      tags:
+        - candlestick
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: interval
+          description: interval value
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: unit
+          description: unit value
+          schema:
+            type: string
+            enum:
+              - m
+              - H
+              - D
+              - W
+              - M
+          required: true
+      responses:
+        200:
+          description: return last candlesticks for exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandlesticksResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /indicator/{exchange}/{symbol}/{unit}/{interval}/{name}/{depth}:
+    get:
+      tags:
+        - indicator
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: unit
+          description: unit value
+          schema:
+            type: string
+            enum:
+              - m
+              - H
+              - D
+              - W
+              - M
+          required: true
+        - in: path
+          name: interval
+          description: interval value
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: name
+          description: name indicator
+          schema:
+            type: string
+            enum:
+              - Trend
+              - MA
+              - EMA
+              - TypeCandle
+              - VolatilityCandlePercent
+          required: true
+        - in: path
+          name: depth
+          description: depth indicator
+          schema:
+            type: integer
+            enum:
+              - 1
+              - 10
+              - 20
+              - 50
+          required: true
+      responses:
+        200:
+          description: return last candlesticks for exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ServerInfoResponse:
+      type: object
+      required: [ time ]
+      properties:
+        time:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [ message ]
+      properties:
+        message:
+          type: string
+    CandlesticksResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/CandlestickItem'
+    IndicatorResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/IndicatorItem'
+    CandlestickItem:
+      type: object
+      required: [ start_time, open_price, high_price, low_price, close_price, volume ]
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        open_price:
+          type: number
+        high_price:
+          type: number
+        low_price:
+          type: number
+        close_price:
+          type: number
+        volume:
+          type: number
+    IndicatorItem:
+      type: object
+      required: [ datetime,  value ]
+      properties:
+        datetime:
+          type: string
+          format: date-time
+        value:
+          type: number
+    PricesResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/PriceResponse"
+    PriceResponse:
+      type: object
+      required: [ symbol, exchange, value ]
+      properties:
+        symbol:
+          type: string
+          description: Name symbol
+        exchange:
+          type: string
+          description: Name exchange
+        value:
+          type: number
+          description: Last price value
+  examples:
+    PriceResponse:
+      value:
+        symbol: BTCUSDT
+        exchange: CoinExchange
+        value: 15645.12
+    PricesResponse:
+      value:
+        - symbol: BTCUSDT
+          exchange: CoinExchange
+          value: 15645.12
+        - symbol: ETHUSDT
+          exchange: CoinExchange
+          value: 2001.25

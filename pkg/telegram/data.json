@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "result": {
+    "message_id": 2,
+    "from": {
+      "id": 6705189467,
+      "is_bot": true,
+      "first_name": "TycheNotificationBot",
+      "username": "TycheNotificationBot"
+    },
+    "chat": {
+      "id": -4112241958,
+      "title": "CryptoTrader",
+      "type": "group",
+      "all_members_are_administrators": true
+    },
+    "date": 1708291734,
+    "text": "test message"
+  }
+}
