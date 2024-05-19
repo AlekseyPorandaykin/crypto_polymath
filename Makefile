@@ -1,5 +1,6 @@
 HOME_PATH := $(shell pwd)
 
+DOCKER_DIR="./deployments/docker-compose.yaml"
 BIN := "./bin/crypto_polymath"
 VERSION :=$(shell date)
 
@@ -9,13 +10,13 @@ prepare:
 	go mod tidy
 
 build:
-	CGO_ENABLED=1 go build -o=$(BIN) -ldflags="-X 'main.version=${VERSION}' -X 'github.com/AlekseyPorandaykin/crypto_polymath/cmd.homeDir=${HOME_PATH}'" .
+	CGO_ENABLED=1 go build -o=./bin/crypto_polymath -ldflags="-X 'main.version=Sat May 18 23:24:22 UTC 2024' -X 'github.com/AlekseyPorandaykin/crypto_polymath/cmd.homeDir=/projects/crypto_polymath'" .
 
 init:
 	go install golang.org/x/tools/cmd/goimports@latest
 
 up:
-	./bin/crypto_polymath server
+	./bin/crypto_polymath daemon
 
 linters:
 	go vet .
@@ -26,6 +27,21 @@ linters:
 	golangci-lint run ./...
 	gofmt -s -l $(git ls-files '*.go')
 
+
+up-deploy:
+	docker-compose --file=$(DOCKER_DIR) up -d
+
+down-deploy:
+	docker-compose --file="./deployments/docker-compose.yaml" up --build  prometheus
+
+ps:
+	docker-compose --file=$(DOCKER_DIR) ps
+
+recreate-deploy:
+	docker-compose --file=$(DOCKER_DIR) rm -f
+	docker-compose --file=$(DOCKER_DIR) pull
+	docker-compose --file=$(DOCKER_DIR) up --build -d
+	docker-compose --file=$(DOCKER_DIR) up --build -d
 
 go-fix:
 	go mod tidy

@@ -6,8 +6,8 @@ import (
 
 func init() {
 	viper.Set("app.codename", "crypto_polymath")
-	viper.Set("http.host", "localhost")
-	viper.Set("http.port", "8085")
+	viper.Set("http.host", "")
+	viper.Set("http.port", "80")
 	viper.Set("price.duration.loader", "30s")
 
 	viper.Set("bybit.host", "https://api.bybit.com/")
