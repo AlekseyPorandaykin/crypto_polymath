@@ -1,7 +1,7 @@
 package http
 
 import (
-	"net"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -99,7 +99,7 @@ func (s *Server) RegistrationFilesHandler(h FilesHandler) {
 }
 
 func (s *Server) Run(host, port string) error {
-	return s.e.Start(net.JoinHostPort(host, port))
+	return s.e.Start(fmt.Sprintf(":%s", port))
 }
 
 func (s *Server) mainPage(c echo.Context) error {
