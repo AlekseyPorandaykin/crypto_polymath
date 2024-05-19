@@ -32,7 +32,7 @@ up-deploy:
 	docker-compose --file=$(DOCKER_DIR) up -d
 
 down-deploy:
-	docker-compose --file="./deployments/docker-compose.yaml" up --build  prometheus
+	docker-compose --file="./deployments/docker-compose.yaml" down
 
 ps:
 	docker-compose --file=$(DOCKER_DIR) ps

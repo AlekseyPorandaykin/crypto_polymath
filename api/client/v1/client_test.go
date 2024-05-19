@@ -46,11 +46,11 @@ func TestClient_Candlesticks(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
-	c.Candlesticks(context.TODO(), "bybit", "BTCUSDT", "m", 1)
-	c.Candlesticks(context.TODO(), "bybit", "BTCUSDT", "H", 1)
-	c.Candlesticks(context.TODO(), "bybit", "BTCUSDT", "D", 1)
-	c.Candlesticks(context.TODO(), "bybit", "BTCUSDT", "W", 1)
-	c.Candlesticks(context.TODO(), "bybit", "BTCUSDT", "M", 1)
+	c.MinuteCandlesticks(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.HourCandlesticks(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.DayCandlesticks(context.TODO(), "bybit", "BTCUSDT")
+	c.WeekCandlesticks(context.TODO(), "bybit", "BTCUSDT")
+	c.MonthCandlesticks(context.TODO(), "bybit", "BTCUSDT")
 }
 
 func TestClient_Indicators(t *testing.T) {
@@ -59,9 +59,33 @@ func TestClient_Indicators(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
-	c.Indicators(context.TODO(), "bybit", "BTCUSDT", "m", 1, "Trend", 10)
-	c.Indicators(context.TODO(), "bybit", "BTCUSDT", "m", 1, "MA", 10)
-	c.Indicators(context.TODO(), "bybit", "BTCUSDT", "m", 1, "EMA", 10)
-	c.Indicators(context.TODO(), "bybit", "BTCUSDT", "m", 1, "TypeCandle", 1)
-	c.Indicators(context.TODO(), "bybit", "BTCUSDT", "m", 1, "VolatilityCandlePercent", 1)
+	c.TrendMinuteIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.TrendHourIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.TrendDayIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.TrendMonthIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.TrendWeekIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+
+	c.MaMinuteIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.MaHourIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.MaDayIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.MaMonthIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.MaWeekIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+
+	c.EmaMinuteIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.EmaHourIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.EmaDayIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.EmaMonthIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+	c.EmaWeekIndicators(context.TODO(), "bybit", "BTCUSDT", 1, 10)
+
+	c.TypeCandleMinuteIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.TypeCandleHourIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.TypeCandleDayIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.TypeCandleMonthIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.TypeCandleWeekIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+
+	c.VolatilityCandlePercentMinuteIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.VolatilityCandlePercentHourIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.VolatilityCandlePercentDayIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.VolatilityCandlePercentMonthIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
+	c.VolatilityCandlePercentWeekIndicators(context.TODO(), "bybit", "BTCUSDT", 1)
 }
