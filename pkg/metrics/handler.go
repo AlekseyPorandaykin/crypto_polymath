@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -18,7 +19,7 @@ func Handler(host, port string) error {
 	http.HandleFunc("/readyz", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
 	})
-	if err := http.ListenAndServe(net.JoinHostPort(host, port), nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
