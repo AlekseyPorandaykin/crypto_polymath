@@ -29,6 +29,7 @@ const (
 const (
 	EMA                     GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "EMA"
 	MA                      GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "MA"
+	PriceChanges            GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "PriceChanges"
 	Trend                   GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "Trend"
 	TypeCandle              GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "TypeCandle"
 	VolatilityCandlePercent GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "VolatilityCandlePercent"
