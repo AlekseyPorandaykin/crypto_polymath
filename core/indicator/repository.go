@@ -29,7 +29,7 @@ type UniqDTO struct {
 }
 
 type Repository interface {
-	Save(ctx context.Context, data StorageDTO) error
+	Save(ctx context.Context, data ...StorageDTO) error
 	Find(
 		ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, name string, depth int,
 	) (*StorageDTO, error)

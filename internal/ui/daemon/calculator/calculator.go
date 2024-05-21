@@ -10,6 +10,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"strconv"
 	"time"
 )
 
@@ -103,7 +104,6 @@ func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, sy
 
 func (app *Calculator) calcMinIndicator(ctx context.Context, exchangeName, symbol string, min, depth int) (bool, error) {
 	count, _ := app.calcIndicator(ctx, exchangeName, symbol, domain.MinuteUnit, min, depth)
-	zap.L().Debug("calc min indicator", zap.Int("count", count))
 	return count > 0, nil
 }
 
@@ -135,7 +135,9 @@ func (app *Calculator) calcMonthIndicator(ctx context.Context, exchangeName, sym
 }
 func (app *Calculator) calcIndicator(ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval, depth int) (int, error) {
 	defer calcIndicatorHelper(exchangeName, string(unit), interval, depth)()
-	return app.indicatorService.CalcIndicators(ctx, exchangeName, symbol, unit, interval, depth)
+	count, err := app.indicatorService.CalcIndicators(ctx, exchangeName, symbol, unit, interval, depth)
+	totalCalculatedIndicator.WithLabelValues(exchangeName, string(unit), strconv.Itoa(interval), strconv.Itoa(depth)).Add(float64(count))
+	return count, err
 }
 
 func (app *Calculator) deleteOldRows(ctx context.Context) error {

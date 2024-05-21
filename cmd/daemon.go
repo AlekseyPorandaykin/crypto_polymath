@@ -15,14 +15,16 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/sqlite"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/calculator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/loader"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
@@ -47,10 +49,31 @@ var daemonCmd = &cobra.Command{
 			return
 		}
 		defer func() { _ = conn.Close() }()
+
+		//Constants
+		symbols := []string{"BTCUSDT", "ETHUSDT"}
+		exchangeNames := []string{
+			exchange.BinanceExchange,
+			exchange.BitgetExchange,
+			exchange.BybitExchange,
+			exchange.GateIoExchange,
+			exchange.KrakenExchange,
+			exchange.KucoinExchange,
+			exchange.MexcExchange,
+			exchange.OkxExchange,
+		}
+
 		//Repositories
-		priceRepo := sqlite.NewPriceRepository(conn)
-		candlestickRepo := sqlite.NewCandlestickRepository(conn)
-		indicatorRepo := sqlite.NewIndicatorRepository(conn)
+		priceRepo := adapters.NewPriceRepository(sqlite.NewPriceRepository(conn), memory.NewPriceRepository())
+		candlestickRepo := adapters.NewCandlestickRepository(
+			sqlite.NewCandlestickRepository(conn),
+			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
+		)
+
+		indicatorRepo := adapters.NewIndicatorRepository(
+			sqlite.NewIndicatorRepository(conn),
+			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
+		)
 
 		//Clients
 		binanceClient := system.MustInit[*binance.Manager](binance.NewManager(
@@ -76,7 +99,7 @@ var daemonCmd = &cobra.Command{
 		okxExchange := exchange.NewOkx(okxClient)
 
 		//Services
-		priceService := price.NewCachingPrice(service.NewCachingPrice(), price.NewService(priceRepo))
+		priceService := price.NewService(priceRepo)
 		priceService.AddLoader(exchange.BinanceExchange, binanceExchange)
 		priceService.AddLoader(exchange.BitgetExchange, bitgetExchange)
 		priceService.AddLoader(exchange.BybitExchange, bybitExchange)
@@ -85,18 +108,6 @@ var daemonCmd = &cobra.Command{
 		priceService.AddLoader(exchange.KucoinExchange, kukoinExchange)
 		priceService.AddLoader(exchange.MexcExchange, mexcExchange)
 		priceService.AddLoader(exchange.OkxExchange, okxExchange)
-
-		exchangeNames := []string{
-			exchange.BinanceExchange,
-			exchange.BitgetExchange,
-			exchange.BybitExchange,
-			exchange.GateIoExchange,
-			exchange.KrakenExchange,
-			exchange.KucoinExchange,
-			exchange.MexcExchange,
-			exchange.OkxExchange,
-		}
-		symbols := []string{"BTCUSDT", "ETHUSDT"}
 
 		candlestickService := candlestick.NewService(candlestickRepo)
 		candlestickService.AddLoader(exchange.BybitExchange, bybitExchange)

@@ -128,7 +128,7 @@ func (s *service) Save(ctx context.Context, candlesticks ...domain.Candlestick) 
 		data = append(data, domainToStorage(candlestick))
 	}
 	err := backoff.Retry(func() error {
-		return s.repo.SaveBatch(ctx, data...)
+		return s.repo.Save(ctx, data...)
 	}, backoff.NewExponentialBackOff())
 	if err != nil {
 		return errors.Wrap(err, "save candlestick")
@@ -243,7 +243,7 @@ func (s *service) CandlesticksToDate(ctx context.Context, exchange, symbol, unit
 		return nil, err
 	}
 	result := make([]domain.Candlestick, 0, len(data))
-	for _, item := range data {
+	for _, item := range uniqStorageData(data) {
 		result = append(result, storageToDomain(item))
 	}
 	return result, nil
@@ -254,7 +254,7 @@ func (s *service) CandlesticksFromDate(ctx context.Context, exchange, symbol, un
 		return nil, err
 	}
 	result := make([]domain.Candlestick, 0, len(data))
-	for _, item := range data {
+	for _, item := range uniqStorageData(data) {
 		result = append(result, storageToDomain(item))
 	}
 	return result, nil
@@ -268,7 +268,7 @@ func (s *service) candlesticks(
 		return nil, err
 	}
 	result := make([]domain.Candlestick, 0, len(data))
-	for _, item := range data {
+	for _, item := range uniqStorageData(data) {
 		result = append(result, storageToDomain(item))
 	}
 	return result, nil
@@ -278,18 +278,19 @@ func (s *service) handleCandlesticks(
 	ctx context.Context, data []ExchangeDTO, unit domain.Unit, exchange, symbol string, interval int,
 ) ([]domain.Candlestick, error) {
 	lastRow := s.lastRow(ctx, exchange, symbol, string(unit), interval)
-	now := time.Now().In(time.UTC)
 	storageData := make([]StorageDTO, 0, len(data))
 	result := make([]domain.Candlestick, 0, len(data))
 	for i, item := range data {
-		if unit == domain.MinuteUnit && interval == 1 && now.Minute() != item.StartTime.Minute() && i == 0 {
-			continue
-		}
 		candle, err := exchangeToDomain(item, unit, exchange, symbol, interval)
 		if err != nil {
 			return nil, err
 		}
-		if ignoreOpenCandle(now, candle) {
+		//Пропускаем если эта текущая свеча
+		if isOpenCandle(candle) {
+			continue
+		}
+		//Пропускаем если период еще не закрылся (первый в списке, новый период еще не начал рассчет)
+		if i == 0 {
 			continue
 		}
 		if lastRow != nil && (candle.StartTime.Before(lastRow.StartTime) || candle.StartTime.Equal(lastRow.StartTime)) {
@@ -306,7 +307,7 @@ func (s *service) handleCandlesticks(
 		return nil, nil
 	}
 	errSaver := backoff.Retry(func() error {
-		return s.repo.SaveBatch(ctx, storageData...)
+		return s.repo.Save(ctx, uniqStorageData(storageData)...)
 	}, backoff.NewExponentialBackOff())
 	if errSaver != nil {
 		return nil, errSaver
@@ -324,31 +325,44 @@ func (s *service) lastRow(ctx context.Context, exchange, symbol, unit string, in
 	}
 	return nil
 }
+func uniqStorageData(data []StorageDTO) []StorageDTO {
+	result := make([]StorageDTO, 0, len(data))
+	existKey := make(map[time.Time]bool, len(data))
+	for _, item := range data {
+		if existKey[item.StartTime] {
+			continue
+		}
+		result = append(result, item)
+	}
+	return result
+}
 
 // TODO Доделать фильтрацию
-func ignoreOpenCandle(now time.Time, candlestick domain.Candlestick) bool {
+func isOpenCandle(candlestick domain.Candlestick) bool {
+	now := time.Now().In(time.UTC)
+	startTime := candlestick.StartTime.In(time.UTC)
 	switch candlestick.Unit {
 	case domain.MonthUnit:
-		return candlestick.StartTime.Year() == now.Year() && candlestick.StartTime.Month() == now.Month()
+		return startTime.Year() == now.Year() && startTime.Month() == now.Month()
 	case domain.WeekUnit:
-		return candlestick.StartTime.Year() == now.Year() &&
-			candlestick.StartTime.Month() == now.Month() &&
-			candlestick.StartTime.Weekday() == now.Weekday()
+		return startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Weekday() == now.Weekday()
 	case domain.DayUnit:
-		return candlestick.StartTime.Year() == now.Year() &&
-			candlestick.StartTime.Month() == now.Month() &&
-			candlestick.StartTime.Day() == now.Day()
+		return startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day()
 	case domain.HourUnit:
-		return candlestick.StartTime.Year() == now.Year() &&
-			candlestick.StartTime.Month() == now.Month() &&
-			candlestick.StartTime.Day() == now.Day() &&
-			candlestick.StartTime.Hour() == now.Hour()
+		return startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day() &&
+			startTime.Hour() == now.Hour()
 	case domain.MinuteUnit:
-		return candlestick.StartTime.Year() == now.Year() &&
-			candlestick.StartTime.Month() == now.Month() &&
-			candlestick.StartTime.Day() == now.Day() &&
-			candlestick.StartTime.Hour() == now.Hour() &&
-			candlestick.StartTime.Minute() == now.Minute()
+		return startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day() &&
+			startTime.Hour() == now.Hour() &&
+			startTime.Minute() == now.Minute()
 	}
 	return false
 }

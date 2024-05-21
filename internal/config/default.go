@@ -7,7 +7,7 @@ import (
 func init() {
 	viper.Set("app.codename", "crypto_polymath")
 	viper.Set("http.host", "")
-	viper.Set("http.port", "80")
+	viper.Set("http.port", "8085")
 	viper.Set("price.duration.loader", "30s")
 
 	viper.Set("bybit.host", "https://api.bybit.com/")
@@ -27,5 +27,6 @@ func init() {
 	viper.Set("candlestick.hours", []int{1, 2, 4, 6, 12})
 	viper.Set("candlestick.depths", []int{1, 10, 20, 50})
 	viper.Set("candlestick.storage.limit", 200)
+	viper.Set("indicator.storage.limit", 200)
 	viper.Set("indicator.storage.limit", 200)
 }

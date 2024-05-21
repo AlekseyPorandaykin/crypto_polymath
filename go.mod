@@ -7,6 +7,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/duke-git/lancet/v2 v2.3.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo-contrib v0.17.1

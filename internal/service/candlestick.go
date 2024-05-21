@@ -30,6 +30,11 @@ func (c *CandlestickAdapter) LastCandlesticks(
 func (c *CandlestickAdapter) NextCandlesticks(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int, datetime time.Time,
 ) ([]domain.Candlestick, error) {
+	now := time.Now().In(time.UTC)
+	extremeDatetime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), 1, 0, time.UTC)
+	if extremeDatetime.Before(datetime) || extremeDatetime.Equal(datetime) {
+		return nil, nil
+	}
 	data, err := c.candlestickService.CandlesticksFromDate(ctx, exchange, symbol, string(unit), interval, limit, datetime)
 	if err != nil {
 		return nil, err

@@ -26,6 +26,7 @@ func NewService(repo Repository, candlestick Candlestick) Indicator {
 	s.calculators[domain.TypeCandleIndicator] = NewTypeCandle()
 	s.calculators[domain.VolatilityCandlePercentIndicator] = NewVolatilityCandlePercent()
 	s.calculators[domain.TrendIndicator] = NewTrend()
+	s.calculators[domain.PriceChanges] = NewPriceChanges()
 	return s
 }
 
@@ -165,12 +166,15 @@ func (s *service) candleForCalculate(
 		return nil, err
 	}
 	if lastRow != nil {
-		nextCandles, err := s.nextCandle(ctx, exchange, symbol, unit, interval, nextInterval(lastRow.Datetime, unit, interval))
-		if err != nil {
-			return nil, err
-		}
-		if nextCandles != nil {
-			return nextCandles, nil
+		nextIntervalVal := nextInterval(lastRow.Datetime, unit, interval)
+		if isNextIntervalInPassed(nextIntervalVal, unit, interval) {
+			nextCandles, err := s.nextCandle(ctx, exchange, symbol, unit, interval, nextIntervalVal)
+			if err != nil {
+				return nil, err
+			}
+			if nextCandles != nil {
+				return nextCandles, nil
+			}
 		}
 	}
 	firstCandle, err := s.candlestick.FirstCandlestick(ctx, exchange, symbol, unit, interval, depth)
@@ -251,6 +255,13 @@ func (s *service) DeleteOldRows(ctx context.Context, oldValueThreshold int) erro
 
 	}
 	return nil
+}
+
+// Следующий интервал уже начат, т.е. текущий интервал уже закрыт
+func isNextIntervalInPassed(nextIntervalVal time.Time, unit domain.Unit, interval int) bool {
+	now := time.Now().In(time.UTC)
+	closedInterval := nextInterval(nextIntervalVal, unit, interval) //Когда последний интервал должен появиться
+	return now.After(closedInterval.In(time.UTC))
 }
 
 func storageToDomain(data StorageDTO) domain.Indicator {

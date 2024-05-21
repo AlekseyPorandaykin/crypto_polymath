@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/jmoiron/sqlx"
+	"strings"
 	"time"
 )
 
@@ -20,7 +22,7 @@ func NewIndicatorRepository(db *sqlx.DB) *IndicatorRepository {
 	return &IndicatorRepository{db: db}
 }
 
-func (repo *IndicatorRepository) Save(ctx context.Context, data indicator.StorageDTO) error {
+func (repo *IndicatorRepository) Save(ctx context.Context, data ...indicator.StorageDTO) error {
 	defer metrics.DBQueryHelper("crypto_polymath", "indicators_save")()
 	var query = `
 INSERT INTO indicators(id,
@@ -33,18 +35,21 @@ INSERT INTO indicators(id,
                        depth,
                        value,
                        created_at)
-VALUES (:id,
-        :symbol,
-        :exchange,
-        :unit,
-        :interval,
-        :name,
-        :datetime,
-        :depth,
-        :value,
-        :created_at)
+VALUES 
 `
-	if _, err := repo.db.NamedExecContext(ctx, query, data); err != nil {
+	valueQuery := `(:id,:symbol,:exchange,:unit,:interval,:name,:datetime,:depth,:value,:created_at)`
+	preparedValueQueries := make([]string, 0, len(data))
+	args := make([]interface{}, 0, len(data)*10)
+	for _, item := range data {
+		preparedValueQuery, argVals, err := repo.db.BindNamed(valueQuery, item)
+		if err != nil {
+			return err
+		}
+		preparedValueQueries = append(preparedValueQueries, preparedValueQuery)
+		args = append(args, argVals...)
+	}
+	preparedQuery := fmt.Sprintf("%s %s", query, strings.Join(preparedValueQueries, ", "))
+	if _, err := repo.db.ExecContext(ctx, preparedQuery, args...); err != nil {
 		return err
 	}
 	return nil

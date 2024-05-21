@@ -14,6 +14,13 @@ var calcIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
 	Name:      "calc_indicator",
+	Help:      "How much execute indicator calculated.",
+}, []string{"exchange", "unit", "interval", "depth"})
+
+var totalCalculatedIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "calculated_indicator_total",
 	Help:      "How much indicator calculated.",
 }, []string{"exchange", "unit", "interval", "depth"})
 
@@ -21,7 +28,7 @@ var durationCalcIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
 	Name:      "duration_calc_indicator",
-	Help:      "How long indicator calculated in seconds.",
+	Help:      "How long execute indicator  calculated in seconds.",
 }, []string{"exchange", "unit", "interval", "depth"})
 
 var deleteIndicator = prometheus.NewCounter(prometheus.CounterOpts{
@@ -43,13 +50,6 @@ func calcIndicatorHelper(exchangeName string, unit string, interval, depth int) 
 
 	return func() {
 		duration := time.Since(start)
-		zap.L().Debug(
-			"calculate indicator",
-			zap.String("unit", unit),
-			zap.Int("interval", interval),
-			zap.Int("depth", depth),
-			zap.String("duration", duration.String()),
-		)
 		calcIndicator.WithLabelValues(exchangeName, unit, strconv.Itoa(interval), strconv.Itoa(depth)).Inc()
 		durationCalcIndicator.WithLabelValues(exchangeName, unit, strconv.Itoa(interval), strconv.Itoa(depth)).Add(duration.Seconds())
 	}
@@ -71,4 +71,5 @@ func init() {
 	prometheus.DefaultRegisterer.MustRegister(durationCalcIndicator)
 	prometheus.DefaultRegisterer.MustRegister(deleteIndicator)
 	prometheus.DefaultRegisterer.MustRegister(durationDeleteIndicator)
+	prometheus.DefaultRegisterer.MustRegister(totalCalculatedIndicator)
 }

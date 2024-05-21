@@ -8,6 +8,7 @@ const (
 	EMAIndicator                     = "EMA"
 	TypeCandleIndicator              = "TypeCandle"              //Направление свечи
 	VolatilityCandlePercentIndicator = "VolatilityCandlePercent" //Процент изменчивости свечи
+	PriceChanges                     = "PriceChanges"            //Изменение цены
 )
 
 const (

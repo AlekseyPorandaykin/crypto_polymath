@@ -22,7 +22,7 @@ func NewCandlestickRepository(db *sqlx.DB) *CandlestickRepository {
 	return &CandlestickRepository{db: db}
 }
 
-func (repo *CandlestickRepository) SaveBatch(ctx context.Context, data ...candlestick.StorageDTO) error {
+func (repo *CandlestickRepository) Save(ctx context.Context, data ...candlestick.StorageDTO) error {
 	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_save")()
 	query := `
 INSERT INTO candlestick(id,
