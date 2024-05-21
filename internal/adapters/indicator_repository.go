@@ -19,9 +19,7 @@ func NewIndicatorRepository(storage, cache indicator.Repository) indicator.Repos
 }
 
 func (i *IndicatorRepository) Save(ctx context.Context, data ...indicator.StorageDTO) error {
-	if err := i.storage.Save(ctx, data...); err != nil {
-		return errors.Wrap(err, "save to storage")
-	}
+	_ = i.cache.Save(ctx, data...)
 	if err := i.storage.Save(ctx, data...); err != nil {
 		return errors.Wrap(err, "save to cache")
 	}

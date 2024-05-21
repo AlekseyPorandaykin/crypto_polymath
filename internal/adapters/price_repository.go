@@ -19,11 +19,9 @@ func NewPriceRepository(storage, cache price.Repository) price.Repository {
 }
 
 func (p *PriceRepository) Save(ctx context.Context, data ...price.StorageDTO) error {
+	_ = p.cache.Save(ctx, data...)
 	if err := p.storage.Save(ctx, data...); err != nil {
 		return errors.Wrap(err, "save to storage")
-	}
-	if err := p.cache.Save(ctx, data...); err != nil {
-		return errors.Wrap(err, "save to cache")
 	}
 	return nil
 }

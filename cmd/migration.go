@@ -14,7 +14,7 @@ import (
 )
 
 var migrationCmd = &cobra.Command{
-	Use:   "migration",
+	Use:   "migrate",
 	Short: "Migration database",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

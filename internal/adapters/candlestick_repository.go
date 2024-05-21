@@ -19,11 +19,9 @@ func NewCandlestickRepository(storage, cache candlestick.Repository) candlestick
 }
 
 func (c *CandlestickRepository) Save(ctx context.Context, data ...candlestick.StorageDTO) error {
+	_ = c.cache.Save(ctx, data...)
 	if err := c.storage.Save(ctx, data...); err != nil {
 		return errors.Wrap(err, "from storage")
-	}
-	if err := c.cache.Save(ctx, data...); err != nil {
-		return errors.Wrap(err, "from cache")
 	}
 	return nil
 }
