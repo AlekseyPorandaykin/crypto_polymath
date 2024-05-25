@@ -3,6 +3,7 @@ package loader
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
@@ -20,15 +21,23 @@ const slippageSecond = 1
 type Loader struct {
 	priceService       price.Price
 	candlestickService candlestick.Candlestick
+	exchangeService    core_exchange.Exchange
 	exchangeNames      []string
 
 	symbols []string
 }
 
-func NewLoader(priceService price.Price, candlestickService candlestick.Candlestick, exchangeNames, symbols []string) *Loader {
+func NewLoader(
+	priceService price.Price,
+	candlestickService candlestick.Candlestick,
+	exchangeService core_exchange.Exchange,
+	exchangeNames,
+	symbols []string,
+) *Loader {
 	return &Loader{
 		priceService:       priceService,
 		candlestickService: candlestickService,
+		exchangeService:    exchangeService,
 		exchangeNames:      exchangeNames,
 		symbols:            symbols,
 	}
@@ -80,6 +89,17 @@ func (l *Loader) Run(ctx context.Context) error {
 	go func() {
 		defer system.HandlePanic()
 		l.deleteOldRows(ctx, exchange.BybitExchange, viper.GetInt("candlestick.storage.limit"))
+	}()
+	go func() {
+		err := scheduler.ExecuteEveryDay(ctx, func() error {
+			if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchange.BybitExchange); err != nil {
+				zap.L().Error("load symbol info", zap.Error(err))
+			}
+			return nil
+		})
+		if err != nil {
+			errCh <- err
+		}
 	}()
 
 	for {

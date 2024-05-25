@@ -17,6 +17,9 @@ type ServerInterface interface {
 	// (GET /candlestick/{exchange}/{symbol}/{unit}/{interval})
 	GetCandlestickExchangeSymbolUnitInterval(ctx echo.Context, exchange string, symbol string, unit GetCandlestickExchangeSymbolUnitIntervalParamsUnit, interval string) error
 
+	// (GET /exchange/{exchange}/{symbol})
+	GetExchangeExchangeSymbol(ctx echo.Context, exchange string, symbol string) error
+
 	// (GET /indicator/{exchange}/{symbol}/{unit}/{interval}/{name}/{depth})
 	GetIndicatorExchangeSymbolUnitIntervalNameDepth(ctx echo.Context, exchange string, symbol string, unit GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit, interval int, name GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName, depth GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth) error
 
@@ -75,6 +78,30 @@ func (w *ServerInterfaceWrapper) GetCandlestickExchangeSymbolUnitInterval(ctx ec
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCandlestickExchangeSymbolUnitInterval(ctx, exchange, symbol, unit, interval)
+	return err
+}
+
+// GetExchangeExchangeSymbol converts echo context to params.
+func (w *ServerInterfaceWrapper) GetExchangeExchangeSymbol(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "exchange" -------------
+	var exchange string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "exchange", runtime.ParamLocationPath, ctx.Param("exchange"), &exchange)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter exchange: %s", err))
+	}
+
+	// ------------- Path parameter "symbol" -------------
+	var symbol string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "symbol", runtime.ParamLocationPath, ctx.Param("symbol"), &symbol)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter symbol: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetExchangeExchangeSymbol(ctx, exchange, symbol)
 	return err
 }
 
@@ -228,6 +255,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/candlestick/:exchange/:symbol/:unit/:interval", wrapper.GetCandlestickExchangeSymbolUnitInterval)
+	router.GET(baseURL+"/exchange/:exchange/:symbol", wrapper.GetExchangeExchangeSymbol)
 	router.GET(baseURL+"/indicator/:exchange/:symbol/:unit/:interval/:name/:depth", wrapper.GetIndicatorExchangeSymbolUnitIntervalNameDepth)
 	router.GET(baseURL+"/price/:exchange/:symbol", wrapper.GetPriceExchangeSymbol)
 	router.GET(baseURL+"/prices/exchange/:exchange", wrapper.GetPricesExchangeExchange)

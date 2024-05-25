@@ -90,6 +90,21 @@ type ServerInfoResponse struct {
 	Time time.Time `json:"time"`
 }
 
+// SymbolInfoResponse defines model for SymbolInfoResponse.
+type SymbolInfoResponse struct {
+	// BaseAsset Base coin
+	BaseAsset string `json:"base_asset"`
+
+	// Exchange Name exchange
+	Exchange string `json:"exchange"`
+
+	// QuoteAsset Quote coin
+	QuoteAsset string `json:"quote_asset"`
+
+	// Symbol Name symbol
+	Symbol string `json:"symbol"`
+}
+
 // GetCandlestickExchangeSymbolUnitIntervalParamsUnit defines parameters for GetCandlestickExchangeSymbolUnitInterval.
 type GetCandlestickExchangeSymbolUnitIntervalParamsUnit string
 

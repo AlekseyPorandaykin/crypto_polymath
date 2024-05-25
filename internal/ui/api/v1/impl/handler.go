@@ -3,6 +3,7 @@ package impl
 import (
 	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
@@ -27,10 +28,37 @@ type Handler struct {
 	priceService       price.Price
 	candlestickService candlestick.Candlestick
 	indicatorService   indicator.Indicator
+	exchangeService    exchange.Exchange
 }
 
-func NewHandler(priceService price.Price, candlestickService candlestick.Candlestick, indicatorService indicator.Indicator) *Handler {
-	return &Handler{priceService: priceService, candlestickService: candlestickService, indicatorService: indicatorService}
+func NewHandler(
+	priceService price.Price,
+	candlestickService candlestick.Candlestick,
+	indicatorService indicator.Indicator,
+	exchangeService exchange.Exchange,
+) *Handler {
+	return &Handler{
+		priceService:       priceService,
+		candlestickService: candlestickService,
+		indicatorService:   indicatorService,
+		exchangeService:    exchangeService,
+	}
+}
+
+func (h *Handler) GetExchangeExchangeSymbol(ctx echo.Context, exchange string, symbol string) error {
+	res, err := h.exchangeService.SymbolInfo(ctx.Request().Context(), exchange, symbol)
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	if res == nil {
+		return ctx.JSON(http.StatusNotFound, nil)
+	}
+	return ctx.JSON(http.StatusOK, spec.SymbolInfoResponse{
+		Exchange:   res.Exchange,
+		Symbol:     res.Symbol,
+		BaseAsset:  res.BaseAsset,
+		QuoteAsset: res.QuoteAsset,
+	})
 }
 
 func (h *Handler) GetPriceExchangeSymbol(ctx echo.Context, exchange string, symbol string) error {

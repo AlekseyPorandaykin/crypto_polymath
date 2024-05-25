@@ -3,10 +3,10 @@ package exchange
 import (
 	"context"
 	"fmt"
-	"github.com/AlekseyPorandaykin/crypto_loader/domain"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/request"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
@@ -18,6 +18,10 @@ const BybitExchange = "bybit"
 
 type Bybit struct {
 	client *v5.Client
+}
+
+func NewByBit(client *v5.Client) *Bybit {
+	return &Bybit{client: client}
 }
 
 func (c *Bybit) LastMinuteCandlesticks(ctx context.Context, symbol string, minutes int) ([]candlestick.ExchangeDTO, error) {
@@ -73,10 +77,6 @@ func (c *Bybit) lastCandlesticks(ctx context.Context, symbol, interval string) (
 	return result, nil
 }
 
-func NewByBit(client *v5.Client) *Bybit {
-	return &Bybit{client: client}
-}
-
 func (c *Bybit) Prices(ctx context.Context) ([]price.ExchangeDTO, error) {
 	result := make([]price.ExchangeDTO, 0, 500)
 	var tickerResp v5.TickerResponse
@@ -113,15 +113,16 @@ func (c *Bybit) Price(ctx context.Context, symbol string) (price.ExchangeDTO, er
 	return price.ExchangeDTO{}, nil
 }
 
-func (c *Bybit) LoadSymbolInfo(ctx context.Context) ([]domain.SymbolInfo, error) {
+func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
 	instrumentInfo, err := c.client.MarketInstrumentsInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]domain.SymbolInfo, 0, len(instrumentInfo.Result.List))
+	result := make([]core_exchange.SymbolInfoDTO, 0, len(instrumentInfo.Result.List))
 	for _, item := range instrumentInfo.Result.List {
-		result = append(result, domain.SymbolInfo{
+		result = append(result, core_exchange.SymbolInfoDTO{
 			Symbol:     item.Symbol,
+			Exchange:   BybitExchange,
 			BaseAsset:  item.BaseCoin,
 			QuoteAsset: item.QuoteCoin,
 		})

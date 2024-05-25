@@ -236,6 +236,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /exchange/{exchange}/{symbol}:
+    get:
+      tags:
+        - exchange
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: return symbol info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymbolInfoResponse'
+        404:
+          description: not found symbol
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     ServerInfoResponse:
@@ -302,6 +334,22 @@ components:
         value:
           type: number
           description: Last price value
+    SymbolInfoResponse:
+      type: object
+      required: [ symbol, exchange, base_asset, quote_asset ]
+      properties:
+        symbol:
+          type: string
+          description: Name symbol
+        exchange:
+          type: string
+          description: Name exchange
+        base_asset:
+          type: string
+          description: Base coin
+        quote_asset:
+          type: string
+          description: Quote coin
   examples:
     PriceResponse:
       value:

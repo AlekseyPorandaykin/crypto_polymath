@@ -13,6 +13,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/mexc"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters"
@@ -114,14 +115,19 @@ var daemonCmd = &cobra.Command{
 
 		indicatorService := indicator.NewService(indicatorRepo, service.NewCandlestickAdapter(candlestickService))
 
-		loaderApp := loader.NewLoader(priceService, candlestickService, exchangeNames, symbols)
+		exchangeService := core_exchange.New(
+			adapters.NewExchangeRepository(sqlite.NewExchangeRepository(conn), memory.NewExchangeRepository()),
+		)
+		exchangeService.AddLoader(exchange.BybitExchange, bybitExchange)
+
+		loaderApp := loader.NewLoader(priceService, candlestickService, exchangeService, exchangeNames, symbols)
 		calculatorApp := calculator.NewCalculator(candlestickService, indicatorService, symbols)
 
 		//Server HTTP
 		serverHttp := http.NewServer()
 		defer serverHttp.Close()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
-		handlerHttp := impl.NewHandler(priceService, candlestickService, indicatorService)
+		handlerHttp := impl.NewHandler(priceService, candlestickService, indicatorService, exchangeService)
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
 
 		//Run applications
