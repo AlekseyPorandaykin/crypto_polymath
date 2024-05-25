@@ -58,6 +58,19 @@ var durationDeleteCandlestick = prometheus.NewCounter(prometheus.CounterOpts{
 	Help:      "How long candlesticks deleted in seconds.",
 })
 
+var exchangeSymbolTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "exchange_symbol_loaded_total",
+	Help:      "How much symbol loaded.",
+}, []string{"exchange"})
+var exchangeSymbolDuration = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "exchange_symbol_loaded_seconds",
+	Help:      "How long symbol loaded in seconds.",
+}, []string{"exchange"})
+
 func durationPricesLoadedHelper(exchange string) func() {
 	start := time.Now()
 
@@ -83,6 +96,15 @@ func durationCandlestickLoadedHelper(exchange, unit string, interval int) func()
 		durationCandlestickLoaded.WithLabelValues(exchange, unit).Add(duration.Seconds())
 	}
 }
+func ExchangeSymbolLoadedHelper(exchange string) func() {
+	start := time.Now()
+
+	return func() {
+		duration := time.Since(start)
+		exchangeSymbolTotal.WithLabelValues(exchange).Inc()
+		exchangeSymbolDuration.WithLabelValues(exchange).Add(duration.Seconds())
+	}
+}
 
 func deleteIndicatorHelper() func() {
 	start := time.Now()
@@ -94,11 +116,8 @@ func deleteIndicatorHelper() func() {
 }
 
 func init() {
-	prometheus.DefaultRegisterer.MustRegister(pricesLoaded)
-	prometheus.DefaultRegisterer.MustRegister(candlestickLoaded)
-	prometheus.DefaultRegisterer.MustRegister(durationPricesLoaded)
-	prometheus.DefaultRegisterer.MustRegister(durationCandlestickLoaded)
-	prometheus.DefaultRegisterer.MustRegister(countsPricesLoaded)
-	prometheus.DefaultRegisterer.MustRegister(deleteCandlestick)
-	prometheus.DefaultRegisterer.MustRegister(durationDeleteCandlestick)
+	prometheus.DefaultRegisterer.MustRegister(pricesLoaded, durationPricesLoaded, countsPricesLoaded)
+	prometheus.DefaultRegisterer.MustRegister(candlestickLoaded, durationCandlestickLoaded)
+	prometheus.DefaultRegisterer.MustRegister(deleteCandlestick, durationDeleteCandlestick)
+	prometheus.DefaultRegisterer.MustRegister(exchangeSymbolTotal, exchangeSymbolDuration)
 }

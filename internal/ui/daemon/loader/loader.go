@@ -92,6 +92,8 @@ func (l *Loader) Run(ctx context.Context) error {
 	}()
 	go func() {
 		err := scheduler.ExecuteEveryDay(ctx, func() error {
+			defer system.HandlePanic()
+			defer ExchangeSymbolLoadedHelper(exchange.BybitExchange)()
 			if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchange.BybitExchange); err != nil {
 				zap.L().Error("load symbol info", zap.Error(err))
 			}
