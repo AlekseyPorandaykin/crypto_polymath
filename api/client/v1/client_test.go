@@ -23,6 +23,17 @@ func TestClient_PricesByExchange(t *testing.T) {
 	c.PricesByExchange(context.TODO(), "bybit")
 }
 
+func TestClient_ExchangerSymbol(t *testing.T) {
+	c, err := NewClient("http://37.1.216.169")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	res, err := c.ExchangerSymbol(context.TODO(), "bybit", "BTCUSDT")
+
+	fmt.Println(res, err)
+}
+
 func TestClient_PricesBySymbol(t *testing.T) {
 	c, err := NewClient("http://37.1.216.169")
 	if err != nil {

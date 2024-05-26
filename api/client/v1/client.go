@@ -13,6 +13,7 @@ import (
 
 var ErrResponse = errors.New("internal server")
 var ErrNotSupportedResponse = errors.New("don't supported response")
+var ErrNotFound = errors.New("not found")
 
 type ErrClient struct {
 	err     error
@@ -138,6 +139,26 @@ func (c *Client) Prices(ctx context.Context, exchange, symbol string) (PriceResp
 	}
 
 	return result, nil
+}
+
+func (c *Client) ExchangerSymbol(ctx context.Context, exchange, symbol string) (*SymbolInfoResponse, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("%s/api/exchange/%s/%s", c.hostUrl.String(), exchange, symbol),
+		nil)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "send request")
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	var result SymbolInfoResponse
+	if err := c.parseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (c *Client) DayCandlesticks(ctx context.Context, exchange, symbol string) (CandlesticksResponse, error) {
@@ -505,6 +526,9 @@ func (c *Client) parseResponse(resp *http.Response, dest interface{}) error {
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusOK {
 		return json.NewDecoder(resp.Body).Decode(dest)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
 	}
 	errClient := ErrClient{err: ErrNotSupportedResponse}
 	if resp.StatusCode == http.StatusInternalServerError {
