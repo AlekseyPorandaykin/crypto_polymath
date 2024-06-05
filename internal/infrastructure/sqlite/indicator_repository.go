@@ -115,6 +115,36 @@ LIMIT ? OFFSET ?
 
 	return res, nil
 }
+func (repo *IndicatorRepository) LastToDate(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
+) ([]indicator.StorageDTO, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "indicators_list")()
+	var (
+		query = `
+SELECT id,
+       symbol,
+       exchange,
+       unit,
+       interval,
+       name,
+       datetime,
+       depth,
+       value,
+       created_at
+FROM indicators
+WHERE exchange = ? AND symbol = ? AND unit =? AND interval = ? AND name = ? AND depth = ? AND datetime <= ?
+ORDER BY datetime DESC 
+LIMIT ? 
+`
+		res = make([]indicator.StorageDTO, 0, limit)
+	)
+	err := repo.db.SelectContext(ctx, &res, query, exchange, symbol, unit, interval, name, depth, to, limit)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	return res, nil
+}
 func (repo *IndicatorRepository) Last(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int,
 ) (*indicator.StorageDTO, error) {

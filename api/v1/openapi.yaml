@@ -268,8 +268,100 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth}:
+    get:
+
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: unit
+          description: unit value
+          schema:
+            type: string
+            enum:
+              - m
+              - H
+              - D
+              - W
+              - M
+          required: true
+        - in: path
+          name: interval
+          description: interval value
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: name
+          description: name analysis
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: indicator_depth
+          description: depth indicator
+          schema:
+            type: integer
+            enum:
+              - 1
+              - 10
+              - 20
+              - 50
+          required: true
+        - in: path
+          name: depth
+          description: depth analysis
+          schema:
+            type: integer
+            enum:
+              - 1
+              - 10
+              - 20
+              - 50
+          required: true
+      tags:
+        - analysis
+      responses:
+        200:
+          description: return analysis data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        404:
+          description: not found symbol
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
+    AnalysisResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/AnalysisItem'
+    AnalysisItem:
+      type: object
+      required: [ datetime,  value ]
+      properties:
+        datetime:
+          type: string
+          format: date-time
+        value:
+          type: number
     ServerInfoResponse:
       type: object
       required: [ time ]

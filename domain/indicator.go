@@ -3,12 +3,19 @@ package domain
 import "time"
 
 const (
+	// Первичные идентификаторы, на основе свечей.
 	TrendIndicator                   = "Trend"
 	MAIndicator                      = "MA"
 	EMAIndicator                     = "EMA"
 	TypeCandleIndicator              = "TypeCandle"              //Направление свечи
 	VolatilityCandlePercentIndicator = "VolatilityCandlePercent" //Процент изменчивости свечи
 	PriceChanges                     = "PriceChanges"            //Изменение цены
+
+	//Вторичные идентификаторы, на основе первичных идентификаторов
+	TrendByMAIndicator        = "TrendByMA"
+	TrendByEMAIndicator       = "TrendByEMA"
+	RatioCandleToMAIndicator  = "RatioCandleToMA"
+	RatioCandleToEMAIndicator = "RatioCandleToEMA"
 )
 
 const (

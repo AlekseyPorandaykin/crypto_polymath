@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type Unit string
 
@@ -13,8 +15,8 @@ const (
 )
 
 type Candlestick struct {
-	Symbol     string
 	Exchange   string
+	Symbol     string
 	Unit       Unit
 	Interval   int
 	StartTime  time.Time

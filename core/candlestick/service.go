@@ -26,7 +26,7 @@ func (s *service) AddLoader(exchange string, loader ExchangeLoader) {
 	s.loaders[exchange] = loader
 }
 
-func (s *service) LoadCandlesticksMinutes(
+func (s *service) loadCandlesticksMinutes(
 	ctx context.Context, exchange, symbol string, minutes int,
 ) ([]domain.Candlestick, error) {
 	if !isSupportMinute(minutes) {
@@ -121,6 +121,39 @@ func (s *service) LoadCandlesticksMonth(ctx context.Context, exchange, symbol st
 
 	return result, nil
 }
+func (s *service) LoadCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]domain.Candlestick, error) {
+	data, err := s.loadCandlesticks(ctx, exchange, symbol, unit, interval)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.handleCandlesticks(ctx, data, unit, exchange, symbol, interval)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *service) loadCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]ExchangeDTO, error) {
+	loader, has := s.loaders[exchange]
+	if !has || loader == nil {
+		return nil, nil
+	}
+	switch unit {
+	case domain.MinuteUnit:
+		return loader.LastMinuteCandlesticks(ctx, symbol, interval)
+	case domain.HourUnit:
+		return loader.LastHourCandlesticks(ctx, symbol, interval)
+	case domain.DayUnit:
+		return loader.LastDayCandlesticks(ctx, symbol)
+	case domain.WeekUnit:
+		return loader.LastWeekCandlesticks(ctx, symbol)
+	case domain.MonthUnit:
+		return loader.LastMonthCandlesticks(ctx, symbol)
+	default:
+		return nil, nil
+	}
+}
 
 func (s *service) Save(ctx context.Context, candlesticks ...domain.Candlestick) error {
 	data := make([]StorageDTO, 0, len(candlesticks))
@@ -141,29 +174,30 @@ func (s *service) Candlestick(
 ) ([]domain.Candlestick, error) {
 	switch unit {
 	case domain.MinuteUnit:
-		return s.CandlesticksMinutes(ctx, exchange, symbol, interval, limit)
+		return s.candlesticksMinutes(ctx, exchange, symbol, interval, limit)
 	case domain.HourUnit:
-		return s.CandlesticksHours(ctx, exchange, symbol, interval, limit)
+		return s.candlesticksHours(ctx, exchange, symbol, interval, limit)
 	case domain.DayUnit:
 		if interval != 1 {
 			return nil, ErrNotSupportInterval
 		}
-		return s.CandlesticksDay(ctx, exchange, symbol, limit)
+		return s.candlesticksDay(ctx, exchange, symbol, limit)
 	case domain.WeekUnit:
 		if interval != 1 {
 			return nil, ErrNotSupportInterval
 		}
-		return s.CandlesticksWeek(ctx, exchange, symbol, limit)
+		return s.candlesticksWeek(ctx, exchange, symbol, limit)
 	case domain.MonthUnit:
 		if interval != 1 {
 			return nil, ErrNotSupportInterval
 		}
-		return s.CandlesticksMonth(ctx, exchange, symbol, limit)
+		return s.candlesticksMonth(ctx, exchange, symbol, limit)
 	default:
 		return nil, ErrNotSupportInterval
 	}
 }
-func (s *service) CandlesticksMinutes(
+
+func (s *service) candlesticksMinutes(
 	ctx context.Context, exchange, symbol string, minutes, limit int,
 ) ([]domain.Candlestick, error) {
 	if !isSupportMinute(minutes) {
@@ -176,7 +210,7 @@ func (s *service) CandlesticksMinutes(
 	return result, nil
 }
 
-func (s *service) CandlesticksHours(
+func (s *service) candlesticksHours(
 	ctx context.Context, exchange, symbol string, hours, limit int,
 ) ([]domain.Candlestick, error) {
 	if !isSupportHours(hours) {
@@ -189,7 +223,7 @@ func (s *service) CandlesticksHours(
 	return result, nil
 }
 
-func (s *service) CandlesticksDay(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
+func (s *service) candlesticksDay(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
 	result, err := s.candlesticks(ctx, exchange, symbol, string(domain.DayUnit), 1, limit)
 	if err != nil {
 		return nil, err
@@ -197,7 +231,7 @@ func (s *service) CandlesticksDay(ctx context.Context, exchange, symbol string, 
 	return result, nil
 }
 
-func (s *service) CandlesticksWeek(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
+func (s *service) candlesticksWeek(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
 	result, err := s.candlesticks(ctx, exchange, symbol, string(domain.WeekUnit), 1, limit)
 	if err != nil {
 		return nil, err
@@ -205,7 +239,7 @@ func (s *service) CandlesticksWeek(ctx context.Context, exchange, symbol string,
 	return result, nil
 }
 
-func (s *service) CandlesticksMonth(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
+func (s *service) candlesticksMonth(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error) {
 	result, err := s.candlesticks(ctx, exchange, symbol, string(domain.MonthUnit), 1, limit)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package indicator
+package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
@@ -9,7 +9,7 @@ import (
 type PriceChanges struct {
 }
 
-func NewPriceChanges() *PriceChanges {
+func NewPriceChanges() PrimaryIndicatorCalculator {
 	return &PriceChanges{}
 }
 

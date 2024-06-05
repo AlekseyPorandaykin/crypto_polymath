@@ -1,4 +1,4 @@
-package adapters
+package repository
 
 import (
 	"context"
@@ -38,9 +38,10 @@ func (c *CandlestickRepository) Last(ctx context.Context, exchange, symbol, unit
 	if err != nil {
 		return nil, errors.Wrap(err, "from storage")
 	}
-	if len(dataStorage) > 0 {
-		_ = c.updateCache(ctx, exchange, symbol, unit, interval)
+	if len(dataStorage) == 0 {
+		return nil, nil
 	}
+	_ = c.updateCache(ctx, exchange, symbol, unit, interval)
 	return dataStorage, nil
 }
 
@@ -66,9 +67,10 @@ func (c *CandlestickRepository) LastToDate(ctx context.Context, exchange, symbol
 	if err != nil {
 		return nil, errors.Wrap(err, "from storage")
 	}
-	if len(dataStorage) > 0 {
-		_ = c.updateCache(ctx, exchange, symbol, unit, interval)
+	if len(dataStorage) == 0 {
+		return nil, nil
 	}
+	_ = c.updateCache(ctx, exchange, symbol, unit, interval)
 	return dataStorage, nil
 }
 
@@ -84,9 +86,10 @@ func (c *CandlestickRepository) FromDate(ctx context.Context, exchange, symbol, 
 	if err != nil {
 		return nil, errors.Wrap(err, "from storage")
 	}
-	if len(dataStorage) > 0 {
-		_ = c.updateCache(ctx, exchange, symbol, unit, interval)
+	if len(dataStorage) == 0 {
+		return nil, nil
 	}
+	_ = c.updateCache(ctx, exchange, symbol, unit, interval)
 	return dataStorage, nil
 }
 

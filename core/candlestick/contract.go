@@ -43,21 +43,15 @@ type ExchangeLoader interface {
 	LastMonthCandlesticks(ctx context.Context, symbol string) ([]ExchangeDTO, error)
 }
 
+type Saver interface {
+	Save(ctx context.Context, candlesticks ...domain.Candlestick) error
+}
+
 type Candlestick interface {
 	AddLoader(exchange string, loader ExchangeLoader)
-	LoadCandlesticksMinutes(ctx context.Context, exchange, symbol string, minutes int) ([]domain.Candlestick, error)
-	LoadCandlesticksHours(ctx context.Context, exchange, symbol string, hours int) ([]domain.Candlestick, error)
-	LoadCandlesticksDay(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error)
-	LoadCandlesticksWeek(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error)
-	LoadCandlesticksMonth(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error)
-	Save(ctx context.Context, candlesticks ...domain.Candlestick) error
+	LoadCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]domain.Candlestick, error)
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error
 
-	CandlesticksMinutes(ctx context.Context, exchange, symbol string, minutes, limit int) ([]domain.Candlestick, error)
-	CandlesticksHours(ctx context.Context, exchange, symbol string, hours, limit int) ([]domain.Candlestick, error)
-	CandlesticksDay(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error)
-	CandlesticksWeek(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error)
-	CandlesticksMonth(ctx context.Context, exchange, symbol string, limit int) ([]domain.Candlestick, error)
 	CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error)
 	CandlesticksFromDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error)
 	Candlestick(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int) ([]domain.Candlestick, error)

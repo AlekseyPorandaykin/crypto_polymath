@@ -3,11 +3,32 @@ package loader
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
+	"strconv"
 	"time"
 )
 
 const subsystem = "loader"
+
+var calcIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "calc_indicator",
+	Help:      "How much execute indicator calculated.",
+}, []string{"exchange", "unit", "interval", "depth"})
+
+var totalCalculatedIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "calculated_indicator_total",
+	Help:      "How much indicator calculated.",
+}, []string{"exchange", "unit", "interval", "depth"})
+
+var durationCalcIndicator = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "duration_calc_indicator",
+	Help:      "How long execute indicator  calculated in seconds.",
+}, []string{"exchange", "unit", "interval", "depth"})
 
 var pricesLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
@@ -20,8 +41,15 @@ var candlestickLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
 	Name:      "candlestick_loaded",
-	Help:      "How much candlestick loaded from external exchange.",
+	Help:      "How much execute candlestick loader from external exchange.",
 }, []string{"exchange", "interval"})
+
+var candlestickLoadedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "candlestick_loaded_total",
+	Help:      "How much candlesticks loaded from external exchange.",
+}, []string{"exchange", "unit"})
 
 var countsPricesLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
@@ -40,8 +68,8 @@ var durationPricesLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 var durationCandlestickLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
-	Name:      "duration_candlestick_loaded",
-	Help:      "How long candlestick loaded from external exchange in seconds.",
+	Name:      "duration_candlestick_loaded_milliseconds",
+	Help:      "How long candlestick loaded from external exchange in ms.",
 }, []string{"exchange", "interval"})
 
 var deleteCandlestick = prometheus.NewCounter(prometheus.CounterOpts{
@@ -64,6 +92,7 @@ var exchangeSymbolTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name:      "exchange_symbol_loaded_total",
 	Help:      "How much symbol loaded.",
 }, []string{"exchange"})
+
 var exchangeSymbolDuration = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
@@ -71,12 +100,18 @@ var exchangeSymbolDuration = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help:      "How long symbol loaded in seconds.",
 }, []string{"exchange"})
 
+var errorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "error_total",
+	Help:      "How much errors.",
+}, []string{"exchange", "reason"})
+
 func durationPricesLoadedHelper(exchange string) func() {
 	start := time.Now()
 
 	return func() {
 		duration := time.Since(start)
-		zap.L().Debug("load prices", zap.String("exchange", exchange), zap.String("duration", duration.String()))
 		countsPricesLoaded.WithLabelValues(exchange).Inc()
 		durationPricesLoaded.WithLabelValues(exchange).Add(duration.Seconds())
 	}
@@ -86,14 +121,8 @@ func durationCandlestickLoadedHelper(exchange, unit string, interval int) func()
 
 	return func() {
 		duration := time.Since(start)
-		zap.L().Debug(
-			"load candlesticks",
-			zap.String("unit", unit),
-			zap.Int("interval", interval),
-			zap.String("duration", duration.String()),
-		)
 		candlestickLoaded.WithLabelValues(exchange, unit).Inc()
-		durationCandlestickLoaded.WithLabelValues(exchange, unit).Add(duration.Seconds())
+		durationCandlestickLoaded.WithLabelValues(exchange, unit).Add(float64(duration.Milliseconds()))
 	}
 }
 func ExchangeSymbolLoadedHelper(exchange string) func() {
@@ -114,10 +143,20 @@ func deleteIndicatorHelper() func() {
 		durationDeleteCandlestick.Add(time.Since(start).Seconds())
 	}
 }
+func calcIndicatorHelper(exchangeName string, unit string, interval, depth int) func() {
+	start := time.Now()
+
+	return func() {
+		duration := time.Since(start)
+		calcIndicator.WithLabelValues(exchangeName, unit, strconv.Itoa(interval), strconv.Itoa(depth)).Inc()
+		durationCalcIndicator.WithLabelValues(exchangeName, unit, strconv.Itoa(interval), strconv.Itoa(depth)).Add(duration.Seconds())
+	}
+}
 
 func init() {
 	prometheus.DefaultRegisterer.MustRegister(pricesLoaded, durationPricesLoaded, countsPricesLoaded)
-	prometheus.DefaultRegisterer.MustRegister(candlestickLoaded, durationCandlestickLoaded)
+	prometheus.DefaultRegisterer.MustRegister(candlestickLoaded, durationCandlestickLoaded, candlestickLoadedTotal)
 	prometheus.DefaultRegisterer.MustRegister(deleteCandlestick, durationDeleteCandlestick)
 	prometheus.DefaultRegisterer.MustRegister(exchangeSymbolTotal, exchangeSymbolDuration)
+	prometheus.DefaultRegisterer.MustRegister(calcIndicator, totalCalculatedIndicator, durationCalcIndicator)
 }

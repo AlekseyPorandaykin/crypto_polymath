@@ -1,4 +1,4 @@
-package indicator
+package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
@@ -8,7 +8,7 @@ import (
 type VolatilityCandlePercent struct {
 }
 
-func NewVolatilityCandlePercent() *VolatilityCandlePercent {
+func NewVolatilityCandlePercent() PrimaryIndicatorCalculator {
 	return &VolatilityCandlePercent{}
 }
 func (v *VolatilityCandlePercent) SupportDepth(depth int) bool {

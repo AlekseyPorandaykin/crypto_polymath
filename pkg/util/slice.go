@@ -14,3 +14,13 @@ func BatchSlice[T interface{}](data []T, count int) [][]T {
 
 	return batch
 }
+
+func ClearSlice[T interface{}](data []T, fn func(item T) bool) []T {
+	result := make([]T, 0, len(data))
+	for _, item := range data {
+		if fn(item) {
+			result = append(result, item)
+		}
+	}
+	return result
+}

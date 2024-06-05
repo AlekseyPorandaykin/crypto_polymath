@@ -2,29 +2,28 @@ package calculator
 
 import (
 	"context"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/scheduler"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"strconv"
 	"time"
 )
 
 type Calculator struct {
-	candlestickService candlestick.Candlestick
-	indicatorService   indicator.Indicator
-	symbols            []string
+	indicatorService    indicator.Indicator
+	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
+	symbols             []string
 }
 
-func NewCalculator(candlestickService candlestick.Candlestick, indicatorService indicator.Indicator, symbols []string) *Calculator {
+func NewCalculator(indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody], indicatorService indicator.Indicator, symbols []string) *Calculator {
 	return &Calculator{
-		candlestickService: candlestickService,
-		indicatorService:   indicatorService,
-		symbols:            symbols,
+		indicatorService:    indicatorService,
+		indicatorDispatcher: indicatorDispatcher,
+		symbols:             symbols,
 	}
 }
 
@@ -40,7 +39,7 @@ func (app *Calculator) Run(ctx context.Context) error {
 				for _, depth := range depths {
 					go func(exchangeName, symbol string, minute, depth int) {
 						defer system.HandlePanic()
-						_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute, depth)
+						_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute)
 
 					}(exchangeName, symbol, minute, depth)
 				}
@@ -50,26 +49,62 @@ func (app *Calculator) Run(ctx context.Context) error {
 				go func(exchangeName, symbol string, hour int) {
 					defer system.HandlePanic()
 					_ = scheduler.ExecuteEveryHour(ctx, 1, 2, func() error {
-						return app.calcHourIndicator(ctx, exchangeName, symbol, hour)
+						app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+							Name: domain.CreateIndicatorEventEvent,
+							Body: domain.CreateIndicatorEventBody{
+								Exchange: exchangeName,
+								Symbol:   symbol,
+								Unit:     domain.HourUnit,
+								Interval: hour,
+							},
+						})
+						return nil
 					})
 				}(exchangeName, symbol, hour)
 			}
 			go func(exchangeName, symbol string) {
 				defer system.HandlePanic()
 				_ = scheduler.ExecuteEveryDay(ctx, func() error {
-					return app.calcDayIndicator(ctx, exchangeName, symbol)
+					app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+						Name: domain.CreateIndicatorEventEvent,
+						Body: domain.CreateIndicatorEventBody{
+							Exchange: exchangeName,
+							Symbol:   symbol,
+							Unit:     domain.DayUnit,
+							Interval: 1,
+						},
+					})
+					return nil
 				})
 			}(exchangeName, symbol)
 			go func(exchangeName, symbol string) {
 				defer system.HandlePanic()
 				_ = scheduler.ExecuteEveryWeek(ctx, func() error {
-					return app.calcWeekIndicator(ctx, exchangeName, symbol)
+					app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+						Name: domain.CreateIndicatorEventEvent,
+						Body: domain.CreateIndicatorEventBody{
+							Exchange: exchangeName,
+							Symbol:   symbol,
+							Unit:     domain.WeekUnit,
+							Interval: 1,
+						},
+					})
+					return nil
 				})
 			}(exchangeName, symbol)
 			go func(exchangeName, symbol string) {
 				defer system.HandlePanic()
 				_ = scheduler.ExecuteEveryMonth(ctx, func() error {
-					return app.calcMonthIndicator(ctx, exchangeName, symbol)
+					app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+						Name: domain.CreateIndicatorEventEvent,
+						Body: domain.CreateIndicatorEventBody{
+							Exchange: exchangeName,
+							Symbol:   symbol,
+							Unit:     domain.MonthUnit,
+							Interval: 1,
+						},
+					})
+					return nil
 				})
 			}(exchangeName, symbol)
 		}
@@ -89,7 +124,7 @@ func (app *Calculator) Run(ctx context.Context) error {
 	}
 }
 
-func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, symbol string, min, depth int) error {
+func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, symbol string, min int) error {
 	ticker := time.NewTicker(time.Second / 5)
 	defer ticker.Stop()
 	for {
@@ -97,47 +132,17 @@ func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, sy
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			_, _ = app.calcMinIndicator(ctx, exchangeName, symbol, min, depth)
+			app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+				Name: domain.CreateIndicatorEventEvent,
+				Body: domain.CreateIndicatorEventBody{
+					Exchange: exchangeName,
+					Symbol:   symbol,
+					Unit:     domain.MinuteUnit,
+					Interval: min,
+				},
+			})
 		}
 	}
-}
-
-func (app *Calculator) calcMinIndicator(ctx context.Context, exchangeName, symbol string, min, depth int) (bool, error) {
-	count, _ := app.calcIndicator(ctx, exchangeName, symbol, domain.MinuteUnit, min, depth)
-	return count > 0, nil
-}
-
-func (app *Calculator) calcHourIndicator(ctx context.Context, exchangeName, symbol string, hour int) error {
-	for _, depth := range viper.GetIntSlice("candlestick.depths") {
-		_, _ = app.calcIndicator(ctx, exchangeName, symbol, domain.HourUnit, hour, depth)
-	}
-	return nil
-}
-
-func (app *Calculator) calcDayIndicator(ctx context.Context, exchangeName, symbol string) error {
-	for _, depth := range viper.GetIntSlice("candlestick.depths") {
-		_, _ = app.calcIndicator(ctx, exchangeName, symbol, domain.DayUnit, 1, depth)
-	}
-	return nil
-}
-
-func (app *Calculator) calcWeekIndicator(ctx context.Context, exchangeName, symbol string) error {
-	for _, depth := range viper.GetIntSlice("candlestick.depths") {
-		_, _ = app.calcIndicator(ctx, exchangeName, symbol, domain.WeekUnit, 1, depth)
-	}
-	return nil
-}
-func (app *Calculator) calcMonthIndicator(ctx context.Context, exchangeName, symbol string) error {
-	for _, depth := range viper.GetIntSlice("candlestick.depths") {
-		_, _ = app.calcIndicator(ctx, exchangeName, symbol, domain.MonthUnit, 1, depth)
-	}
-	return nil
-}
-func (app *Calculator) calcIndicator(ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval, depth int) (int, error) {
-	defer calcIndicatorHelper(exchangeName, string(unit), interval, depth)()
-	count, err := app.indicatorService.CalcIndicators(ctx, exchangeName, symbol, unit, interval, depth)
-	totalCalculatedIndicator.WithLabelValues(exchangeName, string(unit), strconv.Itoa(interval), strconv.Itoa(depth)).Add(float64(count))
-	return count, err
 }
 
 func (app *Calculator) deleteOldRows(ctx context.Context) error {

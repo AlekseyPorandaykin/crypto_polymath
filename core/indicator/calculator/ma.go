@@ -1,30 +1,29 @@
-package indicator
+package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/duke-git/lancet/v2/slice"
 )
 
-type TypeCandle struct {
+type ma struct {
 }
 
-func NewTypeCandle() *TypeCandle {
-	return &TypeCandle{}
+func NewMA() PrimaryIndicatorCalculator {
+	return &ma{}
 }
 
-func (t *TypeCandle) Name() string {
-	return domain.TypeCandleIndicator
+func (m *ma) Name() string {
+	return domain.MAIndicator
 }
 
-func (t *TypeCandle) SupportDepth(depth int) bool {
-	return depth == 1
+func (m *ma) SupportDepth(depth int) bool {
+	return depth > 1
 }
 
-func (t *TypeCandle) SupportInterval(interval int) bool {
+func (m *ma) SupportInterval(interval int) bool {
 	return interval > 0
 }
-
-func (t *TypeCandle) Calculate(data []domain.Candlestick) *domain.Indicator {
+func (m *ma) Calculate(data []domain.Candlestick) *domain.Indicator {
 	if len(data) < 1 {
 		return nil
 	}
@@ -32,20 +31,19 @@ func (t *TypeCandle) Calculate(data []domain.Candlestick) *domain.Indicator {
 		return a.StartTime.After(b.StartTime)
 	})
 	candlestick := data[0]
-	val := domain.UpCandle
-	if candlestick.ClosePrice < candlestick.OpenPrice {
-		val = domain.DownCandle
+	var sumValues float64
+	for _, item := range data {
+		sumValues += item.ClosePrice
 	}
-
 	indicator := domain.Indicator{
 		Symbol:   candlestick.Symbol,
 		Exchange: candlestick.Exchange,
 		Unit:     candlestick.Unit,
 		Interval: candlestick.Interval,
-		Name:     domain.TypeCandleIndicator,
+		Name:     domain.MAIndicator,
 		Depth:    len(data),
 		Datetime: candlestick.StartTime,
-		Value:    float64(val),
+		Value:    float64(int(sumValues/float64(len(data))*1_000)) / 1_000,
 	}
 
 	return &indicator

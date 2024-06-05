@@ -2,6 +2,7 @@ package impl
 
 import (
 	"errors"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
@@ -29,6 +30,7 @@ type Handler struct {
 	candlestickService candlestick.Candlestick
 	indicatorService   indicator.Indicator
 	exchangeService    exchange.Exchange
+	analysisService    *analysis.Service
 }
 
 func NewHandler(
@@ -36,13 +38,48 @@ func NewHandler(
 	candlestickService candlestick.Candlestick,
 	indicatorService indicator.Indicator,
 	exchangeService exchange.Exchange,
+	analysisService *analysis.Service,
 ) *Handler {
 	return &Handler{
 		priceService:       priceService,
 		candlestickService: candlestickService,
 		indicatorService:   indicatorService,
 		exchangeService:    exchangeService,
+		analysisService:    analysisService,
 	}
+}
+
+func (h *Handler) GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(
+	ctx echo.Context,
+	exchange string,
+	symbol string,
+	unit spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit,
+	interval int,
+	name string,
+	indicatorDepth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth,
+	depth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth,
+) error {
+	data, err := h.analysisService.Analytics(
+		ctx.Request().Context(),
+		exchange,
+		symbol,
+		domain.Unit(unit),
+		interval,
+		name,
+		int(indicatorDepth),
+		int(depth),
+	)
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	resp := make(spec.AnalysisResponse, 0, len(data))
+	for _, item := range data {
+		resp = append(resp, spec.AnalysisItem{
+			Datetime: item.Datetime,
+			Value:    float32(item.Value),
+		})
+	}
+	return ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) GetExchangeExchangeSymbol(ctx echo.Context, exchange string, symbol string) error {

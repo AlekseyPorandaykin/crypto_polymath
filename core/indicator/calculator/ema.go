@@ -1,4 +1,4 @@
-package indicator
+package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
@@ -8,7 +8,7 @@ import (
 type ema struct {
 }
 
-func NewEMA() Calculator {
+func NewEMA() PrimaryIndicatorCalculator {
 	return &ema{}
 }
 

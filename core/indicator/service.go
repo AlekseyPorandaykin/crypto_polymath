@@ -2,6 +2,7 @@ package indicator
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/google/uuid"
@@ -10,62 +11,48 @@ import (
 )
 
 type service struct {
-	calculators map[string]Calculator
+	calculators map[string]calculator.PrimaryIndicatorCalculator
 	repo        Repository
 	candlestick Candlestick
 }
 
 func NewService(repo Repository, candlestick Candlestick) Indicator {
-	s := &service{
+	return &service{
 		repo:        repo,
 		candlestick: candlestick,
-		calculators: make(map[string]Calculator),
+		calculators: make(map[string]calculator.PrimaryIndicatorCalculator),
 	}
-	s.calculators[domain.MAIndicator] = NewMA()
-	s.calculators[domain.EMAIndicator] = NewEMA()
-	s.calculators[domain.TypeCandleIndicator] = NewTypeCandle()
-	s.calculators[domain.VolatilityCandlePercentIndicator] = NewVolatilityCandlePercent()
-	s.calculators[domain.TrendIndicator] = NewTrend()
-	s.calculators[domain.PriceChanges] = NewPriceChanges()
-	return s
 }
 
-func (s *service) AddCalculator(calculator Calculator) {
+func (s *service) AddCalculator(calculator calculator.PrimaryIndicatorCalculator) {
 	s.calculators[calculator.Name()] = calculator
 }
 
-func (s *service) CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, depth int) (int, error) {
-	var totalCount int
+func (s *service) CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, depth int) ([]domain.Indicator, error) {
+	indicators := make([]domain.Indicator, 0, 100)
 	for key := range s.calculators {
-		count, err := s.CalculateLastCandles(ctx, exchange, symbol, unit, interval, key, depth)
+		indicatorsLastCandle, err := s.calculateLastCandles(ctx, exchange, symbol, unit, interval, key, depth)
 		if err != nil {
-			return count, err
+			return indicators, err
 		}
-		totalCount += count
+		indicators = append(indicators, indicatorsLastCandle...)
 	}
-	return totalCount, nil
+	return indicators, nil
 }
 
-func (s *service) Indicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
-	storageDTO, err := s.repo.Find(
-		ctx,
-		candlestick.Exchange,
-		candlestick.Symbol,
-		string(candlestick.Unit),
-		candlestick.Interval,
-		candlestick.StartTime,
-		name,
-		depth,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "find indicator in storage")
+func (s *service) CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error) {
+	indicators := make([]domain.Indicator, 0, len(s.calculators))
+	for key := range s.calculators {
+		primaryIndicator, err := s.CalculatePrimaryIndicator(ctx, candlestick, key, depth)
+		if err != nil {
+			return nil, err
+		}
+		if primaryIndicator == nil {
+			continue
+		}
+		indicators = append(indicators, *primaryIndicator)
 	}
-	if storageDTO != nil {
-		res := storageToDomain(*storageDTO)
-		return &res, nil
-	}
-
-	return nil, nil
+	return indicators, nil
 }
 
 func (s *service) Indicators(
@@ -82,9 +69,16 @@ func (s *service) Indicators(
 
 	return res, nil
 }
-func (s *service) CalculateIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
+func (s *service) CalculatePrimaryIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
+	calc, has := s.calculators[name]
+	if !has || calc == nil {
+		return nil, nil
+	}
+	if depth < 1 {
+		return nil, nil
+	}
 	storageDTO, err := s.repo.Find(
 		childCtx,
 		candlestick.Exchange,
@@ -101,13 +95,7 @@ func (s *service) CalculateIndicator(ctx context.Context, candlestick domain.Can
 	if storageDTO != nil {
 		return nil, nil
 	}
-	calc, has := s.calculators[name]
-	if !has || calc == nil {
-		return nil, nil
-	}
-	if depth < 1 {
-		return nil, nil
-	}
+
 	data, err := s.candlestick.LastCandlesticks(
 		childCtx, candlestick.Exchange, candlestick.Symbol, candlestick.Unit, candlestick.Interval, depth, candlestick.StartTime,
 	)
@@ -129,34 +117,43 @@ func (s *service) CalculateIndicator(ctx context.Context, candlestick domain.Can
 	return res, nil
 }
 
-func (s *service) CalculateLastCandles(
+func (s *service) LastToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error) {
+	data, err := s.repo.LastToDate(ctx, exchange, symbol, string(unit), interval, name, depth, limit, to)
+	if err != nil {
+		return nil, err
+	}
+	return storageToDomains(data), nil
+}
+
+func (s *service) calculateLastCandles(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, indicator string, depth int,
-) (int, error) {
-	i := 0
+) ([]domain.Indicator, error) {
+	indicators := make([]domain.Indicator, 0, 100)
 	for {
 		calc, has := s.calculators[indicator]
 		if !has || calc == nil {
-			return i, nil
+			return indicators, nil
 		}
 		if !calc.SupportInterval(interval) || !calc.SupportDepth(depth) {
-			return i, nil
+			return indicators, nil
 		}
 		lastCandle, err := s.candleForCalculate(ctx, exchange, symbol, unit, interval, indicator, depth)
 		if err != nil {
-			return i, err
+			return indicators, err
 		}
 		if lastCandle == nil {
-			return i, nil
+			return indicators, nil
 		}
-		res, err := s.CalculateIndicator(ctx, *lastCandle, indicator, depth)
+		res, err := s.CalculatePrimaryIndicator(ctx, *lastCandle, indicator, depth)
 		if err != nil {
-			return i, err
+			return nil, err
 		}
 		if res == nil {
-			return i, nil
+			return indicators, nil
 		}
-		i++
+		indicators = append(indicators, *res)
 	}
+
 }
 func (s *service) candleForCalculate(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, indicator string, depth int,
@@ -262,6 +259,15 @@ func isNextIntervalInPassed(nextIntervalVal time.Time, unit domain.Unit, interva
 	now := time.Now().In(time.UTC)
 	closedInterval := nextInterval(nextIntervalVal, unit, interval) //Когда последний интервал должен появиться
 	return now.After(closedInterval.In(time.UTC))
+}
+
+func storageToDomains(data []StorageDTO) []domain.Indicator {
+	indicators := make([]domain.Indicator, 0, len(data))
+	for _, item := range data {
+		indicators = append(indicators, storageToDomain(item))
+	}
+
+	return indicators
 }
 
 func storageToDomain(data StorageDTO) domain.Indicator {

@@ -3,7 +3,6 @@ package calculator
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"strconv"
 	"time"
 )
@@ -44,6 +43,12 @@ var durationDeleteIndicator = prometheus.NewCounter(prometheus.CounterOpts{
 	Name:      "duration_delete_indicator",
 	Help:      "How long indicator deleted in seconds.",
 })
+var errorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "error_total",
+	Help:      "How much errors.",
+}, []string{"exchange", "reason"})
 
 func calcIndicatorHelper(exchangeName string, unit string, interval, depth int) func() {
 	start := time.Now()
@@ -60,7 +65,6 @@ func deleteIndicatorHelper() func() {
 
 	return func() {
 		duration := time.Since(start)
-		zap.L().Debug("delete old indicators", zap.String("duration", duration.String()))
 		deleteIndicator.Inc()
 		durationDeleteIndicator.Add(duration.Seconds())
 	}
@@ -72,4 +76,5 @@ func init() {
 	prometheus.DefaultRegisterer.MustRegister(deleteIndicator)
 	prometheus.DefaultRegisterer.MustRegister(durationDeleteIndicator)
 	prometheus.DefaultRegisterer.MustRegister(totalCalculatedIndicator)
+	prometheus.DefaultRegisterer.MustRegister(errorTotal)
 }

@@ -39,4 +39,7 @@ type Repository interface {
 	) (*StorageDTO, error)
 	DeleteOldRows(ctx context.Context, symbol, exchangeName, unit string, interval int, name string, depth int, to time.Time) error
 	ListUniq(ctx context.Context) ([]UniqDTO, error)
+	LastToDate(
+		ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
+	) ([]StorageDTO, error)
 }

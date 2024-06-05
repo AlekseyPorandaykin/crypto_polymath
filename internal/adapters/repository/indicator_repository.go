@@ -1,4 +1,4 @@
-package adapters
+package repository
 
 import (
 	"context"
@@ -40,6 +40,9 @@ func (i *IndicatorRepository) Find(
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch from cache")
 	}
+	if storageData == nil {
+		return nil, nil
+	}
 	i.updateCache(ctx, exchange, symbol, unit, interval, name, depth)
 	return storageData, nil
 }
@@ -58,6 +61,9 @@ func (i *IndicatorRepository) List(
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch from cache")
 	}
+	if len(storageData) == 0 {
+		return nil, nil
+	}
 	i.updateCache(ctx, exchange, symbol, unit, interval, name, depth)
 	return storageData, nil
 }
@@ -75,6 +81,9 @@ func (i *IndicatorRepository) Last(
 	storageData, err := i.storage.Last(ctx, exchange, symbol, unit, interval, name, depth)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch from cache")
+	}
+	if storageData == nil {
+		return nil, nil
 	}
 	i.updateCache(ctx, exchange, symbol, unit, interval, name, depth)
 	return storageData, nil
@@ -100,6 +109,12 @@ func (i *IndicatorRepository) ListUniq(ctx context.Context) ([]indicator.UniqDTO
 		return nil, errors.Wrap(err, "fetch from cache")
 	}
 	return storageData, nil
+}
+
+func (i *IndicatorRepository) LastToDate(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
+) ([]indicator.StorageDTO, error) {
+	return i.storage.LastToDate(ctx, exchange, symbol, unit, interval, name, depth, limit, to)
 }
 
 func (i *IndicatorRepository) updateCache(

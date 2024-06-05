@@ -7,6 +7,31 @@ import (
 	"time"
 )
 
+// Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit.
+const (
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitD  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "D"
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitH  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "H"
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitM  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "m"
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitM1 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "M"
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitW  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "W"
+)
+
+// Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth.
+const (
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN1  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 1
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN10 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 10
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN20 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 20
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN50 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 50
+)
+
+// Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth.
+const (
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN1  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 1
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN10 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 10
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN20 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 20
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN50 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 50
+)
+
 // Defines values for GetCandlestickExchangeSymbolUnitIntervalParamsUnit.
 const (
 	GetCandlestickExchangeSymbolUnitIntervalParamsUnitD  GetCandlestickExchangeSymbolUnitIntervalParamsUnit = "D"
@@ -18,11 +43,11 @@ const (
 
 // Defines values for GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit.
 const (
-	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitD  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "D"
-	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitH  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "H"
-	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitM  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "m"
-	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitM1 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "M"
-	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitW  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "W"
+	D  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "D"
+	H  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "H"
+	M  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "m"
+	M1 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "M"
+	W  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "W"
 )
 
 // Defines values for GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName.
@@ -42,6 +67,15 @@ const (
 	N20 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 20
 	N50 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 50
 )
+
+// AnalysisItem defines model for AnalysisItem.
+type AnalysisItem struct {
+	Datetime time.Time `json:"datetime"`
+	Value    float32   `json:"value"`
+}
+
+// AnalysisResponse defines model for AnalysisResponse.
+type AnalysisResponse = []AnalysisItem
 
 // CandlestickItem defines model for CandlestickItem.
 type CandlestickItem struct {
@@ -104,6 +138,15 @@ type SymbolInfoResponse struct {
 	// Symbol Name symbol
 	Symbol string `json:"symbol"`
 }
+
+// GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
+type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit string
+
+// GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
+type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth int
+
+// GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
+type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth int
 
 // GetCandlestickExchangeSymbolUnitIntervalParamsUnit defines parameters for GetCandlestickExchangeSymbolUnitInterval.
 type GetCandlestickExchangeSymbolUnitIntervalParamsUnit string

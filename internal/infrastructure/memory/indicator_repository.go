@@ -145,6 +145,11 @@ func (i *IndicatorRepository) ListUniq(ctx context.Context) ([]indicator.UniqDTO
 	}
 	return uniqs, nil
 }
+func (i *IndicatorRepository) LastToDate(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
+) ([]indicator.StorageDTO, error) {
+	return nil, nil
+}
 
 func keyIndicator(exchangeName, symbol, unit string, interval int, name string, depth int) string {
 	return fmt.Sprintf("%s-%s-%s-%d-%s-%d", exchangeName, symbol, unit, interval, name, depth)

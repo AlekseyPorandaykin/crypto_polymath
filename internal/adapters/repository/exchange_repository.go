@@ -1,4 +1,4 @@
-package adapters
+package repository
 
 import (
 	"context"
@@ -33,6 +33,9 @@ func (e *ExchangeRepository) InfoBySymbol(ctx context.Context, exchangeName, sym
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch data from storage")
 	}
+	if dataStorage == nil {
+		return nil, nil
+	}
 	e.updateCache(ctx, exchangeName)
 	return dataStorage, nil
 }
@@ -50,6 +53,9 @@ func (e *ExchangeRepository) ListByExchange(ctx context.Context, exchangeName st
 	dataStorage, err := e.storage.ListByExchange(ctx, exchangeName)
 	if err != nil {
 		return nil, err
+	}
+	if len(dataStorage) == 0 {
+		return nil, nil
 	}
 	e.updateCache(ctx, exchangeName)
 

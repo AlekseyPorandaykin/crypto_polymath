@@ -2,6 +2,7 @@ package indicator
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"time"
 )
@@ -19,17 +20,11 @@ type Candlestick interface {
 	) (*domain.Candlestick, error)
 }
 
-type Calculator interface {
-	Name() string
-	SupportDepth(depth int) bool
-	SupportInterval(interval int) bool
-	Calculate(candlesticks []domain.Candlestick) *domain.Indicator
-}
-
 type Indicator interface {
-	AddCalculator(calculator Calculator)
-	Indicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error)
+	AddCalculator(calculator calculator.PrimaryIndicatorCalculator)
 	Indicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int) ([]domain.Indicator, error)
-	CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, depth int) (int, error)
+	LastToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error)
+	CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, depth int) ([]domain.Indicator, error)
+	CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error)
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error
 }
