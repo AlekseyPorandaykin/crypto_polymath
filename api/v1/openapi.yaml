@@ -270,7 +270,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth}:
     get:
-
       parameters:
         - in: path
           name: exchange
@@ -307,6 +306,11 @@ paths:
           description: name analysis
           schema:
             type: string
+            enum:
+              - TrendByMA
+              - TrendByEMA
+              - RatioCandleToMA
+              - RatioCandleToEMA
           required: true
         - in: path
           name: indicator_depth

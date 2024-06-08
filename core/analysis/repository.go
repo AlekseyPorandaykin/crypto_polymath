@@ -3,7 +3,19 @@ package analysis
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"time"
 )
+
+type UniqGroup struct {
+	Name           string
+	Exchange       string
+	Symbol         string
+	Unit           domain.Unit
+	Interval       int
+	Depth          int
+	ByIndicator    string
+	IndicatorDepth int
+}
 
 type Repository interface {
 	Save(ctx context.Context, data Analytic) error
@@ -15,4 +27,7 @@ type Repository interface {
 		name string,
 		indicatorDepth, depth int,
 	) ([]Analytic, error)
+	UniqGroups(ctx context.Context) ([]UniqGroup, error)
+	LastInGroup(ctx context.Context, g UniqGroup, offset int) (*Analytic, error)
+	DeleteByGroup(ctx context.Context, g UniqGroup, datetime time.Time) error
 }

@@ -28,5 +28,5 @@ func init() {
 	viper.Set("candlestick.depths", []int{1, 10, 20, 50})
 	viper.Set("candlestick.storage.limit", 200)
 	viper.Set("indicator.storage.limit", 200)
-	viper.Set("indicator.storage.limit", 200)
+	viper.Set("analysis.storage.limit", 200)
 }

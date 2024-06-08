@@ -49,3 +49,23 @@ func (s *Service) Analytics(
 	}
 	return data, nil
 }
+
+func (s *Service) DeleteOldRows(ctx context.Context, limit int) error {
+	groups, err := s.repo.UniqGroups(ctx)
+	if err != nil {
+		return errors.Wrap(err, "fetch from storage")
+	}
+	for _, group := range groups {
+		lastRaw, err := s.repo.LastInGroup(ctx, group, limit)
+		if err != nil {
+			return err
+		}
+		if lastRaw == nil {
+			continue
+		}
+		if err := s.repo.DeleteByGroup(ctx, group, lastRaw.Datetime); err != nil {
+			return err
+		}
+	}
+	return nil
+}

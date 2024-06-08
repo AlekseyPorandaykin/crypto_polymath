@@ -60,6 +60,41 @@ func (a *AnalysisRepository) Last(
 	return data, nil
 }
 
+func (a *AnalysisRepository) UniqGroups(ctx context.Context) ([]analysis.UniqGroup, error) {
+	defer metrics.CacheQueryHelper("memory", "analysis_uniq_groups")()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	data := make([]analysis.UniqGroup, 0, 1_000)
+	uniqData := make(map[analysis.UniqGroup]struct{})
+	for _, cache := range a.caches {
+		for _, item := range cache.Values() {
+			uq := analysis.UniqGroup{
+				Name:           item.Name,
+				Exchange:       item.Exchange,
+				Symbol:         item.Symbol,
+				Unit:           item.Unit,
+				Interval:       item.Interval,
+				Depth:          item.Depth,
+				ByIndicator:    item.ByIndicator,
+				IndicatorDepth: item.IndicatorDepth,
+			}
+			if _, has := uniqData[uq]; has {
+				continue
+			}
+			data = append(data, uq)
+			uniqData[uq] = struct{}{}
+		}
+	}
+	return data, nil
+}
+
+func (a *AnalysisRepository) LastInGroup(ctx context.Context, g analysis.UniqGroup, offset int) (*analysis.Analytic, error) {
+	return nil, nil
+}
+func (a *AnalysisRepository) DeleteByGroup(ctx context.Context, g analysis.UniqGroup, datetime time.Time) error {
+	return nil
+}
+
 func createKey(exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int) string {
 	return fmt.Sprintf("%s-%s-%s-%d-%s-%d-%d", exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
 }

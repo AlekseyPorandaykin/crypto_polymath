@@ -16,6 +16,14 @@ const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitW  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "W"
 )
 
+// Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName.
+const (
+	RatioCandleToEMA GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToEMA"
+	RatioCandleToMA  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToMA"
+	TrendByEMA       GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByEMA"
+	TrendByMA        GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByMA"
+)
+
 // Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth.
 const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN1  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 1
@@ -141,6 +149,9 @@ type SymbolInfoResponse struct {
 
 // GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
 type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit string
+
+// GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
+type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName string
 
 // GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
 type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth int

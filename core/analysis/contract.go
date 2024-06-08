@@ -9,11 +9,11 @@ import (
 
 type Analytic struct {
 	ID             uuid.UUID
-	Name           string
 	Exchange       string
 	Symbol         string
 	Unit           domain.Unit
 	Interval       int
+	Name           string
 	Datetime       time.Time
 	Depth          int
 	ByIndicator    string

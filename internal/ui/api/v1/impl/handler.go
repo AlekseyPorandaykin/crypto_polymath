@@ -55,7 +55,7 @@ func (h *Handler) GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(
 	symbol string,
 	unit spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit,
 	interval int,
-	name string,
+	name spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName,
 	indicatorDepth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth,
 	depth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth,
 ) error {
@@ -65,7 +65,7 @@ func (h *Handler) GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(
 		symbol,
 		domain.Unit(unit),
 		interval,
-		name,
+		string(name),
 		int(indicatorDepth),
 		int(depth),
 	)

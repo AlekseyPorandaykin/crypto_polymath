@@ -2,6 +2,8 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
@@ -34,7 +36,7 @@ func NewAnalyticRepository(db *sqlx.DB) *AnalyticRepository {
 }
 
 func (repo *AnalyticRepository) Save(ctx context.Context, data analysis.Analytic) error {
-	defer metrics.CacheQueryHelper("crypto_polymath", "analysis_save")()
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_save")()
 	var query = `
 INSERT INTO analytics(
                       id, 
@@ -88,7 +90,7 @@ VALUES (
 func (repo *AnalyticRepository) Last(
 	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int,
 ) ([]analysis.Analytic, error) {
-	defer metrics.CacheQueryHelper("crypto_polymath", "analysis_last")()
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_last")()
 	var query = `
 SELECT id,
        name,
@@ -135,4 +137,125 @@ LIMIT 100
 		})
 	}
 	return analytics, nil
+}
+
+func (repo *AnalyticRepository) UniqGroups(ctx context.Context) ([]analysis.UniqGroup, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_uniq_groups")()
+	var query = `
+SELECT DISTINCT name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       depth,
+       by_indicator,
+       indicator_depth
+FROM analytics
+`
+	var data []analysis.UniqGroup
+	rows, err := repo.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var (
+			name, exchange, symbol, unit, byIndicator string
+			interval, depth, indicatorDepth           int
+		)
+		if err := rows.Scan(&name, &exchange, &symbol, &unit, &interval, &depth, &byIndicator, &indicatorDepth); err != nil {
+			return nil, err
+		}
+		data = append(data, analysis.UniqGroup{
+			Name:           name,
+			Exchange:       exchange,
+			Symbol:         symbol,
+			Unit:           domain.Unit(unit),
+			Interval:       interval,
+			Depth:          depth,
+			ByIndicator:    byIndicator,
+			IndicatorDepth: indicatorDepth,
+		})
+	}
+	return data, nil
+}
+
+func (repo *AnalyticRepository) LastInGroup(ctx context.Context, g analysis.UniqGroup, offset int) (*analysis.Analytic, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_last_in_groups")()
+	var query = `
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       datetime,
+       depth,
+       by_indicator,
+       indicator_depth,
+       value,
+       created_at
+FROM analytics
+WHERE name = ?
+  AND exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND depth = ?
+  AND by_indicator = ?
+  AND indicator_depth = ?
+ORDER BY datetime DESC
+LIMIT 1 OFFSET ?
+`
+	var data AnalyticDTO
+	err := repo.db.GetContext(
+		ctx,
+		&data,
+		query,
+		g.Name, g.Exchange, g.Symbol, g.Unit, g.Interval, g.Depth, g.ByIndicator, g.IndicatorDepth,
+		offset,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &analysis.Analytic{
+		ID:             data.ID,
+		Name:           data.Name,
+		Exchange:       data.Exchange,
+		Symbol:         data.Symbol,
+		Unit:           domain.Unit(data.Unit),
+		Interval:       data.Interval,
+		Datetime:       data.Datetime,
+		Depth:          data.Depth,
+		ByIndicator:    data.ByIndicator,
+		IndicatorDepth: data.IndicatorDepth,
+		Value:          data.Value,
+	}, nil
+}
+
+func (repo *AnalyticRepository) DeleteByGroup(ctx context.Context, g analysis.UniqGroup, datetime time.Time) error {
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_delete_by_group")()
+	var query = `
+DELETE
+FROM analytics
+WHERE name = ?
+  AND exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND depth = ?
+  AND by_indicator = ?
+  AND indicator_depth = ?
+  AND datetime < ?;
+`
+	_, err := repo.db.ExecContext(
+		ctx, query,
+		g.Name, g.Exchange, g.Symbol, g.Unit, g.Interval, g.Depth, g.ByIndicator, g.IndicatorDepth, datetime,
+	)
+
+	return err
 }

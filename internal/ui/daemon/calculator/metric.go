@@ -43,6 +43,19 @@ var durationDeleteIndicator = prometheus.NewCounter(prometheus.CounterOpts{
 	Name:      "duration_delete_indicator",
 	Help:      "How long indicator deleted in seconds.",
 })
+var deleteAnalysis = prometheus.NewCounter(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "delete_analysis",
+	Help:      "How much analysis deleted.",
+})
+
+var durationDeleteAnalysis = prometheus.NewCounter(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "duration_delete_analysis",
+	Help:      "How long analysis deleted in seconds.",
+})
 var errorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
@@ -69,6 +82,15 @@ func deleteIndicatorHelper() func() {
 		durationDeleteIndicator.Add(duration.Seconds())
 	}
 }
+func deleteAnalysisHelper() func() {
+	start := time.Now()
+
+	return func() {
+		duration := time.Since(start)
+		deleteAnalysis.Inc()
+		durationDeleteAnalysis.Add(duration.Seconds())
+	}
+}
 
 func init() {
 	prometheus.DefaultRegisterer.MustRegister(calcIndicator)
@@ -77,4 +99,5 @@ func init() {
 	prometheus.DefaultRegisterer.MustRegister(durationDeleteIndicator)
 	prometheus.DefaultRegisterer.MustRegister(totalCalculatedIndicator)
 	prometheus.DefaultRegisterer.MustRegister(errorTotal)
+	prometheus.DefaultRegisterer.MustRegister(deleteAnalysis, durationDeleteAnalysis)
 }

@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
@@ -15,13 +16,20 @@ import (
 
 type Calculator struct {
 	indicatorService    indicator.Indicator
+	analysisService     *analysis.Service
 	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
 	symbols             []string
 }
 
-func NewCalculator(indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody], indicatorService indicator.Indicator, symbols []string) *Calculator {
+func NewCalculator(
+	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
+	indicatorService indicator.Indicator,
+	analysisService *analysis.Service,
+	symbols []string,
+) *Calculator {
 	return &Calculator{
 		indicatorService:    indicatorService,
+		analysisService:     analysisService,
 		indicatorDispatcher: indicatorDispatcher,
 		symbols:             symbols,
 	}
@@ -111,7 +119,12 @@ func (app *Calculator) Run(ctx context.Context) error {
 	}
 	system.Go(func() {
 		_ = scheduler.ExecuteEveryDay(ctx, func() error {
-			return app.deleteOldRows(ctx)
+			return app.deleteOlIndicators(ctx)
+		})
+	})
+	system.Go(func() {
+		_ = scheduler.ExecuteEveryDay(ctx, func() error {
+			return app.deleteOldAnalysis(ctx)
 		})
 	})
 	for {
@@ -145,14 +158,27 @@ func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, sy
 	}
 }
 
-func (app *Calculator) deleteOldRows(ctx context.Context) error {
+func (app *Calculator) deleteOlIndicators(ctx context.Context) error {
 	return scheduler.ExecuteEveryDay(ctx, func() error {
 		defer deleteIndicatorHelper()()
 		if err := app.indicatorService.DeleteOldRows(
 			ctx,
 			viper.GetInt("indicator.storage.limit"),
 		); err != nil {
-			zap.L().Error("delete old price", zap.Error(err))
+			zap.L().Error("delete old indicators", zap.Error(err))
+		}
+		return nil
+	})
+}
+
+func (app *Calculator) deleteOldAnalysis(ctx context.Context) error {
+	return scheduler.ExecuteEveryDay(ctx, func() error {
+		defer deleteAnalysisHelper()()
+		if err := app.analysisService.DeleteOldRows(
+			ctx,
+			viper.GetInt("analysis.storage.limit"),
+		); err != nil {
+			zap.L().Error("delete old analysis", zap.Error(err))
 		}
 		return nil
 	})

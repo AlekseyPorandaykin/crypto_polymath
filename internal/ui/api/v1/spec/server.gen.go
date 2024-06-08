@@ -15,7 +15,7 @@ import (
 type ServerInterface interface {
 
 	// (GET /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth})
-	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx echo.Context, exchange string, symbol string, unit GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit, interval int, name string, indicatorDepth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth, depth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth) error
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx echo.Context, exchange string, symbol string, unit GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit, interval int, name GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName, indicatorDepth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth, depth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth) error
 
 	// (GET /candlestick/{exchange}/{symbol}/{unit}/{interval})
 	GetCandlestickExchangeSymbolUnitInterval(ctx echo.Context, exchange string, symbol string, unit GetCandlestickExchangeSymbolUnitIntervalParamsUnit, interval string) error
@@ -80,7 +80,7 @@ func (w *ServerInterfaceWrapper) GetAnalysisExchangeSymbolUnitIntervalNameIndica
 	}
 
 	// ------------- Path parameter "name" -------------
-	var name string
+	var name GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "name", runtime.ParamLocationPath, ctx.Param("name"), &name)
 	if err != nil {

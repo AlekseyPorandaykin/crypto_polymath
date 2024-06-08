@@ -172,7 +172,7 @@ var daemonCmd = &cobra.Command{
 		loaderApp := loader.NewLoader(
 			priceService, candlestickService, exchangeService, indicatorService, candleDispatcher, exchangeNames, symbols,
 		)
-		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, symbols)
+		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, analysisService, symbols)
 
 		//Server HTTP
 		serverHttp := http.NewServer()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"time"
 )
 
 type AnalysisRepository struct {
@@ -39,4 +40,15 @@ func (a *AnalysisRepository) Last(ctx context.Context, exchangeName, symbol stri
 		_ = a.cache.Save(ctx, itemStorage)
 	}
 	return dataStorage, nil
+}
+
+func (a *AnalysisRepository) UniqGroups(ctx context.Context) ([]analysis.UniqGroup, error) {
+	return a.storage.UniqGroups(ctx)
+}
+func (a *AnalysisRepository) DeleteByGroup(ctx context.Context, g analysis.UniqGroup, datetime time.Time) error {
+	return a.storage.DeleteByGroup(ctx, g, datetime)
+}
+
+func (a *AnalysisRepository) LastInGroup(ctx context.Context, g analysis.UniqGroup, offset int) (*analysis.Analytic, error) {
+	return a.storage.LastInGroup(ctx, g, offset)
 }
