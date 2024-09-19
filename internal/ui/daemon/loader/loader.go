@@ -141,7 +141,7 @@ func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
 	pricesLoaded.WithLabelValues(exchangeName).Add(float64(len(prices)))
 }
 func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbol string) {
-	for _, interval := range []int{1, 3, 5, 15, 30} {
+	for _, interval := range viper.GetIntSlice("candlestick.minutes") {
 		minutes := interval
 		system.Go(func() {
 			//TODO для каждого интервала свое повторение
@@ -158,7 +158,7 @@ func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbo
 }
 
 func (l *Loader) loadHourCandlesticks(ctx context.Context, exchangeName, symbol string) {
-	for _, interval := range []int{1, 2, 4, 6, 12} {
+	for _, interval := range viper.GetIntSlice("candlestick.hours") {
 		hours := interval
 		system.Go(func() {
 			_ = scheduler.ExecuteEveryHour(ctx, hours, slippageSecond, func() error {

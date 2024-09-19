@@ -41,3 +41,17 @@ func (e *ExchangeRepository) ListByExchange(ctx context.Context, exchangeName st
 	defer metrics.DBQueryHelper("memory", "exchange_list_by_exchange")()
 	return e.data.ValuesByFirstKey(exchangeName), nil
 }
+
+func (e *ExchangeRepository) QuoteAssets(ctx context.Context) ([]string, error) {
+	defer metrics.DBQueryHelper("memory", "exchange_quote_assets")()
+	uniqQuoteAsset := make(map[string]struct{})
+	quoteAssets := make([]string, 0, 100)
+	for _, item := range e.data.Values() {
+		if _, has := uniqQuoteAsset[item.QuoteAsset]; has {
+			continue
+		}
+		quoteAssets = append(quoteAssets, item.QuoteAsset)
+		uniqQuoteAsset[item.QuoteAsset] = struct{}{}
+	}
+	return quoteAssets, nil
+}

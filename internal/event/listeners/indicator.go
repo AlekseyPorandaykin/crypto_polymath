@@ -2,13 +2,15 @@ package listeners
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 )
 
 type Indicator struct {
-	analysisHandler *service.AnalysisHandler
+	analysisHandler    *service.AnalysisHandler
+	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]
 }
 
 func NewIndicator(analysisHandler *service.AnalysisHandler) dispatcher.Listener[domain.Indicator] {

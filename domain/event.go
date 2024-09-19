@@ -3,6 +3,7 @@ package domain
 const (
 	CreatedCandlestickEvent   string = "CreatedCandlestickEvent"
 	CreatedIndicatorEvent     string = "CreatedIndicatorEvent"
+	CreatedAnalyticEvent      string = "CreatedAnalyticEvent"
 	CreateIndicatorEventEvent string = "CreateIndicatorEventEvent"
 )
 

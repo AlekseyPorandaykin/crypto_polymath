@@ -114,7 +114,111 @@ func (c *Bybit) Price(ctx context.Context, symbol string) (price.ExchangeDTO, er
 }
 
 func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
-	instrumentInfo, err := c.client.MarketInstrumentsInfo(ctx)
+	spotInfo, err := c.spotSymbolInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	linearInfo, err := c.linearSymbolInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	inverseInfo, err := c.inverseSymbolInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	optionInfo, err := c.optionSymbolInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	uniqSymbols := make(map[string]bool)
+	result := make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
+	for _, spotInfoItem := range spotInfo {
+		if _, has := uniqSymbols[spotInfoItem.Symbol]; has {
+			continue
+		}
+		result = append(result, spotInfoItem)
+		uniqSymbols[spotInfoItem.Symbol] = true
+	}
+	for _, linearInfoItem := range linearInfo {
+		if _, has := uniqSymbols[linearInfoItem.Symbol]; has {
+			continue
+		}
+		result = append(result, linearInfoItem)
+		uniqSymbols[linearInfoItem.Symbol] = true
+	}
+	for _, inverseInfoItem := range inverseInfo {
+		if _, has := uniqSymbols[inverseInfoItem.Symbol]; has {
+			continue
+		}
+		result = append(result, inverseInfoItem)
+		uniqSymbols[inverseInfoItem.Symbol] = true
+	}
+	for _, optionInfoItem := range optionInfo {
+		if _, has := uniqSymbols[optionInfoItem.Symbol]; has {
+			continue
+		}
+		result = append(result, optionInfoItem)
+		uniqSymbols[optionInfoItem.Symbol] = true
+	}
+	return result, nil
+}
+
+func (c *Bybit) spotSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
+	instrumentInfo, err := c.client.MarketInstrumentsSpotInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core_exchange.SymbolInfoDTO, 0, len(instrumentInfo.Result.List))
+	for _, item := range instrumentInfo.Result.List {
+		result = append(result, core_exchange.SymbolInfoDTO{
+			Symbol:     item.Symbol,
+			Exchange:   BybitExchange,
+			BaseAsset:  item.BaseCoin,
+			QuoteAsset: item.QuoteCoin,
+		})
+	}
+
+	return result, nil
+}
+
+func (c *Bybit) linearSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
+	instrumentInfo, err := c.client.MarketInstrumentsLinearInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core_exchange.SymbolInfoDTO, 0, len(instrumentInfo.Result.List))
+	for _, item := range instrumentInfo.Result.List {
+		result = append(result, core_exchange.SymbolInfoDTO{
+			Symbol:     item.Symbol,
+			Exchange:   BybitExchange,
+			BaseAsset:  item.BaseCoin,
+			QuoteAsset: item.QuoteCoin,
+		})
+	}
+
+	return result, nil
+}
+
+func (c *Bybit) inverseSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
+	instrumentInfo, err := c.client.MarketInstrumentsInverseInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core_exchange.SymbolInfoDTO, 0, len(instrumentInfo.Result.List))
+	for _, item := range instrumentInfo.Result.List {
+		result = append(result, core_exchange.SymbolInfoDTO{
+			Symbol:     item.Symbol,
+			Exchange:   BybitExchange,
+			BaseAsset:  item.BaseCoin,
+			QuoteAsset: item.QuoteCoin,
+		})
+	}
+
+	return result, nil
+}
+
+func (c *Bybit) optionSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
+	instrumentInfo, err := c.client.MarketInstrumentsOptionInfo(ctx)
 	if err != nil {
 		return nil, err
 	}

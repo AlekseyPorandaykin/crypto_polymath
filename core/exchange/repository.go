@@ -20,4 +20,5 @@ type Repository interface {
 	InfoBySymbol(ctx context.Context, exchange, symbol string) (*SymbolInfoStorageDTO, error)
 	DeleteOldRows(ctx context.Context, exchangeName string, to time.Time) error
 	ListByExchange(ctx context.Context, exchangeName string) ([]SymbolInfoStorageDTO, error)
+	QuoteAssets(ctx context.Context) ([]string, error)
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/jmoiron/sqlx"
 	"strings"
@@ -219,4 +220,36 @@ WHERE  symbol = ?
 		return err
 	}
 	return nil
+}
+
+func (repo *IndicatorRepository) AllIndicatorInfoModel(ctx context.Context) (map[string][]view.IndicatorInfoModel, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "indicators_all_indicator_info_model")()
+	result := make(map[string][]view.IndicatorInfoModel)
+	query := `SELECT DISTINCT unit, interval, name, depth
+FROM indicators`
+	rows, err := repo.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var (
+			unit, name      string
+			interval, depth int
+		)
+		if err := rows.Scan(&unit, &interval, &name, &depth); err != nil {
+			return nil, err
+		}
+		if _, has := result[name]; !has {
+			result[name] = make([]view.IndicatorInfoModel, 0, 100)
+		}
+		result[name] = append(result[name], view.IndicatorInfoModel{
+			Unit:     unit,
+			Interval: interval,
+			Name:     name,
+			Depth:    depth,
+		},
+		)
+	}
+	return result, nil
 }

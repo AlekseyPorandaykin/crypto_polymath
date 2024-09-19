@@ -24,3 +24,25 @@ func ClearSlice[T interface{}](data []T, fn func(item T) bool) []T {
 	}
 	return result
 }
+func ModifySlice[T interface{}, K interface{}](data []T, fn func(T) K) []K {
+	result := make([]K, 0, len(data))
+	for _, item := range data {
+		result = append(result, fn(item))
+	}
+	return result
+}
+
+func UniqSlice[T comparable](data []T) []T {
+	uniqKeys := make(map[T]struct{})
+	for _, item := range data {
+		if _, has := uniqKeys[item]; has {
+			continue
+		}
+		uniqKeys[item] = struct{}{}
+	}
+	result := make([]T, 0, len(uniqKeys))
+	for key := range uniqKeys {
+		result = append(result, key)
+	}
+	return result
+}

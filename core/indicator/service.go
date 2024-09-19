@@ -117,6 +117,8 @@ func (s *service) CalculatePrimaryIndicator(ctx context.Context, candlestick dom
 	return res, nil
 }
 
+// TODO: надо возвращать последние записи, которые идут друг за другом или ничего
+// иначе можно получить несколько записей, между которыми большие разрывы
 func (s *service) LastToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error) {
 	data, err := s.repo.LastToDate(ctx, exchange, symbol, string(unit), interval, name, depth, limit, to)
 	if err != nil {

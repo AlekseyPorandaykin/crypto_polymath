@@ -76,6 +76,16 @@ const (
 	N50 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 50
 )
 
+// AnalysisInfo defines model for AnalysisInfo.
+type AnalysisInfo struct {
+	Depth          []int  `json:"depth"`
+	Description    string `json:"description"`
+	IndicatorDepth []int  `json:"indicator_depth"`
+
+	// Name Name analysis
+	Name string `json:"name"`
+}
+
 // AnalysisItem defines model for AnalysisItem.
 type AnalysisItem struct {
 	Datetime time.Time `json:"datetime"`
@@ -101,6 +111,15 @@ type CandlesticksResponse = []CandlestickItem
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// IndicatorInfo defines model for IndicatorInfo.
+type IndicatorInfo struct {
+	Depth       []int  `json:"depth"`
+	Description string `json:"description"`
+
+	// Name Name indicator
+	Name string `json:"name"`
 }
 
 // IndicatorItem defines model for IndicatorItem.
@@ -129,7 +148,14 @@ type PricesResponse = []PriceResponse
 
 // ServerInfoResponse defines model for ServerInfoResponse.
 type ServerInfoResponse struct {
-	Time time.Time `json:"time"`
+	Analysis   []AnalysisInfo  `json:"analysis"`
+	Depths     []int           `json:"depths"`
+	Exchanges  []string        `json:"exchanges"`
+	Indicators []IndicatorInfo `json:"indicators"`
+	Intervals  []UnitIntervals `json:"intervals"`
+	Symbols    []string        `json:"symbols"`
+	Time       time.Time       `json:"time"`
+	Units      []string        `json:"units"`
 }
 
 // SymbolInfoResponse defines model for SymbolInfoResponse.
@@ -140,11 +166,21 @@ type SymbolInfoResponse struct {
 	// Exchange Name exchange
 	Exchange string `json:"exchange"`
 
+	// IsExist Symbol exist in exchange
+	IsExist bool `json:"is_exist"`
+
 	// QuoteAsset Quote coin
 	QuoteAsset string `json:"quote_asset"`
 
 	// Symbol Name symbol
 	Symbol string `json:"symbol"`
+}
+
+// UnitIntervals Support interval
+type UnitIntervals struct {
+	// Unit Unit value
+	Unit   string `json:"unit"`
+	Values []int  `json:"values"`
 }
 
 // GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.

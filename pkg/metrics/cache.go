@@ -16,14 +16,14 @@ var cacheCountQuery = prometheus.NewCounterVec(prometheus.CounterOpts{
 var cacheDurationQuery = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespaceCache,
 	Name:      "duration_query",
-	Help:      "How lon queries executed(in seconds).",
+	Help:      "How lon queries executed(in milliseconds).",
 }, []string{"db", "query"})
 
 func CacheQueryHelper(db, query string) func() {
 	now := time.Now()
 	return func() {
 		cacheCountQuery.WithLabelValues(db, query).Inc()
-		cacheDurationQuery.WithLabelValues(db, query).Add(time.Since(now).Seconds())
+		cacheDurationQuery.WithLabelValues(db, query).Add(float64(time.Since(now).Milliseconds()))
 	}
 }
 

@@ -21,10 +21,18 @@ type Analytic struct {
 	Value          float64
 }
 
-type Calculator interface {
+type CalculatorByIndicator interface {
 	Name() string
 	ByIndicator() string
 	SupportDepth(depth int) bool
 	SupportInterval(interval int) bool
 	Calculate(ctx context.Context, indicator domain.Indicator) ([]Analytic, error)
+}
+
+type CalculatorByAnalytic interface {
+	Name() string
+	ByAnalytic() string
+	SupportDepth(depth int) bool
+	SupportInterval(interval int) bool
+	Calculate(ctx context.Context, data Analytic) ([]Analytic, error)
 }

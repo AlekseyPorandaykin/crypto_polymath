@@ -8,7 +8,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -26,11 +29,13 @@ var (
 )
 
 type Handler struct {
-	priceService       price.Price
-	candlestickService candlestick.Candlestick
-	indicatorService   indicator.Indicator
-	exchangeService    exchange.Exchange
-	analysisService    *analysis.Service
+	priceService        price.Price
+	candlestickService  candlestick.Candlestick
+	indicatorService    indicator.Indicator
+	exchangeService     exchange.Exchange
+	analysisService     *analysis.Service
+	analyticRepository  view.AnalyticInfoRepository
+	indicatorRepository view.IndicatorInfoRepository
 }
 
 func NewHandler(
@@ -39,13 +44,17 @@ func NewHandler(
 	indicatorService indicator.Indicator,
 	exchangeService exchange.Exchange,
 	analysisService *analysis.Service,
+	analyticRepository view.AnalyticInfoRepository,
+	indicatorRepository view.IndicatorInfoRepository,
 ) *Handler {
 	return &Handler{
-		priceService:       priceService,
-		candlestickService: candlestickService,
-		indicatorService:   indicatorService,
-		exchangeService:    exchangeService,
-		analysisService:    analysisService,
+		priceService:        priceService,
+		candlestickService:  candlestickService,
+		indicatorService:    indicatorService,
+		exchangeService:     exchangeService,
+		analysisService:     analysisService,
+		analyticRepository:  analyticRepository,
+		indicatorRepository: indicatorRepository,
 	}
 }
 
@@ -95,6 +104,7 @@ func (h *Handler) GetExchangeExchangeSymbol(ctx echo.Context, exchange string, s
 		Symbol:     res.Symbol,
 		BaseAsset:  res.BaseAsset,
 		QuoteAsset: res.QuoteAsset,
+		IsExist:    res.IsExist,
 	})
 }
 
@@ -173,7 +183,6 @@ func (h *Handler) GetCandlestickExchangeSymbolUnitInterval(
 	}
 	response := spec.CandlesticksResponse{}
 	for _, item := range data {
-		_ = item
 		response = append(response, spec.CandlestickItem{
 			ClosePrice: float32(item.ClosePrice),
 			HighPrice:  float32(item.HighPrice),
@@ -187,7 +196,83 @@ func (h *Handler) GetCandlestickExchangeSymbolUnitInterval(
 }
 
 func (h *Handler) GetServer(ctx echo.Context) error {
-	return ctx.JSON(http.StatusOK, spec.ServerInfoResponse{Time: time.Now().In(time.UTC)})
+	unitIntervals := make([]spec.UnitIntervals, 0, 10)
+	analysisData := make([]spec.AnalysisInfo, 0, 10)
+	indicatorData := make([]spec.IndicatorInfo, 0, 10)
+	analyticInfoData, err := h.analyticRepository.AllAnalyticInfo(ctx.Request().Context())
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	for nameAnalyticInfo, analyticInfoItem := range analyticInfoData {
+		depths := make([]int, 0, 100)
+		indicatorDepths := make([]int, 0, 100)
+		for _, item := range analyticInfoItem {
+			depths = append(depths, item.Depth)
+			indicatorDepths = append(indicatorDepths, item.IndicatorDepth)
+		}
+		analysisData = append(analysisData, spec.AnalysisInfo{
+			Name:           nameAnalyticInfo,
+			Description:    domain.IndicatorDescriptions[nameAnalyticInfo],
+			Depth:          util.UniqSlice(depths),
+			IndicatorDepth: util.UniqSlice(indicatorDepths),
+		})
+	}
+	indicatorInfoData, err := h.indicatorRepository.AllIndicatorInfoModel(ctx.Request().Context())
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	for nameIndicatorInfo, indicatorInfoItem := range indicatorInfoData {
+		depths := make([]int, 0, 100)
+		for _, item := range indicatorInfoItem {
+			depths = append(depths, item.Depth)
+		}
+		indicatorData = append(indicatorData, spec.IndicatorInfo{
+			Name:        nameIndicatorInfo,
+			Description: domain.IndicatorDescriptions[nameIndicatorInfo],
+			Depth:       util.UniqSlice(depths),
+		})
+	}
+	unitIntervals = append(unitIntervals, spec.UnitIntervals{
+		Unit:   string(domain.HourUnit),
+		Values: viper.GetIntSlice("candlestick.hours"),
+	})
+	unitIntervals = append(unitIntervals, spec.UnitIntervals{
+		Unit:   string(domain.MinuteUnit),
+		Values: viper.GetIntSlice("candlestick.minutes"),
+	})
+	unitIntervals = append(unitIntervals, spec.UnitIntervals{
+		Unit:   string(domain.DayUnit),
+		Values: []int{1},
+	})
+	unitIntervals = append(unitIntervals, spec.UnitIntervals{
+		Unit:   string(domain.WeekUnit),
+		Values: []int{1},
+	})
+	unitIntervals = append(unitIntervals, spec.UnitIntervals{
+		Unit:   string(domain.MonthUnit),
+		Values: []int{1},
+	})
+	analysisData = append(analysisData, spec.AnalysisInfo{
+		Name:        domain.TrendByMAIndicator,
+		Description: domain.IndicatorDescriptions[domain.TrendByMAIndicator],
+		Depth:       []int{},
+	})
+	return ctx.JSON(http.StatusOK, spec.ServerInfoResponse{
+		Analysis:   analysisData,
+		Depths:     viper.GetIntSlice("candlestick.depths"),
+		Exchanges:  []string{adapter_exchange.BybitExchange},
+		Indicators: indicatorData,
+		Intervals:  unitIntervals,
+		Symbols:    viper.GetStringSlice("load.symbols"),
+		Time:       time.Now().In(time.UTC),
+		Units: []string{
+			string(domain.MinuteUnit),
+			string(domain.HourUnit),
+			string(domain.DayUnit),
+			string(domain.WeekUnit),
+			string(domain.MonthUnit),
+		},
+	})
 }
 
 func (h *Handler) GetIndicatorExchangeSymbolUnitIntervalNameDepth(

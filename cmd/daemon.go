@@ -6,6 +6,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/binance"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bitget"
 	v5 "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
+	bybit_sender "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/sender"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/gateio"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kraken"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin"
@@ -34,13 +35,17 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
+	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var daemonCmd = &cobra.Command{
@@ -59,7 +64,6 @@ var daemonCmd = &cobra.Command{
 		defer func() { _ = conn.Close() }()
 
 		//Constants
-		symbols := []string{"BTCUSDT", "ETHUSDT"}
 		exchangeNames := []string{
 			adapter_exchange.BinanceExchange,
 			adapter_exchange.BitgetExchange,
@@ -71,15 +75,17 @@ var daemonCmd = &cobra.Command{
 			adapter_exchange.OkxExchange,
 		}
 
+		httpClient := metrics.NewHTTPSenderWithMetrics(http.DefaultClient)
+
 		//Repositories
 		priceRepo := adapter_repository.NewPriceRepository(sqlite.NewPriceRepository(conn), memory.NewPriceRepository())
 		candlestickRepo := adapter_repository.NewCandlestickRepository(
 			sqlite.NewCandlestickRepository(conn),
 			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
 		)
-
+		indicatorDBRepos := sqlite.NewIndicatorRepository(conn)
 		indicatorRepo := adapter_repository.NewIndicatorRepository(
-			sqlite.NewIndicatorRepository(conn),
+			indicatorDBRepos,
 			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
 		)
 
@@ -89,7 +95,10 @@ var daemonCmd = &cobra.Command{
 			viper.GetString("binance.future_host"),
 		))
 		bitgetClient := system.MustInit[*bitget.Client](bitget.NewClient(viper.GetString("bitget.host")))
-		bybitClient := system.MustInit[*v5.Client](v5.DefaultClient(viper.GetString("bybit.host")))
+		bybitBasicSender := bybit_sender.NewBasic()
+		bybitBasicSender.WithHttpClient(httpClient)
+
+		bybitClient := system.MustInit[*v5.Client](v5.NewClient(viper.GetString("bybit.host"), bybitBasicSender))
 		gateIoClient := system.MustInit[*gateio.Client](gateio.NewClient(viper.GetString("gateio.host")))
 		krakenClient := system.MustInit[*kraken.Client](kraken.NewClient(viper.GetString("kraken.host")))
 		kukoinClient := system.MustInit[*kucoin.Client](kucoin.NewClient(viper.GetString("kucoin.host"), kukoin_sender.New()))
@@ -127,38 +136,55 @@ var daemonCmd = &cobra.Command{
 		indicatorService.AddCalculator(indicator_calculator.NewVolatilityCandlePercent())
 		indicatorService.AddCalculator(indicator_calculator.NewTrend())
 		indicatorService.AddCalculator(indicator_calculator.NewPriceChanges())
+		indicatorService.AddCalculator(indicator_calculator.NewStochasticMainLine())
 
 		exchangeService := core_exchange.New(
 			adapter_repository.NewExchangeRepository(sqlite.NewExchangeRepository(conn), memory.NewExchangeRepository()),
 		)
 		exchangeService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
 
+		analysisDBRepo := sqlite.NewAnalyticRepository(conn)
 		analysisService := analysis.NewService(
-			adapter_repository.NewAnalysisRepository(sqlite.NewAnalyticRepository(conn), memory.NewAnalysisRepository(100)),
+			adapter_repository.NewAnalysisRepository(analysisDBRepo, memory.NewAnalysisRepository(100)),
 		)
 
 		emaCalc := calculators.NewTrendByEMA(indicatorService, viper.GetIntSlice("candlestick.depths"))
 		maCalc := calculators.NewTrendByMA(indicatorService, viper.GetIntSlice("candlestick.depths"))
 		rationCandlerToMACalc := calculators.NewRationCandleToMA(candlestickService)
 		rationCandlerToEMACalc := calculators.NewRationCandleToEMA(candlestickService)
-		analysisService.AddCalculator(emaCalc)
-		analysisService.AddCalculator(maCalc)
-		analysisService.AddCalculator(rationCandlerToMACalc)
-		analysisService.AddCalculator(rationCandlerToEMACalc)
+		rsiCalc := calculators.NewRSI(indicatorService, viper.GetIntSlice("candlestick.depths"))
+		macdMainLineCalc := calculators.NewMACDMainLine(indicatorService)
+		stochasticSignalLineCalc := calculators.NewStochasticSignalLine(indicatorService)
+		analysisService.AddCalculatorByIndicator(emaCalc)
+		analysisService.AddCalculatorByIndicator(maCalc)
+		analysisService.AddCalculatorByIndicator(rationCandlerToMACalc)
+		analysisService.AddCalculatorByIndicator(rationCandlerToEMACalc)
+		analysisService.AddCalculatorByIndicator(rsiCalc)
+		analysisService.AddCalculatorByIndicator(macdMainLineCalc)
+		analysisService.AddCalculatorByIndicator(stochasticSignalLineCalc)
+
+		macdSignalLineCalc := calculators.NewMACDSignalLine(analysisService)
+		macdHistogramCalc := calculators.NewMACDHistogram(analysisService)
+		analysisService.AddCalculatorByAnalytic(macdSignalLineCalc)
+		analysisService.AddCalculatorByAnalytic(macdHistogramCalc)
 
 		//Events
 		candleDispatcher := dispatcher.New[domain.Candlestick]()
+
 		defer candleDispatcher.Close()
 		indicatorDispatcher := dispatcher.New[domain.Indicator]()
 		defer indicatorDispatcher.Close()
 		createIndicatorDispatcher := dispatcher.New[domain.CreateIndicatorEventBody]()
 		defer createIndicatorDispatcher.Close()
+		analyticDispatcher := dispatcher.New[analysis.Analytic]()
+		defer analyticDispatcher.Close()
 
+		//Handlers
 		indicatorHandler := service.NewIndicatorHandler(
 			indicatorService,
 			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
 		)
-		analysisHandler := service.NewAnalysisHandler(analysisService)
+		analysisHandler := service.NewAnalysisHandler(analysisService, analyticDispatcher)
 
 		candlestickListener := listeners.NewCandlestick(indicatorHandler)
 		candleDispatcher.Subscribe(candlestickListener)
@@ -168,20 +194,66 @@ var daemonCmd = &cobra.Command{
 		createIndicatorListener := listeners.NewCreateIndicator(indicatorHandler)
 		createIndicatorDispatcher.Subscribe(createIndicatorListener)
 
+		analyticListener := listeners.NewAnalytic(analysisHandler)
+		analyticDispatcher.Subscribe(analyticListener)
+
 		//Applications
 		loaderApp := loader.NewLoader(
-			priceService, candlestickService, exchangeService, indicatorService, candleDispatcher, exchangeNames, symbols,
+			priceService, candlestickService, exchangeService, indicatorService, candleDispatcher, exchangeNames, viper.GetStringSlice("load.symbols"),
 		)
-		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, analysisService, symbols)
+		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"))
 
 		//Server HTTP
-		serverHttp := http.NewServer()
+		serverHttp := http_server.NewServer()
 		defer serverHttp.Close()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
 		handlerHttp := impl.NewHandler(
-			priceService, candlestickService, indicatorService, exchangeService, analysisService,
+			priceService,
+			candlestickService,
+			indicatorService,
+			exchangeService,
+			analysisService,
+			analysisDBRepo,
+			indicatorDBRepos,
 		)
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
+
+		//Debug config
+		if viper.GetBool("app.debug") {
+			candleDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Candlestick], duration time.Duration) {
+				zap.L().Debug(
+					"handle candlestick",
+					zap.String("symbol", e.Body.Symbol),
+					zap.String("unit", string(e.Body.Unit)),
+					zap.Int("interval", e.Body.Interval),
+					zap.Time("start_time", e.Body.StartTime),
+					zap.Int64("duration_ms", duration.Milliseconds()),
+				)
+			})
+			indicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Indicator], duration time.Duration) {
+				zap.L().Debug(
+					"handle indicator",
+					zap.String("symbol", e.Body.Symbol),
+					zap.String("unit", string(e.Body.Unit)),
+					zap.Int("interval", e.Body.Interval),
+					zap.Time("datetime", e.Body.Datetime),
+					zap.String("name", e.Body.Name),
+					zap.Int("depth", e.Body.Depth),
+					zap.Int64("duration_ms", duration.Milliseconds()),
+				)
+			})
+			analyticDispatcher.SetPostHandler(func(e dispatcher.Event[analysis.Analytic], duration time.Duration) {
+				zap.L().Debug("handle analytic",
+					zap.String("Symbol", e.Body.Symbol),
+					zap.String("Unit", string(e.Body.Unit)),
+					zap.Int("Interval", e.Body.Interval),
+					zap.String("Name", e.Body.Name),
+					zap.Time("datetime", e.Body.Datetime),
+					zap.Int("depth", e.Body.Depth),
+					zap.Int64("duration_ms", duration.Milliseconds()),
+				)
+			})
+		}
 
 		//Run applications
 		system.Go(func() {
@@ -213,6 +285,9 @@ var daemonCmd = &cobra.Command{
 		})
 		system.Go(func() {
 			createIndicatorDispatcher.Listen()
+		})
+		system.Go(func() {
+			analyticDispatcher.Listen()
 		})
 
 		<-ctx.Done()

@@ -7,20 +7,30 @@ import (
 )
 
 type Service struct {
-	calculators map[string]Calculator
-	repo        Repository
+	calculatorsByIndicator map[string]CalculatorByIndicator
+	calculatorsByAnalytic  map[string]CalculatorByAnalytic
+	repo                   Repository
 }
 
 func NewService(repo Repository) *Service {
-	return &Service{calculators: make(map[string]Calculator), repo: repo}
+	return &Service{
+		calculatorsByIndicator: make(map[string]CalculatorByIndicator),
+		calculatorsByAnalytic:  make(map[string]CalculatorByAnalytic),
+		repo:                   repo,
+	}
 }
 
-func (s *Service) AddCalculator(calc Calculator) {
-	s.calculators[calc.Name()] = calc
+func (s *Service) AddCalculatorByIndicator(calc CalculatorByIndicator) {
+	s.calculatorsByIndicator[calc.Name()] = calc
 }
 
-func (s *Service) CalculateByIndicator(ctx context.Context, indicator domain.Indicator) error {
-	for _, calc := range s.calculators {
+func (s *Service) AddCalculatorByAnalytic(calc CalculatorByAnalytic) {
+	s.calculatorsByAnalytic[calc.Name()] = calc
+}
+
+func (s *Service) CalculateByIndicator(ctx context.Context, indicator domain.Indicator) ([]Analytic, error) {
+	calculatedAnalytics := make([]Analytic, 0, len(s.calculatorsByIndicator))
+	for _, calc := range s.calculatorsByIndicator {
 		if indicator.Name != calc.ByIndicator() {
 			continue
 		}
@@ -29,15 +39,39 @@ func (s *Service) CalculateByIndicator(ctx context.Context, indicator domain.Ind
 		}
 		analytics, err := calc.Calculate(ctx, indicator)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, analytic := range analytics {
 			if err := s.repo.Save(ctx, analytic); err != nil {
-				return err
+				return nil, err
 			}
 		}
+		calculatedAnalytics = append(calculatedAnalytics, analytics...)
 	}
-	return nil
+	return calculatedAnalytics, nil
+}
+
+func (s *Service) CalculateByAnalytic(ctx context.Context, data Analytic) ([]Analytic, error) {
+	calculatedAnalytics := make([]Analytic, 0, len(s.calculatorsByIndicator))
+	for _, calc := range s.calculatorsByAnalytic {
+		if data.Name != calc.ByAnalytic() {
+			continue
+		}
+		if !calc.SupportInterval(data.Interval) {
+			continue
+		}
+		analytics, err := calc.Calculate(ctx, data)
+		if err != nil {
+			return nil, err
+		}
+		for _, analytic := range analytics {
+			if err := s.repo.Save(ctx, analytic); err != nil {
+				return nil, err
+			}
+		}
+		calculatedAnalytics = append(calculatedAnalytics, analytics...)
+	}
+	return calculatedAnalytics, nil
 }
 
 func (s *Service) Analytics(

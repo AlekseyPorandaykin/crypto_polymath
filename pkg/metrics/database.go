@@ -16,14 +16,14 @@ var dbCountQuery = prometheus.NewCounterVec(prometheus.CounterOpts{
 var dbDurationQuery = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespaceDB,
 	Name:      "duration_query",
-	Help:      "How lon queries executed(in seconds).",
+	Help:      "How lon queries executed(in milliseconds).",
 }, []string{"db", "query"})
 
 func DBQueryHelper(db, query string) func() {
 	now := time.Now()
 	return func() {
 		dbCountQuery.WithLabelValues(db, query).Inc()
-		dbDurationQuery.WithLabelValues(db, query).Add(time.Since(now).Seconds())
+		dbDurationQuery.WithLabelValues(db, query).Add(float64(time.Since(now).Milliseconds()))
 	}
 }
 

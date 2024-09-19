@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -258,4 +259,38 @@ WHERE name = ?
 	)
 
 	return err
+}
+
+func (repo *AnalyticRepository) AllAnalyticInfo(ctx context.Context) (map[string][]view.AnalyticInfoModel, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_all_analytic_info")()
+	result := make(map[string][]view.AnalyticInfoModel)
+	var query = `SELECT 
+    DISTINCT unit, interval, name, depth, indicator_depth
+FROM analytics`
+	rows, err := repo.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var (
+			unit, name                      string
+			interval, depth, indicatorDepth int
+		)
+		if err := rows.Scan(&unit, &interval, &name, &depth, &indicatorDepth); err != nil {
+			return nil, err
+		}
+		model := view.AnalyticInfoModel{
+			Unit:           unit,
+			Interval:       interval,
+			Name:           name,
+			Depth:          depth,
+			IndicatorDepth: indicatorDepth,
+		}
+		if _, has := result[model.Name]; !has {
+			result[model.Name] = make([]view.AnalyticInfoModel, 0)
+		}
+		result[model.Name] = append(result[model.Name], model)
+	}
+	return result, nil
 }

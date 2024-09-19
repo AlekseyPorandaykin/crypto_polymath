@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 )
 
@@ -24,20 +25,13 @@ func (e *ema) SupportInterval(interval int) bool {
 	return interval > 0
 }
 func (e *ema) Calculate(data []domain.Candlestick) *domain.Indicator {
-	var res float64
-	weight := 2 / (float64(len(data)) + 1)
 	slice.SortBy[domain.Candlestick](data, func(a, b domain.Candlestick) bool {
 		return a.StartTime.Before(b.StartTime)
 	})
 	candlestick := data[len(data)-1]
-	for i, item := range data {
-		if i == 0 {
-			res = item.ClosePrice
-			continue
-		}
-		res = (item.ClosePrice * weight) + (res * (1 - weight))
-	}
-
+	emaVal := domain.EMA(util.ModifySlice(data, func(item domain.Candlestick) float64 {
+		return item.ClosePrice
+	}))
 	indicator := domain.Indicator{
 		Symbol:   candlestick.Symbol,
 		Exchange: candlestick.Exchange,
@@ -46,7 +40,7 @@ func (e *ema) Calculate(data []domain.Candlestick) *domain.Indicator {
 		Name:     domain.EMAIndicator,
 		Depth:    len(data),
 		Datetime: candlestick.StartTime,
-		Value:    res,
+		Value:    emaVal,
 	}
 	return &indicator
 }

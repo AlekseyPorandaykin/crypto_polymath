@@ -12,7 +12,7 @@ type ratioCandleToEMA struct {
 	candleService candlestick.Candlestick
 }
 
-func NewRationCandleToEMA(candleService candlestick.Candlestick) analysis.Calculator {
+func NewRationCandleToEMA(candleService candlestick.Candlestick) analysis.CalculatorByIndicator {
 	return &ratioCandleToEMA{candleService: candleService}
 }
 
@@ -25,7 +25,7 @@ func (c *ratioCandleToEMA) ByIndicator() string {
 }
 
 func (c *ratioCandleToEMA) SupportDepth(depth int) bool {
-	return depth > 0
+	return depth == 1
 }
 
 func (c *ratioCandleToEMA) SupportInterval(interval int) bool {

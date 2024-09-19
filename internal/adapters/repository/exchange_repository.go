@@ -40,6 +40,21 @@ func (e *ExchangeRepository) InfoBySymbol(ctx context.Context, exchangeName, sym
 	return dataStorage, nil
 }
 
+func (e *ExchangeRepository) QuoteAssets(ctx context.Context) ([]string, error) {
+	dataCache, _ := e.cache.QuoteAssets(ctx)
+	if len(dataCache) != 0 {
+		return dataCache, nil
+	}
+	dataStorage, err := e.storage.QuoteAssets(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch data from storage")
+	}
+	if dataStorage == nil {
+		return nil, nil
+	}
+	return dataStorage, nil
+}
+
 func (e *ExchangeRepository) DeleteOldRows(ctx context.Context, exchangeName string, to time.Time) error {
 	_ = e.cache.DeleteOldRows(ctx, exchangeName, to)
 	return e.storage.DeleteOldRows(ctx, exchangeName, to)

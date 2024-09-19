@@ -368,11 +368,98 @@ components:
           type: number
     ServerInfoResponse:
       type: object
-      required: [ time ]
+      required: [ time, symbols, exchanges, units, intervals, depths, indicators, analysis ]
       properties:
         time:
           type: string
           format: date-time
+        symbols:
+          type: array
+          items:
+            type: string
+            description: Support symbol
+        exchanges:
+          type: array
+          items:
+            type: string
+            description: Support exchange
+        units:
+          type: array
+          items:
+            type: string
+            description: Support unit
+        intervals:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnitIntervals'
+        depths:
+          type: array
+          items:
+            type: integer
+            description: Support depth
+        indicators:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndicatorInfo'
+        analysis:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisInfo'
+    AnalysisInfo:
+      type: object
+      required:
+        - name
+        - description
+        - depth
+        - indicator_depth
+      properties:
+        name:
+          type: string
+          description: Name analysis
+        description:
+          type: string
+        depth:
+          type: array
+          items:
+            type: integer
+            description: Depth analysis
+        indicator_depth:
+          type: array
+          items:
+            type: integer
+            description: Depth indicator
+    IndicatorInfo:
+      type: object
+      required:
+        - name
+        - description
+        - depth
+      properties:
+        name:
+          type: string
+          description: Name indicator
+        description:
+          type: string
+        depth:
+          type: array
+          items:
+            type: integer
+            description: Depth indicators
+    UnitIntervals:
+      type: object
+      description: Support interval
+      required:
+        - unit
+        - values
+      properties:
+        unit:
+          type: string
+          description: Unit value
+        values:
+          type: array
+          items:
+            type: integer
+            description: Support interval value
     ErrorResponse:
       type: object
       required: [ message ]
@@ -432,7 +519,7 @@ components:
           description: Last price value
     SymbolInfoResponse:
       type: object
-      required: [ symbol, exchange, base_asset, quote_asset ]
+      required: [ symbol, exchange, base_asset, quote_asset, is_exist ]
       properties:
         symbol:
           type: string
@@ -446,6 +533,9 @@ components:
         quote_asset:
           type: string
           description: Quote coin
+        is_exist:
+          type: boolean
+          description: Symbol exist in exchange
   examples:
     PriceResponse:
       value:

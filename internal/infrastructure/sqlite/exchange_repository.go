@@ -65,6 +65,19 @@ LIMIT 1
 	return &result, nil
 }
 
+func (repo *ExchangeRepository) QuoteAssets(ctx context.Context) ([]string, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "exchange_quote_assets")()
+	query := `
+SELECT DISTINCT quote_asset
+FROM symbol_infos
+`
+	quotes := make([]string, 0, 100)
+	if err := repo.db.SelectContext(ctx, &quotes, query); err != nil {
+		return nil, err
+	}
+	return quotes, nil
+}
+
 func (repo *ExchangeRepository) DeleteOldRows(ctx context.Context, exchangeName string, to time.Time) error {
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_delete_old_rows")()
 	var query = `DELETE FROM symbol_infos WHERE exchange=? AND created_at < ?`

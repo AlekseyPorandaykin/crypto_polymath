@@ -17,7 +17,7 @@ type trendByEMA struct {
 	depths           []int
 }
 
-func NewTrendByEMA(indicatorService indicator.Indicator, depths []int) analysis.Calculator {
+func NewTrendByEMA(indicatorService indicator.Indicator, depths []int) analysis.CalculatorByIndicator {
 	return &trendByEMA{indicatorService: indicatorService, depths: depths}
 }
 

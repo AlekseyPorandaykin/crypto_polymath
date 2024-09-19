@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/google/uuid"
+	"strings"
 	"time"
 )
 
@@ -41,6 +42,7 @@ func (s *service) LoadSymbolInfo(ctx context.Context, exchange string) ([]domain
 			Exchange:   resItem.Exchange,
 			BaseAsset:  resItem.BaseAsset,
 			QuoteAsset: resItem.QuoteAsset,
+			IsExist:    true,
 		}
 		data = append(data, domainVal)
 		storageDTOs = append(storageDTOs, SymbolInfoStorageDTO{
@@ -66,13 +68,32 @@ func (s *service) SymbolInfo(ctx context.Context, exchange, symbol string) (*dom
 	if err != nil {
 		return nil, err
 	}
-	if data == nil {
+	if data != nil {
+		return &domain.SymbolInfo{
+			Symbol:     data.Symbol,
+			Exchange:   data.Exchange,
+			BaseAsset:  data.BaseAsset,
+			QuoteAsset: data.QuoteAsset,
+			IsExist:    true,
+		}, nil
+	}
+	//Символ уже мог быть удален, попробуем найти его по котируемому активу
+	quoteAssets, err := s.repo.QuoteAssets(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return &domain.SymbolInfo{
-		Symbol:     data.Symbol,
-		Exchange:   data.Exchange,
-		BaseAsset:  data.BaseAsset,
-		QuoteAsset: data.QuoteAsset,
-	}, nil
+	for _, quoteAsset := range quoteAssets {
+		if !strings.HasSuffix(symbol, quoteAsset) {
+			continue
+		}
+		baseAsset := strings.TrimPrefix(symbol, quoteAsset)
+		return &domain.SymbolInfo{
+			Symbol:     symbol,
+			Exchange:   exchange,
+			BaseAsset:  baseAsset,
+			QuoteAsset: quoteAsset,
+			IsExist:    false,
+		}, nil
+	}
+	return nil, nil
 }

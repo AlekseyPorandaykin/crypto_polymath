@@ -5,4 +5,5 @@ type SymbolInfo struct {
 	Exchange   string
 	BaseAsset  string
 	QuoteAsset string
+	IsExist    bool
 }
