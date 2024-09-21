@@ -18,26 +18,40 @@ const (
 
 // Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName.
 const (
-	RatioCandleToEMA GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToEMA"
-	RatioCandleToMA  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToMA"
-	TrendByEMA       GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByEMA"
-	TrendByMA        GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByMA"
+	MACDMainLine         GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "MACDMainLine"
+	MACDSHistogram       GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "MACDSHistogram"
+	MACDSignalLine       GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "MACDSignalLine"
+	RSI                  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RSI"
+	RatioCandleToEMA     GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToEMA"
+	RatioCandleToMA      GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "RatioCandleToMA"
+	StochasticSignalLine GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "StochasticSignalLine"
+	TrendByEMA           GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByEMA"
+	TrendByMA            GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName = "TrendByMA"
 )
 
 // Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth.
 const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN1  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 1
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN10 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 10
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN12 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 12
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN14 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 14
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN20 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 20
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN26 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 26
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN50 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 50
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepthN9  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth = 9
 )
 
 // Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth.
 const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN1  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 1
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN10 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 10
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN12 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 12
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN14 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 14
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN20 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 20
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN26 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 26
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN3  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 3
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN50 GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 50
+	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN9  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 9
 )
 
 // Defines values for GetCandlestickExchangeSymbolUnitIntervalParamsUnit.
@@ -63,6 +77,7 @@ const (
 	EMA                     GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "EMA"
 	MA                      GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "MA"
 	PriceChanges            GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "PriceChanges"
+	StochasticMainLine      GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "StochasticMainLine"
 	Trend                   GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "Trend"
 	TypeCandle              GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "TypeCandle"
 	VolatilityCandlePercent GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName = "VolatilityCandlePercent"
@@ -72,8 +87,13 @@ const (
 const (
 	N1  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 1
 	N10 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 10
+	N12 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 12
+	N14 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 14
 	N20 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 20
+	N26 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 26
+	N3  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 3
 	N50 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 50
+	N9  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 9
 )
 
 // AnalysisInfo defines model for AnalysisInfo.
@@ -148,14 +168,15 @@ type PricesResponse = []PriceResponse
 
 // ServerInfoResponse defines model for ServerInfoResponse.
 type ServerInfoResponse struct {
-	Analysis   []AnalysisInfo  `json:"analysis"`
-	Depths     []int           `json:"depths"`
-	Exchanges  []string        `json:"exchanges"`
-	Indicators []IndicatorInfo `json:"indicators"`
-	Intervals  []UnitIntervals `json:"intervals"`
-	Symbols    []string        `json:"symbols"`
-	Time       time.Time       `json:"time"`
-	Units      []string        `json:"units"`
+	Analysis       []AnalysisInfo  `json:"analysis"`
+	Depths         []int           `json:"depths"`
+	Exchanges      []string        `json:"exchanges"`
+	IndicatorDepth []int           `json:"indicator_depth"`
+	Indicators     []IndicatorInfo `json:"indicators"`
+	Intervals      []UnitIntervals `json:"intervals"`
+	Symbols        []string        `json:"symbols"`
+	Time           time.Time       `json:"time"`
+	Units          []string        `json:"units"`
 }
 
 // SymbolInfoResponse defines model for SymbolInfoResponse.

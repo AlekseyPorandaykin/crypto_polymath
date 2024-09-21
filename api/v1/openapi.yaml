@@ -211,6 +211,7 @@ paths:
               - TypeCandle
               - VolatilityCandlePercent
               - PriceChanges
+              - StochasticMainLine
           required: true
         - in: path
           name: depth
@@ -219,8 +220,13 @@ paths:
             type: integer
             enum:
               - 1
+              - 3
+              - 9
               - 10
+              - 12
+              - 14
               - 20
+              - 26
               - 50
           required: true
       responses:
@@ -311,6 +317,11 @@ paths:
               - TrendByEMA
               - RatioCandleToMA
               - RatioCandleToEMA
+              - RSI
+              - MACDMainLine
+              - MACDSignalLine
+              - MACDSHistogram
+              - StochasticSignalLine
           required: true
         - in: path
           name: indicator_depth
@@ -319,8 +330,12 @@ paths:
             type: integer
             enum:
               - 1
+              - 9
               - 10
+              - 12
+              - 14
               - 20
+              - 26
               - 50
           required: true
         - in: path
@@ -330,8 +345,13 @@ paths:
             type: integer
             enum:
               - 1
+              - 3
+              - 9
               - 10
+              - 12
+              - 14
               - 20
+              - 26
               - 50
           required: true
       tags:
@@ -368,7 +388,7 @@ components:
           type: number
     ServerInfoResponse:
       type: object
-      required: [ time, symbols, exchanges, units, intervals, depths, indicators, analysis ]
+      required: [ time, symbols, exchanges, units, intervals, depths, indicator_depth, indicators, analysis ]
       properties:
         time:
           type: string
@@ -397,6 +417,11 @@ components:
           items:
             type: integer
             description: Support depth
+        indicator_depth:
+          type: array
+          items:
+            type: integer
+            description: Support indicator depth
         indicators:
           type: array
           items:

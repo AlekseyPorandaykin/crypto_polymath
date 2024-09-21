@@ -12,6 +12,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/duke-git/lancet/v2/slice"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -199,6 +200,8 @@ func (h *Handler) GetServer(ctx echo.Context) error {
 	unitIntervals := make([]spec.UnitIntervals, 0, 10)
 	analysisData := make([]spec.AnalysisInfo, 0, 10)
 	indicatorData := make([]spec.IndicatorInfo, 0, 10)
+	allDepths := make([]int, 0, 1_000)
+	allIndicatorDepths := make([]int, 0, 1_000)
 	analyticInfoData, err := h.analyticRepository.AllAnalyticInfo(ctx.Request().Context())
 	if err != nil {
 		return errorResponse(ctx, err)
@@ -216,6 +219,8 @@ func (h *Handler) GetServer(ctx echo.Context) error {
 			Depth:          util.UniqSlice(depths),
 			IndicatorDepth: util.UniqSlice(indicatorDepths),
 		})
+		allDepths = append(allDepths, util.UniqSlice(depths)...)
+		allIndicatorDepths = append(allIndicatorDepths, util.UniqSlice(indicatorDepths)...)
 	}
 	indicatorInfoData, err := h.indicatorRepository.AllIndicatorInfoModel(ctx.Request().Context())
 	if err != nil {
@@ -257,14 +262,19 @@ func (h *Handler) GetServer(ctx echo.Context) error {
 		Description: domain.IndicatorDescriptions[domain.TrendByMAIndicator],
 		Depth:       []int{},
 	})
+	allDepths = util.UniqSlice(allDepths)
+	slice.Sort(allDepths)
+	allIndicatorDepths = util.UniqSlice(allIndicatorDepths)
+	slice.Sort(allIndicatorDepths)
 	return ctx.JSON(http.StatusOK, spec.ServerInfoResponse{
-		Analysis:   analysisData,
-		Depths:     viper.GetIntSlice("candlestick.depths"),
-		Exchanges:  []string{adapter_exchange.BybitExchange},
-		Indicators: indicatorData,
-		Intervals:  unitIntervals,
-		Symbols:    viper.GetStringSlice("load.symbols"),
-		Time:       time.Now().In(time.UTC),
+		Analysis:       analysisData,
+		Depths:         allDepths,
+		IndicatorDepth: allIndicatorDepths,
+		Exchanges:      []string{adapter_exchange.BybitExchange},
+		Indicators:     indicatorData,
+		Intervals:      unitIntervals,
+		Symbols:        viper.GetStringSlice("load.symbols"),
+		Time:           time.Now().In(time.UTC),
 		Units: []string{
 			string(domain.MinuteUnit),
 			string(domain.HourUnit),
