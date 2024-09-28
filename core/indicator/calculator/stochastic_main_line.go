@@ -5,6 +5,8 @@ import (
 	"github.com/duke-git/lancet/v2/slice"
 )
 
+const defaultDepthStochasticMainLine = 14
+
 type stochasticMainLine struct {
 }
 

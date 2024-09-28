@@ -26,7 +26,7 @@ func (m *macdHistogram) ByAnalytic() string {
 }
 
 func (m *macdHistogram) SupportDepth(depth int) bool {
-	return depth > 0
+	return depth == 1
 }
 
 func (m *macdHistogram) SupportInterval(interval int) bool {

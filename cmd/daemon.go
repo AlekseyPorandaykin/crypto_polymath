@@ -88,6 +88,7 @@ var daemonCmd = &cobra.Command{
 			indicatorDBRepos,
 			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
 		)
+		analysisDBRepo := sqlite.NewAnalyticRepository(conn)
 
 		//Clients
 		binanceClient := system.MustInit[*binance.Manager](binance.NewManager(
@@ -143,7 +144,8 @@ var daemonCmd = &cobra.Command{
 		)
 		exchangeService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
 
-		analysisDBRepo := sqlite.NewAnalyticRepository(conn)
+		serv := service.NewService(analysisDBRepo, indicatorDBRepos)
+
 		analysisService := analysis.NewService(
 			adapter_repository.NewAnalysisRepository(analysisDBRepo, memory.NewAnalysisRepository(100)),
 		)
@@ -199,7 +201,14 @@ var daemonCmd = &cobra.Command{
 
 		//Applications
 		loaderApp := loader.NewLoader(
-			priceService, candlestickService, exchangeService, indicatorService, candleDispatcher, exchangeNames, viper.GetStringSlice("load.symbols"),
+			priceService,
+			candlestickService,
+			exchangeService,
+			indicatorService,
+			candleDispatcher,
+			serv,
+			exchangeNames,
+			viper.GetStringSlice("load.symbols"),
 		)
 		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"))
 
@@ -215,6 +224,7 @@ var daemonCmd = &cobra.Command{
 			analysisService,
 			analysisDBRepo,
 			indicatorDBRepos,
+			serv,
 		)
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
 

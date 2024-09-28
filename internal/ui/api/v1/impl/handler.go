@@ -8,11 +8,9 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
-	"github.com/duke-git/lancet/v2/slice"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -37,6 +35,7 @@ type Handler struct {
 	analysisService     *analysis.Service
 	analyticRepository  view.AnalyticInfoRepository
 	indicatorRepository view.IndicatorInfoRepository
+	serv                *service.Service
 }
 
 func NewHandler(
@@ -47,6 +46,7 @@ func NewHandler(
 	analysisService *analysis.Service,
 	analyticRepository view.AnalyticInfoRepository,
 	indicatorRepository view.IndicatorInfoRepository,
+	serv *service.Service,
 ) *Handler {
 	return &Handler{
 		priceService:        priceService,
@@ -56,6 +56,7 @@ func NewHandler(
 		analysisService:     analysisService,
 		analyticRepository:  analyticRepository,
 		indicatorRepository: indicatorRepository,
+		serv:                serv,
 	}
 }
 
@@ -197,91 +198,46 @@ func (h *Handler) GetCandlestickExchangeSymbolUnitInterval(
 }
 
 func (h *Handler) GetServer(ctx echo.Context) error {
+	data, err := h.serv.Dictionary(ctx.Request().Context())
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
 	unitIntervals := make([]spec.UnitIntervals, 0, 10)
 	analysisData := make([]spec.AnalysisInfo, 0, 10)
 	indicatorData := make([]spec.IndicatorInfo, 0, 10)
-	allDepths := make([]int, 0, 1_000)
-	allIndicatorDepths := make([]int, 0, 1_000)
-	analyticInfoData, err := h.analyticRepository.AllAnalyticInfo(ctx.Request().Context())
-	if err != nil {
-		return errorResponse(ctx, err)
-	}
-	for nameAnalyticInfo, analyticInfoItem := range analyticInfoData {
-		depths := make([]int, 0, 100)
-		indicatorDepths := make([]int, 0, 100)
-		for _, item := range analyticInfoItem {
-			depths = append(depths, item.Depth)
-			indicatorDepths = append(indicatorDepths, item.IndicatorDepth)
-		}
+
+	for _, analyticInfoItem := range data.Analysis {
 		analysisData = append(analysisData, spec.AnalysisInfo{
-			Name:           nameAnalyticInfo,
-			Description:    domain.IndicatorDescriptions[nameAnalyticInfo],
-			Depth:          util.UniqSlice(depths),
-			IndicatorDepth: util.UniqSlice(indicatorDepths),
+			Name:           analyticInfoItem.Name,
+			Description:    analyticInfoItem.Description,
+			Depth:          analyticInfoItem.Depth,
+			IndicatorDepth: analyticInfoItem.IndicatorDepth,
 		})
-		allDepths = append(allDepths, util.UniqSlice(depths)...)
-		allIndicatorDepths = append(allIndicatorDepths, util.UniqSlice(indicatorDepths)...)
 	}
-	indicatorInfoData, err := h.indicatorRepository.AllIndicatorInfoModel(ctx.Request().Context())
-	if err != nil {
-		return errorResponse(ctx, err)
-	}
-	for nameIndicatorInfo, indicatorInfoItem := range indicatorInfoData {
-		depths := make([]int, 0, 100)
-		for _, item := range indicatorInfoItem {
-			depths = append(depths, item.Depth)
-		}
+	for _, indicatorInfoItem := range data.Indicators {
 		indicatorData = append(indicatorData, spec.IndicatorInfo{
-			Name:        nameIndicatorInfo,
-			Description: domain.IndicatorDescriptions[nameIndicatorInfo],
-			Depth:       util.UniqSlice(depths),
+			Name:        indicatorInfoItem.Name,
+			Description: indicatorInfoItem.Description,
+			Depth:       indicatorInfoItem.Depth,
 		})
 	}
-	unitIntervals = append(unitIntervals, spec.UnitIntervals{
-		Unit:   string(domain.HourUnit),
-		Values: viper.GetIntSlice("candlestick.hours"),
-	})
-	unitIntervals = append(unitIntervals, spec.UnitIntervals{
-		Unit:   string(domain.MinuteUnit),
-		Values: viper.GetIntSlice("candlestick.minutes"),
-	})
-	unitIntervals = append(unitIntervals, spec.UnitIntervals{
-		Unit:   string(domain.DayUnit),
-		Values: []int{1},
-	})
-	unitIntervals = append(unitIntervals, spec.UnitIntervals{
-		Unit:   string(domain.WeekUnit),
-		Values: []int{1},
-	})
-	unitIntervals = append(unitIntervals, spec.UnitIntervals{
-		Unit:   string(domain.MonthUnit),
-		Values: []int{1},
-	})
-	analysisData = append(analysisData, spec.AnalysisInfo{
-		Name:        domain.TrendByMAIndicator,
-		Description: domain.IndicatorDescriptions[domain.TrendByMAIndicator],
-		Depth:       []int{},
-	})
-	allDepths = util.UniqSlice(allDepths)
-	slice.Sort(allDepths)
-	allIndicatorDepths = util.UniqSlice(allIndicatorDepths)
-	slice.Sort(allIndicatorDepths)
+	for _, intervalItem := range data.Intervals {
+		unitIntervals = append(unitIntervals, spec.UnitIntervals{
+			Unit:   intervalItem.Unit,
+			Values: intervalItem.Values,
+		})
+	}
+
 	return ctx.JSON(http.StatusOK, spec.ServerInfoResponse{
 		Analysis:       analysisData,
-		Depths:         allDepths,
-		IndicatorDepth: allIndicatorDepths,
-		Exchanges:      []string{adapter_exchange.BybitExchange},
+		Depths:         data.Depths,
+		IndicatorDepth: data.IndicatorDepth,
+		Exchanges:      data.Exchanges,
 		Indicators:     indicatorData,
 		Intervals:      unitIntervals,
-		Symbols:        viper.GetStringSlice("load.symbols"),
+		Symbols:        data.Symbols,
 		Time:           time.Now().In(time.UTC),
-		Units: []string{
-			string(domain.MinuteUnit),
-			string(domain.HourUnit),
-			string(domain.DayUnit),
-			string(domain.WeekUnit),
-			string(domain.MonthUnit),
-		},
+		Units:          data.Units,
 	})
 }
 

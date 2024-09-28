@@ -73,7 +73,6 @@ func (r *rsi) calculateForDepth(ctx context.Context, indicatorData domain.Indica
 	if len(emaData) == 0 && len(emaData) != depth {
 		return nil, nil
 	}
-	//
 	slice.SortBy[domain.Indicator](emaData, func(a, b domain.Indicator) bool {
 		return a.Datetime.Before(b.Datetime)
 	})

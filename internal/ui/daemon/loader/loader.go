@@ -8,6 +8,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/scheduler"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
@@ -27,6 +28,7 @@ type Loader struct {
 	indicatorService   indicator.Indicator
 	exchangeNames      []string
 	candleDispatcher   *dispatcher.Dispatcher[domain.Candlestick]
+	service            *service.Service
 
 	symbols []string
 }
@@ -37,6 +39,7 @@ func NewLoader(
 	exchangeService core_exchange.Exchange,
 	indicatorService indicator.Indicator,
 	candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
+	service *service.Service,
 	exchangeNames,
 	symbols []string,
 ) *Loader {
@@ -46,6 +49,7 @@ func NewLoader(
 		exchangeService:    exchangeService,
 		indicatorService:   indicatorService,
 		candleDispatcher:   candleDispatcher,
+		service:            service,
 		exchangeNames:      exchangeNames,
 		symbols:            symbols,
 	}
@@ -79,6 +83,16 @@ func (l *Loader) Run(ctx context.Context) error {
 	for _, exchangeName := range []string{exchange.BybitExchange} {
 		l.runLoadCandles(ctx, exchangeName)
 	}
+
+	go func() {
+		_ = scheduler.ExecuteEveryHour(ctx, 1, slippageSecond, func() error {
+			defer system.HandlePanic()
+			if err := l.service.Collect(ctx); err != nil {
+				zap.L().Error("collect", zap.Error(err))
+			}
+			return nil
+		})
+	}()
 	for {
 		select {
 		case <-ctx.Done():
