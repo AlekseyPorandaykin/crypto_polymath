@@ -115,7 +115,6 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 		})
 		system.Go(func() {
 			_ = scheduler.ExecuteEveryDay(ctx, func() error {
-
 				l.loadCandlesticks(ctx, exchangeName, symbol, domain.WeekUnit, 1)
 				return nil
 			})
@@ -157,12 +156,12 @@ func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
 func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbol string) {
 	for _, interval := range viper.GetIntSlice("candlestick.minutes") {
 		minutes := interval
+		//TODO для каждого интервала свое повторение
+		maxIteration := 2
+		if interval == 1 {
+			maxIteration = 5
+		}
 		system.Go(func() {
-			//TODO для каждого интервала свое повторение
-			maxIteration := 2
-			if interval == 1 {
-				maxIteration = 5
-			}
 			_ = scheduler.ExecuteCustomMinuteWithReply(ctx, minutes, slippageSecond/3, 1, maxIteration, func() (bool, error) {
 				candles := l.loadCandlesticks(ctx, exchangeName, symbol, domain.MinuteUnit, minutes)
 				return len(candles) > 0, nil
@@ -195,10 +194,8 @@ func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol stri
 	candlestickLoadedTotal.WithLabelValues(exchangeName, string(unit)).Add(float64(len(data)))
 	if err != nil {
 		errorTotal.WithLabelValues(exchangeName, "load_candlesticks").Inc()
-		if err != nil {
-			log.Error("load candlestick", zap.Error(err))
-			return nil
-		}
+		log.Error("load candlestick", zap.Error(err))
+		return nil
 	}
 	for _, item := range data {
 		l.candleDispatcher.Dispatch(dispatcher.Event[domain.Candlestick]{
