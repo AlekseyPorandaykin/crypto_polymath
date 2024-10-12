@@ -4,12 +4,13 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 	"strconv"
 	"time"
 )
 
 func isSupportMinute(minutes int) bool {
-	for _, m := range []int{1, 3, 5, 15, 30} {
+	for _, m := range viper.GetIntSlice("candlestick.minutes") {
 		if m == minutes {
 			return true
 		}
@@ -18,7 +19,7 @@ func isSupportMinute(minutes int) bool {
 }
 
 func isSupportHours(hours int) bool {
-	for _, h := range []int{1, 2, 4, 6, 12} {
+	for _, h := range viper.GetIntSlice("candlestick.hours") {
 		if h == hours {
 			return true
 		}
@@ -53,8 +54,12 @@ type Candlestick interface {
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error
 
 	CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error)
+	SequenceCandlesticksToDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error)
 	CandlesticksFromDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error)
-	Candlestick(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int) ([]domain.Candlestick, error)
+	//SequenceCandlesticks - Получаем свечи в строгой последовательности или ничего.
+	SequenceCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int) ([]domain.Candlestick, error)
+	//Candlesticks - Получаем последние свечи
+	Candlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int) ([]domain.Candlestick, error)
 }
 
 func exchangeToDomain(data ExchangeDTO, unit domain.Unit, exchange, symbol string, interval int) (domain.Candlestick, error) {

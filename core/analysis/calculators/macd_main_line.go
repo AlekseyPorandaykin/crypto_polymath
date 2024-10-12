@@ -46,7 +46,7 @@ func (m *macdMainLine) Calculate(ctx context.Context, longEma domain.Indicator) 
 	if !m.SupportDepth(longEma.Depth) {
 		return nil, nil
 	}
-	shortEmaData, errShortEmaData := m.indicatorService.LastToDate(
+	shortEmaData, errShortEmaData := m.indicatorService.LastSequenceToDate(
 		ctx,
 		longEma.Exchange,
 		longEma.Symbol,

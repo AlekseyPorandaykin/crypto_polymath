@@ -129,6 +129,7 @@ var daemonCmd = &cobra.Command{
 
 		candlestickService := candlestick.NewService(candlestickRepo)
 		candlestickService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
+		candlestickService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
 
 		indicatorService := indicator.NewService(indicatorRepo, adapters.NewCandlestickAdapter(candlestickService))
 		indicatorService.AddCalculator(indicator_calculator.NewMA())

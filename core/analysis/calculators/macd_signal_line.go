@@ -37,7 +37,7 @@ func (m *macdSignalLine) SupportInterval(interval int) bool {
 }
 
 func (m *macdSignalLine) Calculate(ctx context.Context, mainLine analysis.Analytic) ([]analysis.Analytic, error) {
-	analyticData, err := m.analyticService.Analytics(
+	analyticData, err := m.analyticService.SequenceAnalytics(
 		ctx, mainLine.Exchange, mainLine.Symbol, mainLine.Unit, mainLine.Interval, mainLine.Name, mainLine.IndicatorDepth, mainLine.Depth,
 	)
 	if err != nil {

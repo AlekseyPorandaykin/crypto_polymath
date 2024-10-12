@@ -19,7 +19,7 @@ func NewCandlestickAdapter(candlestickService candlestick.Candlestick) *Candlest
 func (c *CandlestickAdapter) LastCandlesticks(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int, datetime time.Time,
 ) ([]domain.Candlestick, error) {
-	data, err := c.candlestickService.CandlesticksToDate(ctx, exchange, symbol, string(unit), interval, limit, datetime)
+	data, err := c.candlestickService.SequenceCandlesticksToDate(ctx, exchange, symbol, string(unit), interval, limit, datetime)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *CandlestickAdapter) NextCandlesticks(
 func (c *CandlestickAdapter) FirstCandlestick(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, offset int,
 ) (*domain.Candlestick, error) {
-	data, err := c.candlestickService.Candlestick(ctx, exchange, symbol, unit, interval, 100)
+	data, err := c.candlestickService.SequenceCandlesticks(ctx, exchange, symbol, unit, interval, 100)
 	if err != nil {
 		return nil, err
 	}

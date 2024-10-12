@@ -69,7 +69,7 @@ func compareValues(left, right float64) int {
 }
 
 func (c *ratioCandleToMA) candleByIndicator(ctx context.Context, indicator domain.Indicator) (*domain.Candlestick, error) {
-	candles, err := c.candleService.CandlesticksToDate(ctx, indicator.Exchange, indicator.Symbol, string(indicator.Unit), indicator.Interval, 1, indicator.Datetime)
+	candles, err := c.candleService.SequenceCandlesticksToDate(ctx, indicator.Exchange, indicator.Symbol, string(indicator.Unit), indicator.Interval, 1, indicator.Datetime)
 	if err != nil {
 		return nil, err
 	}

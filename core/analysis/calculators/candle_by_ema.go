@@ -59,7 +59,7 @@ func (c *ratioCandleToEMA) Calculate(ctx context.Context, indicatorData domain.I
 }
 
 func (c *ratioCandleToEMA) candleByIndicator(ctx context.Context, indicator domain.Indicator) (*domain.Candlestick, error) {
-	candles, err := c.candleService.CandlesticksToDate(
+	candles, err := c.candleService.SequenceCandlesticksToDate(
 		ctx, indicator.Exchange, indicator.Symbol, string(indicator.Unit), indicator.Interval, 1, indicator.Datetime,
 	)
 	if err != nil {

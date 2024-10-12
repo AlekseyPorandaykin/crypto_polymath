@@ -84,6 +84,19 @@ func (s *Service) Analytics(
 	return data, nil
 }
 
+func (s *Service) SequenceAnalytics(
+	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int,
+) ([]Analytic, error) {
+	data, err := s.Analytics(ctx, exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
+	if err != nil {
+		return nil, err
+	}
+	if !isCorrectSequence(data) {
+		return nil, nil
+	}
+	return data, nil
+}
+
 func (s *Service) DeleteOldRows(ctx context.Context, limit int) error {
 	groups, err := s.repo.UniqGroups(ctx)
 	if err != nil {

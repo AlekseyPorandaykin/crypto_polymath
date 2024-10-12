@@ -22,8 +22,9 @@ type Candlestick interface {
 
 type Indicator interface {
 	AddCalculator(calculator calculator.PrimaryIndicatorCalculator)
+	//Indicators - получить индикаторы, которые есть в бд
 	Indicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int) ([]domain.Indicator, error)
-	LastToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error)
+	LastSequenceToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error)
 	CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, depth int) ([]domain.Indicator, error)
 	CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error)
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error

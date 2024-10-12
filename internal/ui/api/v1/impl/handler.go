@@ -177,7 +177,7 @@ func (h *Handler) GetCandlestickExchangeSymbolUnitInterval(
 	if err := checkUnitInterval(string(unit), intervalVal); err != nil {
 		return errorResponse(ctx, err)
 	}
-	data, err := h.candlestickService.Candlestick(
+	data, err := h.candlestickService.Candlesticks(
 		ctx.Request().Context(), exchange, symbol, domain.Unit(unit), intervalVal, 100,
 	)
 	if err != nil {

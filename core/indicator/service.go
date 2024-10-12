@@ -43,7 +43,7 @@ func (s *service) CalcIndicators(ctx context.Context, exchange, symbol string, u
 func (s *service) CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error) {
 	indicators := make([]domain.Indicator, 0, len(s.calculators))
 	for key := range s.calculators {
-		primaryIndicator, err := s.CalculatePrimaryIndicator(ctx, candlestick, key, depth)
+		primaryIndicator, err := s.calculatePrimaryIndicator(ctx, candlestick, key, depth)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +69,8 @@ func (s *service) Indicators(
 
 	return res, nil
 }
-func (s *service) CalculatePrimaryIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
+
+func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 	calc, has := s.calculators[name]
@@ -105,6 +106,9 @@ func (s *service) CalculatePrimaryIndicator(ctx context.Context, candlestick dom
 	if len(data) != depth {
 		return nil, nil
 	}
+	if !domain.IsCorrectSequenceCandlesticks(data) {
+		return nil, nil
+	}
 	res := calc.Calculate(data)
 
 	if res == nil {
@@ -117,14 +121,16 @@ func (s *service) CalculatePrimaryIndicator(ctx context.Context, candlestick dom
 	return res, nil
 }
 
-// TODO: надо возвращать последние записи, которые идут друг за другом или ничего
-// иначе можно получить несколько записей, между которыми большие разрывы
-func (s *service) LastToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error) {
+func (s *service) LastSequenceToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error) {
 	data, err := s.repo.LastToDate(ctx, exchange, symbol, string(unit), interval, name, depth, limit, to)
 	if err != nil {
 		return nil, err
 	}
-	return storageToDomains(data), nil
+	indicatorData := storageToDomains(data)
+	if !domain.IsCorrectSequenceIndicators(indicatorData) {
+		return nil, nil
+	}
+	return indicatorData, nil
 }
 
 func (s *service) calculateLastCandles(
@@ -146,7 +152,7 @@ func (s *service) calculateLastCandles(
 		if lastCandle == nil {
 			return indicators, nil
 		}
-		res, err := s.CalculatePrimaryIndicator(ctx, *lastCandle, indicator, depth)
+		res, err := s.calculatePrimaryIndicator(ctx, *lastCandle, indicator, depth)
 		if err != nil {
 			return nil, err
 		}

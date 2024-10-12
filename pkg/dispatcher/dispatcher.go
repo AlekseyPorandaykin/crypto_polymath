@@ -23,7 +23,7 @@ func New[T interface{}]() *Dispatcher[T] {
 	return &Dispatcher[T]{
 		listeners: make([]Listener[T], 0),
 		closeCh:   make(chan struct{}, 1),
-		events:    make(chan Event[T], 100),
+		events:    make(chan Event[T], 10_000),
 	}
 }
 

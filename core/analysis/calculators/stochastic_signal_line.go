@@ -35,7 +35,7 @@ func (s *stochasticSignalLine) SupportInterval(interval int) bool {
 }
 
 func (s *stochasticSignalLine) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]analysis.Analytic, error) {
-	data, err := s.indicatorService.LastToDate(
+	data, err := s.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,
 		indicatorData.Symbol,

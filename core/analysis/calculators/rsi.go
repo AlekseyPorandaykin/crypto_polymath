@@ -53,7 +53,7 @@ func (r *rsi) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]
 }
 
 func (r *rsi) calculateForDepth(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
-	data, err := r.indicatorService.LastToDate(
+	data, err := r.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,
 		indicatorData.Symbol,

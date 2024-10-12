@@ -54,7 +54,7 @@ func (t *trendByMA) Calculate(ctx context.Context, indicatorData domain.Indicato
 }
 
 func (t *trendByMA) calculateForDepth(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
-	data, err := t.indicatorService.LastToDate(
+	data, err := t.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,
 		indicatorData.Symbol,

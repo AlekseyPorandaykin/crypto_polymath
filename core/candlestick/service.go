@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/duke-git/lancet/v2/slice"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -26,101 +27,6 @@ func (s *service) AddLoader(exchange string, loader ExchangeLoader) {
 	s.loaders[exchange] = loader
 }
 
-func (s *service) loadCandlesticksMinutes(
-	ctx context.Context, exchange, symbol string, minutes int,
-) ([]domain.Candlestick, error) {
-	if !isSupportMinute(minutes) {
-		return nil, errors.New("don't support this minutes")
-	}
-	loader, has := s.loaders[exchange]
-	if !has || loader == nil {
-		return nil, nil
-	}
-	data, err := loader.LastMinuteCandlesticks(ctx, symbol, minutes)
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.handleCandlesticks(ctx, data, domain.MinuteUnit, exchange, symbol, minutes)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s *service) LoadCandlesticksHours(
-	ctx context.Context, exchange, symbol string, hours int,
-) ([]domain.Candlestick, error) {
-	if !isSupportHours(hours) {
-		return nil, errors.New("don't support this hours")
-	}
-	loader, has := s.loaders[exchange]
-	if !has || loader == nil {
-		return nil, nil
-	}
-	data, err := loader.LastHourCandlesticks(ctx, symbol, hours)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := s.handleCandlesticks(ctx, data, domain.HourUnit, exchange, symbol, hours)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s *service) LoadCandlesticksDay(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error) {
-	loader, has := s.loaders[exchange]
-	if !has || loader == nil {
-		return nil, nil
-	}
-	data, err := loader.LastDayCandlesticks(ctx, symbol)
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.handleCandlesticks(ctx, data, domain.DayUnit, exchange, symbol, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s *service) LoadCandlesticksWeek(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error) {
-	loader, has := s.loaders[exchange]
-	if !has || loader == nil {
-		return nil, nil
-	}
-	data, err := loader.LastWeekCandlesticks(ctx, symbol)
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.handleCandlesticks(ctx, data, domain.WeekUnit, exchange, symbol, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s *service) LoadCandlesticksMonth(ctx context.Context, exchange, symbol string) ([]domain.Candlestick, error) {
-	loader, has := s.loaders[exchange]
-	if !has || loader == nil {
-		return nil, nil
-	}
-	data, err := loader.LastMonthCandlesticks(ctx, symbol)
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.handleCandlesticks(ctx, data, domain.MonthUnit, exchange, symbol, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
 func (s *service) LoadCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]domain.Candlestick, error) {
 	data, err := s.loadCandlesticks(ctx, exchange, symbol, unit, interval)
 	if err != nil {
@@ -155,21 +61,20 @@ func (s *service) loadCandlesticks(ctx context.Context, exchange, symbol string,
 	}
 }
 
-func (s *service) Save(ctx context.Context, candlesticks ...domain.Candlestick) error {
-	data := make([]StorageDTO, 0, len(candlesticks))
-	for _, candlestick := range candlesticks {
-		data = append(data, domainToStorage(candlestick))
-	}
-	err := backoff.Retry(func() error {
-		return s.repo.Save(ctx, data...)
-	}, backoff.NewExponentialBackOff())
+func (s *service) SequenceCandlesticks(
+	ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int,
+) ([]domain.Candlestick, error) {
+	data, err := s.Candlesticks(ctx, exchange, symbol, unit, interval, limit)
 	if err != nil {
-		return errors.Wrap(err, "save candlestick")
+		return nil, errors.Wrap(err, "get candlesticks")
 	}
-	return nil
+	if !domain.IsCorrectSequenceCandlesticks(data) {
+		return []domain.Candlestick{}, nil
+	}
+	return data, nil
 }
 
-func (s *service) Candlestick(
+func (s *service) Candlesticks(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int,
 ) ([]domain.Candlestick, error) {
 	switch unit {
@@ -282,6 +187,18 @@ func (s *service) CandlesticksToDate(ctx context.Context, exchange, symbol, unit
 	}
 	return result, nil
 }
+
+func (s *service) SequenceCandlesticksToDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error) {
+	data, err := s.CandlesticksToDate(ctx, exchange, symbol, unit, minutes, limit, to)
+	if err != nil {
+		return nil, err
+	}
+	if !domain.IsCorrectSequenceCandlesticks(data) {
+		return nil, nil
+	}
+	return data, nil
+}
+
 func (s *service) CandlesticksFromDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error) {
 	data, err := s.repo.FromDate(ctx, exchange, symbol, unit, minutes, limit, to)
 	if err != nil {
@@ -314,13 +231,16 @@ func (s *service) handleCandlesticks(
 	lastRow := s.lastRow(ctx, exchange, symbol, string(unit), interval)
 	storageData := make([]StorageDTO, 0, len(data))
 	result := make([]domain.Candlestick, 0, len(data))
+	slice.SortBy(data, func(a, b ExchangeDTO) bool {
+		return a.StartTime.After(b.StartTime)
+	})
 	for i, item := range data {
 		candle, err := exchangeToDomain(item, unit, exchange, symbol, interval)
 		if err != nil {
 			return nil, err
 		}
 		//Пропускаем если эта текущая свеча
-		if isOpenCandle(candle) {
+		if domain.IsOpenCandle(candle) {
 			continue
 		}
 		//Пропускаем если период еще не закрылся (первый в списке, новый период еще не начал рассчет)
@@ -346,6 +266,9 @@ func (s *service) handleCandlesticks(
 	if errSaver != nil {
 		return nil, errSaver
 	}
+	slice.SortBy(result, func(a, b domain.Candlestick) bool {
+		return a.StartTime.Before(b.StartTime)
+	})
 	return result, nil
 }
 
@@ -359,6 +282,7 @@ func (s *service) lastRow(ctx context.Context, exchange, symbol, unit string, in
 	}
 	return nil
 }
+
 func uniqStorageData(data []StorageDTO) []StorageDTO {
 	result := make([]StorageDTO, 0, len(data))
 	existKey := make(map[time.Time]bool, len(data))
@@ -369,34 +293,4 @@ func uniqStorageData(data []StorageDTO) []StorageDTO {
 		result = append(result, item)
 	}
 	return result
-}
-
-// TODO Доделать фильтрацию
-func isOpenCandle(candlestick domain.Candlestick) bool {
-	now := time.Now().In(time.UTC)
-	startTime := candlestick.StartTime.In(time.UTC)
-	switch candlestick.Unit {
-	case domain.MonthUnit:
-		return startTime.Year() == now.Year() && startTime.Month() == now.Month()
-	case domain.WeekUnit:
-		return startTime.Year() == now.Year() &&
-			startTime.Month() == now.Month() &&
-			startTime.Weekday() == now.Weekday()
-	case domain.DayUnit:
-		return startTime.Year() == now.Year() &&
-			startTime.Month() == now.Month() &&
-			startTime.Day() == now.Day()
-	case domain.HourUnit:
-		return startTime.Year() == now.Year() &&
-			startTime.Month() == now.Month() &&
-			startTime.Day() == now.Day() &&
-			startTime.Hour() == now.Hour()
-	case domain.MinuteUnit:
-		return startTime.Year() == now.Year() &&
-			startTime.Month() == now.Month() &&
-			startTime.Day() == now.Day() &&
-			startTime.Hour() == now.Hour() &&
-			startTime.Minute() == now.Minute()
-	}
-	return false
 }
