@@ -49,18 +49,6 @@ func (s *Service) CalculateByIndicator(ctx context.Context, indicator domain.Ind
 	}
 	return calculatedAnalytics, nil
 }
-func (s *Service) SequenceAnalytics(
-	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int,
-) ([]Analytic, error) {
-	data, err := s.LastAnalytics(ctx, exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
-	if err != nil {
-		return nil, err
-	}
-	if !isCorrectSequence(data) {
-		return nil, nil
-	}
-	return data, nil
-}
 
 func (s *Service) AnalyticByIndicators(ctx context.Context, indicators []domain.Indicator, analyticName string, depth int) ([]Analytic, error) {
 	result := make([]Analytic, 0, len(indicators))
@@ -215,7 +203,7 @@ func (s *Service) LastAnalytics(
 func (s *Service) AnalyticsToDate(
 	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int, datetime time.Time,
 ) ([]Analytic, error) {
-	dataByIndicator, err := s.calculateAnalyticByIndicator(ctx, exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
+	dataByIndicator, err := s.calculateAnalyticByIndicatorToDate(ctx, exchangeName, symbol, unit, interval, name, indicatorDepth, depth, datetime)
 	if err != nil {
 		return nil, err
 	}
