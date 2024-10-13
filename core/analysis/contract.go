@@ -73,7 +73,7 @@ type CalculatorByIndicator interface {
 	ByIndicator() string
 	SupportDepth(depth int) bool
 	SupportInterval(interval int) bool
-	Calculate(ctx context.Context, indicator domain.Indicator) ([]Analytic, error)
+	Calculate(ctx context.Context, indicator domain.Indicator, depth int) (*Analytic, error)
 }
 
 type CalculatorByAnalytic interface {
@@ -81,5 +81,5 @@ type CalculatorByAnalytic interface {
 	ByAnalytic() string
 	SupportDepth(depth int) bool
 	SupportInterval(interval int) bool
-	Calculate(ctx context.Context, data Analytic) ([]Analytic, error)
+	Calculate(ctx context.Context, data Analytic, depth int) (*Analytic, error)
 }

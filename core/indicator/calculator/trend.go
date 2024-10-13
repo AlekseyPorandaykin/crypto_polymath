@@ -30,10 +30,13 @@ func (t trend) SupportInterval(interval int) bool {
 func (t trend) Calculate(data []domain.Candlestick) *domain.Indicator {
 	maxValues := make([]float64, 0, len(data))
 	minValues := make([]float64, 0, len(data))
-	candlestick := data[0]
+	if len(data) == 0 {
+		return nil
+	}
 	slice.SortBy[domain.Candlestick](data, func(a, b domain.Candlestick) bool {
 		return a.StartTime.Before(b.StartTime)
 	})
+	candlestick := data[len(data)-1]
 	batches := util.BatchSlice[domain.Candlestick](data, lenBatch(len(data)))
 	for _, batchCandles := range batches {
 		maxVal, minVal := calcExtremesCandlesticks(batchCandles)

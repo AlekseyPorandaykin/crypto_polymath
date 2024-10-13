@@ -88,6 +88,72 @@ VALUES (
 	return nil
 }
 
+func (repo *AnalyticRepository) Find(
+	ctx context.Context,
+	name, exchangeName, symbol string,
+	unit domain.Unit,
+	datetime time.Time,
+	interval, indicatorDepth, depth int,
+) (*analysis.Analytic, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_find")()
+	var query = `
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       datetime,
+       depth,
+       by_indicator,
+       indicator_depth,
+       value,
+       created_at
+FROM analytics
+WHERE exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND datetime = ?
+  AND name = ?
+  AND indicator_depth = ?
+  AND depth = ?
+`
+	storageData := AnalyticDTO{}
+	err := repo.db.GetContext(
+		ctx,
+		&storageData,
+		query,
+		exchangeName,
+		symbol,
+		string(unit),
+		interval,
+		datetime,
+		name,
+		indicatorDepth,
+		depth,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &analysis.Analytic{
+		ID:             storageData.ID,
+		Name:           storageData.Name,
+		Exchange:       storageData.Exchange,
+		Symbol:         storageData.Symbol,
+		Unit:           domain.Unit(storageData.Unit),
+		Interval:       storageData.Interval,
+		Datetime:       storageData.Datetime,
+		Depth:          storageData.Depth,
+		ByIndicator:    storageData.ByIndicator,
+		IndicatorDepth: storageData.IndicatorDepth,
+		Value:          storageData.Value,
+	}, nil
+}
+
 func (repo *AnalyticRepository) Last(
 	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int,
 ) ([]analysis.Analytic, error) {

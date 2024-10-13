@@ -27,6 +27,13 @@ type Repository interface {
 		name string,
 		indicatorDepth, depth int,
 	) ([]Analytic, error)
+	Find(
+		ctx context.Context,
+		name, exchangeName, symbol string,
+		unit domain.Unit,
+		datetime time.Time,
+		interval, indicatorDepth, depth int,
+	) (*Analytic, error)
 	UniqGroups(ctx context.Context) ([]UniqGroup, error)
 	LastInGroup(ctx context.Context, g UniqGroup, offset int) (*Analytic, error)
 	DeleteByGroup(ctx context.Context, g UniqGroup, datetime time.Time) error

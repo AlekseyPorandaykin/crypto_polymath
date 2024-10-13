@@ -33,9 +33,9 @@ func (m *macdHistogram) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (m *macdHistogram) Calculate(ctx context.Context, signalLine analysis.Analytic) ([]analysis.Analytic, error) {
-	analyticData, err := m.analyticService.Analytics(
-		ctx, signalLine.Exchange, signalLine.Symbol, signalLine.Unit, signalLine.Interval, domain.MACDMainLineIndicator, defaultLongDepthMACD, 1,
+func (m *macdHistogram) Calculate(ctx context.Context, signalLine analysis.Analytic, depth int) (*analysis.Analytic, error) {
+	analyticData, err := m.analyticService.AnalyticsToDate(
+		ctx, signalLine.Exchange, signalLine.Symbol, signalLine.Unit, signalLine.Interval, domain.MACDMainLineIndicator, defaultLongDepthMACD, 1, signalLine.Datetime,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch macd main line data")
@@ -50,19 +50,17 @@ func (m *macdHistogram) Calculate(ctx context.Context, signalLine analysis.Analy
 	if mainLine == nil {
 		return nil, nil
 	}
-	return []analysis.Analytic{
-		analysis.Analytic{
-			ID:             uuid.New(),
-			Name:           m.Name(),
-			Exchange:       mainLine.Exchange,
-			Symbol:         mainLine.Symbol,
-			Unit:           mainLine.Unit,
-			Interval:       mainLine.Interval,
-			Datetime:       mainLine.Datetime,
-			ByIndicator:    signalLine.Name,
-			IndicatorDepth: mainLine.Depth,
-			Depth:          1,
-			Value:          mainLine.Value - signalLine.Value,
-		},
+	return &analysis.Analytic{
+		ID:             uuid.New(),
+		Name:           m.Name(),
+		Exchange:       mainLine.Exchange,
+		Symbol:         mainLine.Symbol,
+		Unit:           mainLine.Unit,
+		Interval:       mainLine.Interval,
+		Datetime:       mainLine.Datetime,
+		ByIndicator:    signalLine.Name,
+		IndicatorDepth: mainLine.Depth,
+		Depth:          depth,
+		Value:          mainLine.Value - signalLine.Value,
 	}, nil
 }

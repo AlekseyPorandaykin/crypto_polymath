@@ -32,7 +32,7 @@ func (c *ratioCandleToMA) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (c *ratioCandleToMA) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]analysis.Analytic, error) {
+func (c *ratioCandleToMA) Calculate(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
 	candle, err := c.candleByIndicator(ctx, indicatorData)
 	if err != nil {
 		return nil, err
@@ -41,20 +41,18 @@ func (c *ratioCandleToMA) Calculate(ctx context.Context, indicatorData domain.In
 		return nil, nil
 	}
 
-	return []analysis.Analytic{
-		analysis.Analytic{
-			ID:             uuid.New(),
-			Name:           c.Name(),
-			Exchange:       indicatorData.Exchange,
-			Symbol:         indicatorData.Symbol,
-			Unit:           indicatorData.Unit,
-			Interval:       indicatorData.Interval,
-			Datetime:       indicatorData.Datetime,
-			ByIndicator:    indicatorData.Name,
-			IndicatorDepth: indicatorData.Depth,
-			Depth:          1,
-			Value:          float64(compareValues(candle.ClosePrice, indicatorData.Value)),
-		},
+	return &analysis.Analytic{
+		ID:             uuid.New(),
+		Name:           c.Name(),
+		Exchange:       indicatorData.Exchange,
+		Symbol:         indicatorData.Symbol,
+		Unit:           indicatorData.Unit,
+		Interval:       indicatorData.Interval,
+		Datetime:       indicatorData.Datetime,
+		ByIndicator:    indicatorData.Name,
+		IndicatorDepth: indicatorData.Depth,
+		Depth:          1,
+		Value:          float64(compareValues(candle.ClosePrice, indicatorData.Value)),
 	}, err
 }
 

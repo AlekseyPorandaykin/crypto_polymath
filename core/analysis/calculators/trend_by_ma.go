@@ -12,11 +12,10 @@ import (
 
 type trendByMA struct {
 	indicatorService indicator.Indicator
-	depths           []int
 }
 
-func NewTrendByMA(indicatorService indicator.Indicator, depths []int) analysis.CalculatorByIndicator {
-	return &trendByMA{indicatorService: indicatorService, depths: depths}
+func NewTrendByMA(indicatorService indicator.Indicator) analysis.CalculatorByIndicator {
+	return &trendByMA{indicatorService: indicatorService}
 }
 
 func (t *trendByMA) Name() string {
@@ -35,25 +34,7 @@ func (t *trendByMA) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (t *trendByMA) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]analysis.Analytic, error) {
-	analytics := make([]analysis.Analytic, 0, len(t.depths))
-	for _, depth := range t.depths {
-		if !t.SupportDepth(depth) {
-			continue
-		}
-		analyticData, err := t.calculateForDepth(ctx, indicatorData, depth)
-		if err != nil {
-			return nil, err
-		}
-		if analyticData == nil {
-			continue
-		}
-		analytics = append(analytics, *analyticData)
-	}
-	return analytics, nil
-}
-
-func (t *trendByMA) calculateForDepth(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
+func (t *trendByMA) Calculate(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
 	data, err := t.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,

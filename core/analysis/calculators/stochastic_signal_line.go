@@ -34,7 +34,7 @@ func (s *stochasticSignalLine) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (s *stochasticSignalLine) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]analysis.Analytic, error) {
+func (s *stochasticSignalLine) Calculate(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
 	data, err := s.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,
@@ -54,19 +54,17 @@ func (s *stochasticSignalLine) Calculate(ctx context.Context, indicatorData doma
 		sumMainLineVal += item.Value
 	}
 
-	return []analysis.Analytic{
-		analysis.Analytic{
-			ID:             uuid.New(),
-			Name:           s.Name(),
-			Exchange:       indicatorData.Exchange,
-			Symbol:         indicatorData.Symbol,
-			Unit:           indicatorData.Unit,
-			Interval:       indicatorData.Interval,
-			Datetime:       indicatorData.Datetime,
-			ByIndicator:    indicatorData.Name,
-			IndicatorDepth: indicatorData.Depth,
-			Depth:          defaultDepthStochasticSignalLine,
-			Value:          sumMainLineVal / float64(len(data)),
-		},
+	return &analysis.Analytic{
+		ID:             uuid.New(),
+		Name:           s.Name(),
+		Exchange:       indicatorData.Exchange,
+		Symbol:         indicatorData.Symbol,
+		Unit:           indicatorData.Unit,
+		Interval:       indicatorData.Interval,
+		Datetime:       indicatorData.Datetime,
+		ByIndicator:    indicatorData.Name,
+		IndicatorDepth: indicatorData.Depth,
+		Depth:          defaultDepthStochasticSignalLine,
+		Value:          sumMainLineVal / float64(len(data)),
 	}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/duke-git/lancet/v2/slice"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -21,7 +22,17 @@ func (c *CandlestickAdapter) LastCandlesticks(
 ) ([]domain.Candlestick, error) {
 	data, err := c.candlestickService.SequenceCandlesticksToDate(ctx, exchange, symbol, string(unit), interval, limit, datetime)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "get sequence candlesticks to date")
+	}
+	return data, nil
+}
+
+func (c *CandlestickAdapter) SequenceCandlesticks(
+	ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int,
+) ([]domain.Candlestick, error) {
+	data, err := c.candlestickService.SequenceCandlesticks(ctx, exchange, symbol, unit, interval, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "get sequence candlesticks")
 	}
 	return data, nil
 }

@@ -42,6 +42,33 @@ func (a *AnalysisRepository) Save(ctx context.Context, data analysis.Analytic) e
 	return nil
 }
 
+func (a *AnalysisRepository) Find(
+	ctx context.Context, name, exchangeName, symbol string, unit domain.Unit, datetime time.Time, interval, indicatorDepth, depth int,
+) (*analysis.Analytic, error) {
+	defer metrics.CacheQueryHelper("memory", "analysis_find")()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	key := createKey(exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
+	cache, has := a.caches[key]
+	if !has {
+		return nil, nil
+	}
+	data := cache.Values()
+	for _, item := range data {
+		if item.Name == name &&
+			item.Exchange == exchangeName &&
+			item.Symbol == symbol &&
+			item.Unit == unit &&
+			item.Datetime == datetime &&
+			item.Interval == interval &&
+			item.IndicatorDepth == indicatorDepth &&
+			item.Depth == depth {
+			return &item, nil
+		}
+	}
+	return nil, nil
+}
+
 func (a *AnalysisRepository) Last(
 	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int,
 ) ([]analysis.Analytic, error) {

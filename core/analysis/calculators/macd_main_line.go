@@ -12,9 +12,6 @@ import (
 const (
 	defaultShortDepthMACD = 12
 	defaultLongDepthMACD  = 26
-
-	//TODO: Чтобы использовать другие depth для MACD
-	depthDiffCoefficientMACD = defaultLongDepthMACD / defaultShortDepthMACD
 )
 
 type macdMainLine struct {
@@ -34,16 +31,17 @@ func (m *macdMainLine) ByIndicator() string {
 }
 
 // INFO: Если есть длинный EMA, то должен быть и короткий EMA
+// Рассчитываем по двум последним ema: длинной и короткой
 func (m *macdMainLine) SupportDepth(depth int) bool {
-	return depth == defaultLongDepthMACD
+	return depth == 1
 }
 
 func (m *macdMainLine) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (m *macdMainLine) Calculate(ctx context.Context, longEma domain.Indicator) ([]analysis.Analytic, error) {
-	if !m.SupportDepth(longEma.Depth) {
+func (m *macdMainLine) Calculate(ctx context.Context, longEma domain.Indicator, depth int) (*analysis.Analytic, error) {
+	if longEma.Depth != defaultLongDepthMACD {
 		return nil, nil
 	}
 	shortEmaData, errShortEmaData := m.indicatorService.LastSequenceToDate(
@@ -62,19 +60,17 @@ func (m *macdMainLine) Calculate(ctx context.Context, longEma domain.Indicator) 
 	if len(shortEmaData) == 0 || shortEmaData[0].Datetime != longEma.Datetime {
 		return nil, nil
 	}
-	return []analysis.Analytic{
-		analysis.Analytic{
-			ID:             uuid.New(),
-			Name:           m.Name(),
-			Exchange:       longEma.Exchange,
-			Symbol:         longEma.Symbol,
-			Unit:           longEma.Unit,
-			Interval:       longEma.Interval,
-			Datetime:       longEma.Datetime,
-			ByIndicator:    longEma.Name,
-			IndicatorDepth: longEma.Depth,
-			Depth:          1,
-			Value:          shortEmaData[0].Value - longEma.Value,
-		},
+	return &analysis.Analytic{
+		ID:             uuid.New(),
+		Name:           m.Name(),
+		Exchange:       longEma.Exchange,
+		Symbol:         longEma.Symbol,
+		Unit:           longEma.Unit,
+		Interval:       longEma.Interval,
+		Datetime:       longEma.Datetime,
+		ByIndicator:    longEma.Name,
+		IndicatorDepth: longEma.Depth,
+		Depth:          1,
+		Value:          shortEmaData[0].Value - longEma.Value,
 	}, nil
 }

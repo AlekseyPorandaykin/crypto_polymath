@@ -14,10 +14,10 @@ type Candlestick interface {
 	NextCandlesticks(
 		ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int, datetime time.Time,
 	) ([]domain.Candlestick, error)
-
 	FirstCandlestick(
 		ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, offset int,
 	) (*domain.Candlestick, error)
+	SequenceCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, limit int) ([]domain.Candlestick, error)
 }
 
 type Indicator interface {
@@ -27,5 +27,9 @@ type Indicator interface {
 	LastSequenceToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error)
 	CalcIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval, depth int) ([]domain.Indicator, error)
 	CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error)
+	//CalculateLastSequence - получить индикаторы за последний период
+	CalculateLastSequence(
+		ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, indicator string, depth int, limit int,
+	) ([]domain.Indicator, error)
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error
 }

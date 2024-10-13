@@ -36,13 +36,19 @@ func (m *macdSignalLine) SupportInterval(interval int) bool {
 	return interval > 0
 }
 
-func (m *macdSignalLine) Calculate(ctx context.Context, mainLine analysis.Analytic) ([]analysis.Analytic, error) {
+func (m *macdSignalLine) Calculate(ctx context.Context, mainLine analysis.Analytic, depth int) (*analysis.Analytic, error) {
 	analyticData, err := m.analyticService.SequenceAnalytics(
-		ctx, mainLine.Exchange, mainLine.Symbol, mainLine.Unit, mainLine.Interval, mainLine.Name, mainLine.IndicatorDepth, mainLine.Depth,
+		ctx, mainLine.Exchange, mainLine.Symbol, mainLine.Unit, mainLine.Interval, mainLine.Name, mainLine.IndicatorDepth, depth,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch macd main line data")
 	}
+	if len(analyticData) == 0 {
+		return nil, nil
+	}
+	slice.SortBy(analyticData, func(a, b analysis.Analytic) bool {
+		return a.Datetime.After(b.Datetime)
+	})
 	emaData := make([]analysis.Analytic, 0, defaultDepthSmoothingMACD)
 	for i := range analyticData {
 		if i >= defaultDepthSmoothingMACD {
@@ -59,19 +65,17 @@ func (m *macdSignalLine) Calculate(ctx context.Context, mainLine analysis.Analyt
 	emaVal := domain.EMA(util.ModifySlice(emaData, func(item analysis.Analytic) float64 {
 		return item.Value
 	}))
-	return []analysis.Analytic{
-		analysis.Analytic{
-			ID:             uuid.New(),
-			Name:           m.Name(),
-			Exchange:       mainLine.Exchange,
-			Symbol:         mainLine.Symbol,
-			Unit:           mainLine.Unit,
-			Interval:       mainLine.Interval,
-			Datetime:       mainLine.Datetime,
-			ByIndicator:    mainLine.Name,
-			IndicatorDepth: mainLine.Depth,
-			Depth:          defaultDepthSmoothingMACD,
-			Value:          emaVal,
-		},
+	return &analysis.Analytic{
+		ID:             uuid.New(),
+		Name:           m.Name(),
+		Exchange:       mainLine.Exchange,
+		Symbol:         mainLine.Symbol,
+		Unit:           mainLine.Unit,
+		Interval:       mainLine.Interval,
+		Datetime:       mainLine.Datetime,
+		ByIndicator:    mainLine.Name,
+		IndicatorDepth: mainLine.Depth,
+		Depth:          1,
+		Value:          emaVal,
 	}, nil
 }

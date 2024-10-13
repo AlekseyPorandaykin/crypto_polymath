@@ -71,7 +71,7 @@ func (s *service) Indicators(
 }
 
 func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
-	childCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	childCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	calc, has := s.calculators[name]
 	if !has || calc == nil {
@@ -94,7 +94,8 @@ func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick dom
 		return nil, errors.Wrap(err, "find indicator in storage")
 	}
 	if storageDTO != nil {
-		return nil, nil
+		res := storageToDomain(*storageDTO)
+		return &res, nil
 	}
 
 	data, err := s.candlestick.LastCandlesticks(
@@ -121,16 +122,53 @@ func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick dom
 	return res, nil
 }
 
-func (s *service) LastSequenceToDate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time) ([]domain.Indicator, error) {
-	data, err := s.repo.LastToDate(ctx, exchange, symbol, string(unit), interval, name, depth, limit, to)
-	if err != nil {
-		return nil, err
+func (s *service) LastSequenceToDate(
+	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, name string, depth, limit int, to time.Time,
+) ([]domain.Indicator, error) {
+	lastCandles, errLastCandles := s.candlestick.LastCandlesticks(ctx, exchange, symbol, unit, interval, limit, to)
+	if errLastCandles != nil {
+		return nil, errors.Wrap(errLastCandles, "get last candlesticks")
 	}
-	indicatorData := storageToDomains(data)
+	indicatorData, errCalc := s.calculateByCandlesticks(ctx, lastCandles, name, depth)
+	if errCalc != nil {
+		return nil, errors.Wrap(errCalc, "calculate indicators")
+	}
 	if !domain.IsCorrectSequenceIndicators(indicatorData) {
 		return nil, nil
 	}
 	return indicatorData, nil
+}
+
+func (s *service) CalculateLastSequence(
+	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, indicator string, depth, limit int,
+) ([]domain.Indicator, error) {
+	calc, has := s.calculators[indicator]
+	if !has || calc == nil {
+		return nil, nil
+	}
+	if !calc.SupportInterval(interval) || !calc.SupportDepth(depth) {
+		return nil, nil
+	}
+	data, err := s.candlestick.SequenceCandlesticks(ctx, exchange, symbol, unit, interval, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "get sequence candlesticks")
+	}
+	return s.calculateByCandlesticks(ctx, data, indicator, depth)
+}
+
+func (s *service) calculateByCandlesticks(ctx context.Context, candlesticks []domain.Candlestick, name string, depth int) ([]domain.Indicator, error) {
+	indicators := make([]domain.Indicator, 0, len(candlesticks))
+	for _, itemCandlestick := range candlesticks {
+		res, errCalc := s.calculatePrimaryIndicator(ctx, itemCandlestick, name, depth)
+		if errCalc != nil {
+			return nil, errCalc
+		}
+		if res == nil {
+			continue
+		}
+		indicators = append(indicators, *res)
+	}
+	return indicators, nil
 }
 
 func (s *service) calculateLastCandles(
@@ -161,8 +199,8 @@ func (s *service) calculateLastCandles(
 		}
 		indicators = append(indicators, *res)
 	}
-
 }
+
 func (s *service) candleForCalculate(
 	ctx context.Context, exchange, symbol string, unit domain.Unit, interval int, indicator string, depth int,
 ) (*domain.Candlestick, error) {

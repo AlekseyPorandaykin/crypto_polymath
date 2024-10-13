@@ -11,6 +11,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
+	"github.com/duke-git/lancet/v2/slice"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -70,7 +71,7 @@ func (h *Handler) GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(
 	indicatorDepth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth,
 	depth spec.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth,
 ) error {
-	data, err := h.analysisService.Analytics(
+	data, err := h.analysisService.LastAnalytics(
 		ctx.Request().Context(),
 		exchange,
 		symbol,
@@ -90,6 +91,9 @@ func (h *Handler) GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(
 			Value:    float32(item.Value),
 		})
 	}
+	slice.SortBy(resp, func(a, b spec.AnalysisItem) bool {
+		return a.Datetime.After(b.Datetime)
+	})
 	return ctx.JSON(http.StatusOK, resp)
 }
 
@@ -256,7 +260,7 @@ func (h *Handler) GetIndicatorExchangeSymbolUnitIntervalNameDepth(
 	if err := checkDepth(int(depth)); err != nil {
 		return errorResponse(ctx, err)
 	}
-	data, err := h.indicatorService.Indicators(
+	data, err := h.indicatorService.CalculateLastSequence(
 		ctx.Request().Context(), exchange, symbol, domain.Unit(unit), interval, string(name), int(depth), 100,
 	)
 	if err != nil {
@@ -269,6 +273,9 @@ func (h *Handler) GetIndicatorExchangeSymbolUnitIntervalNameDepth(
 			Value:    float32(item.Value),
 		})
 	}
+	slice.SortBy(indicators, func(a, b spec.IndicatorItem) bool {
+		return a.Datetime.After(b.Datetime)
+	})
 	return ctx.JSON(http.StatusOK, indicators)
 }
 

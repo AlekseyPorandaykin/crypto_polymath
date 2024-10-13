@@ -12,11 +12,10 @@ import (
 
 type rsi struct {
 	indicatorService indicator.Indicator
-	depths           []int
 }
 
-func NewRSI(indicatorService indicator.Indicator, depths []int) analysis.CalculatorByIndicator {
-	return &rsi{indicatorService, depths}
+func NewRSI(indicatorService indicator.Indicator) analysis.CalculatorByIndicator {
+	return &rsi{indicatorService}
 }
 
 func (r *rsi) Name() string {
@@ -34,25 +33,8 @@ func (r *rsi) SupportDepth(depth int) bool {
 func (r *rsi) SupportInterval(interval int) bool {
 	return interval > 0
 }
-func (r *rsi) Calculate(ctx context.Context, indicatorData domain.Indicator) ([]analysis.Analytic, error) {
-	analytics := make([]analysis.Analytic, 0, len(r.depths))
-	for _, depth := range r.depths {
-		if !r.SupportDepth(depth) {
-			continue
-		}
-		analyticData, err := r.calculateForDepth(ctx, indicatorData, depth)
-		if err != nil {
-			return nil, err
-		}
-		if analyticData == nil {
-			continue
-		}
-		analytics = append(analytics, *analyticData)
-	}
-	return analytics, nil
-}
 
-func (r *rsi) calculateForDepth(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
+func (r *rsi) Calculate(ctx context.Context, indicatorData domain.Indicator, depth int) (*analysis.Analytic, error) {
 	data, err := r.indicatorService.LastSequenceToDate(
 		ctx,
 		indicatorData.Exchange,

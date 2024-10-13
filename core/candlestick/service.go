@@ -176,8 +176,8 @@ func (s *service) DeleteOldRows(ctx context.Context, oldValueLimit int) error {
 	return nil
 }
 
-func (s *service) CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, minutes, limit int, to time.Time) ([]domain.Candlestick, error) {
-	data, err := s.repo.LastToDate(ctx, exchange, symbol, unit, minutes, limit, to)
+func (s *service) CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]domain.Candlestick, error) {
+	data, err := s.repo.LastToDate(ctx, exchange, symbol, unit, interval, limit, to)
 	if err != nil {
 		return nil, err
 	}
