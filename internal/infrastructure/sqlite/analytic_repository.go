@@ -10,6 +10,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"math"
 	"time"
 )
 
@@ -37,6 +38,9 @@ func NewAnalyticRepository(db *sqlx.DB) *AnalyticRepository {
 }
 
 func (repo *AnalyticRepository) Save(ctx context.Context, data analysis.Analytic) error {
+	if math.IsNaN(data.Value) {
+		return nil
+	}
 	defer metrics.DBQueryHelper("crypto_polymath", "analysis_save")()
 	var query = `
 INSERT INTO analytics(

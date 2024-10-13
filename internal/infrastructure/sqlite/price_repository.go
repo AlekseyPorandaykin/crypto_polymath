@@ -7,6 +7,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/jmoiron/sqlx"
+	"math"
 	"strings"
 	"time"
 )
@@ -31,6 +32,9 @@ INSERT INTO
 	values := make([]string, 0, len(data))
 	args := make([]interface{}, 0, len(data)*5)
 	for _, item := range data {
+		if math.IsNaN(item.Value) {
+			continue
+		}
 		queryItem, argsItem, err := p.db.BindNamed(queryValues, item)
 		if err != nil {
 			return err

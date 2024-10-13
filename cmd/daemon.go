@@ -25,6 +25,7 @@ import (
 	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
 	adapter_repository "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/repository"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/event/listeners"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/sqlite"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
@@ -182,22 +183,22 @@ var daemonCmd = &cobra.Command{
 		defer analyticDispatcher.Close()
 
 		//Handlers
-		//indicatorHandler := service.NewIndicatorHandler(
-		//	indicatorService,
-		//	indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
-		//)
-		//analysisHandler := service.NewAnalysisHandler(analysisService, analyticDispatcher)
+		indicatorHandler := service.NewIndicatorHandler(
+			indicatorService,
+			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
+		)
+		analysisHandler := service.NewAnalysisHandler(analysisService, analyticDispatcher)
 
-		//candlestickListener := listeners.NewCandlestick(indicatorHandler)
-		//candleDispatcher.Subscribe(candlestickListener)
-		//indicatorListener := listeners.NewIndicator(analysisHandler)
-		//indicatorDispatcher.Subscribe(indicatorListener)
+		candlestickListener := listeners.NewCandlestick(indicatorHandler)
+		candleDispatcher.Subscribe(candlestickListener)
+		indicatorListener := listeners.NewIndicator(analysisHandler)
+		indicatorDispatcher.Subscribe(indicatorListener)
 
-		//createIndicatorListener := listeners.NewCreateIndicator(indicatorHandler)
-		//createIndicatorDispatcher.Subscribe(createIndicatorListener)
+		createIndicatorListener := listeners.NewCreateIndicator(indicatorHandler)
+		createIndicatorDispatcher.Subscribe(createIndicatorListener)
 
-		//analyticListener := listeners.NewAnalytic(analysisHandler)
-		//analyticDispatcher.Subscribe(analyticListener)
+		analyticListener := listeners.NewAnalytic(analysisHandler)
+		analyticDispatcher.Subscribe(analyticListener)
 
 		//Applications
 		loaderApp := loader.NewLoader(

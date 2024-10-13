@@ -9,6 +9,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/jmoiron/sqlx"
+	"math"
 	"strings"
 	"time"
 )
@@ -42,6 +43,9 @@ VALUES
 	preparedValueQueries := make([]string, 0, len(data))
 	args := make([]interface{}, 0, len(data)*10)
 	for _, item := range data {
+		if math.IsNaN(item.Value) {
+			continue
+		}
 		preparedValueQuery, argVals, err := repo.db.BindNamed(valueQuery, item)
 		if err != nil {
 			return err

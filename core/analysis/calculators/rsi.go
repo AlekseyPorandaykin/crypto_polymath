@@ -75,7 +75,10 @@ func (r *rsi) Calculate(ctx context.Context, indicatorData domain.Indicator, dep
 		fallEMA += prevVal - item.Value
 		prevVal = item.Value
 	}
-	relativeStrength := growthEMA / fallEMA
+	var relativeStrength float64
+	if growthEMA != 0 && fallEMA != 0 {
+		relativeStrength = growthEMA / fallEMA
+	}
 	val := 100 - (100 / (1 + relativeStrength))
 	return &analysis.Analytic{
 		ID:             uuid.New(),
