@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Service - сервисный слой (приложением), реализует логику работы с аналитикой
 type Service struct {
 	calculatorsByIndicator map[string]CalculatorByIndicator
 	calculatorsByAnalytic  map[string]CalculatorByAnalytic
@@ -16,12 +17,13 @@ type Service struct {
 	depths                 []int
 }
 
-func NewService(repo Repository, indicatorService indicator.Indicator) *Service {
+func NewService(repo Repository, indicatorService indicator.Indicator, depths []int) *Service {
 	return &Service{
 		calculatorsByIndicator: make(map[string]CalculatorByIndicator),
 		calculatorsByAnalytic:  make(map[string]CalculatorByAnalytic),
 		repo:                   repo,
 		indicatorService:       indicatorService,
+		depths:                 depths,
 	}
 }
 

@@ -32,7 +32,7 @@ var IndicatorDescriptions = map[string]string{
 	MAIndicator:                      "Простая скользящей средней (MA)",
 	EMAIndicator:                     "Экспоненциальной скользящей средней (EMA)",
 	TypeCandleIndicator:              "Направление свечи(1 - зеленая, -1 - красная)",
-	VolatilityCandlePercentIndicator: "Процент изменчивости свечи(определяет высоту свечи)",
+	VolatilityCandlePercentIndicator: "Процент изменчивости свечи(определяет изменение высоты свечи в процентах)",
 	PriceChanges:                     "Изменение цены. Определяем как изменялась цена последние n-шагов",
 	StochasticMainLine:               "Стохастический осциллятор (основная линия)",
 	TrendByMAIndicator:               "Тренд на основе MA",

@@ -176,28 +176,33 @@ func (s *service) calculateLastCandles(
 ) ([]domain.Indicator, error) {
 	indicators := make([]domain.Indicator, 0, 100)
 	for {
-		calc, has := s.calculators[indicator]
-		if !has || calc == nil {
-			return indicators, nil
+		select {
+		case <-ctx.Done():
+			return indicators, ctx.Err()
+		default:
+			calc, has := s.calculators[indicator]
+			if !has || calc == nil {
+				return indicators, nil
+			}
+			if !calc.SupportInterval(interval) || !calc.SupportDepth(depth) {
+				return indicators, nil
+			}
+			lastCandle, err := s.candleForCalculate(ctx, exchange, symbol, unit, interval, indicator, depth)
+			if err != nil {
+				return indicators, err
+			}
+			if lastCandle == nil {
+				return indicators, nil
+			}
+			res, err := s.calculatePrimaryIndicator(ctx, *lastCandle, indicator, depth)
+			if err != nil {
+				return nil, err
+			}
+			if res == nil {
+				return indicators, nil
+			}
+			indicators = append(indicators, *res)
 		}
-		if !calc.SupportInterval(interval) || !calc.SupportDepth(depth) {
-			return indicators, nil
-		}
-		lastCandle, err := s.candleForCalculate(ctx, exchange, symbol, unit, interval, indicator, depth)
-		if err != nil {
-			return indicators, err
-		}
-		if lastCandle == nil {
-			return indicators, nil
-		}
-		res, err := s.calculatePrimaryIndicator(ctx, *lastCandle, indicator, depth)
-		if err != nil {
-			return nil, err
-		}
-		if res == nil {
-			return indicators, nil
-		}
-		indicators = append(indicators, *res)
 	}
 }
 
@@ -219,6 +224,7 @@ func (s *service) candleForCalculate(
 				return nextCandles, nil
 			}
 		}
+		return nil, nil
 	}
 	firstCandle, err := s.candlestick.FirstCandlestick(ctx, exchange, symbol, unit, interval, depth)
 	if err != nil {

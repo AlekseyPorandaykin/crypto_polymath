@@ -8,7 +8,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/scheduler"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
@@ -21,6 +21,8 @@ import (
 // Проскальзывание в секундах, при запросе данные в точное время на стороне сервера данные еще могут не сохраниться.
 const slippageSecond = 1
 
+//Loader - это демон, который загружает данные из внешних источников и сохраняет их в базу данных.
+
 type Loader struct {
 	priceService       price.Price
 	candlestickService candlestick.Candlestick
@@ -28,7 +30,7 @@ type Loader struct {
 	indicatorService   indicator.Indicator
 	exchangeNames      []string
 	candleDispatcher   *dispatcher.Dispatcher[domain.Candlestick]
-	service            *service.Service
+	service            *application.Service
 
 	symbols []string
 }
@@ -39,7 +41,7 @@ func NewLoader(
 	exchangeService core_exchange.Exchange,
 	indicatorService indicator.Indicator,
 	candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
-	service *service.Service,
+	service *application.Service,
 	exchangeNames,
 	symbols []string,
 ) *Loader {
@@ -104,7 +106,8 @@ func (l *Loader) Run(ctx context.Context) error {
 }
 
 func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
-	for _, symbol := range l.symbols {
+	for _, s := range l.symbols {
+		symbol := s
 		l.loadHourCandlesticks(ctx, exchangeName, symbol)
 		l.loadMinuteCandlesticks(ctx, exchangeName, symbol)
 		system.Go(func() {
@@ -170,6 +173,7 @@ func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbo
 	}
 }
 
+// loadHourCandlesticks - загружаем все часовые свечи, с разными интервалами.
 func (l *Loader) loadHourCandlesticks(ctx context.Context, exchangeName, symbol string) {
 	for _, interval := range viper.GetIntSlice("candlestick.hours") {
 		hours := interval

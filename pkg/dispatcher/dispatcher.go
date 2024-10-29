@@ -12,18 +12,20 @@ type Listener[T interface{}] interface {
 }
 
 type Dispatcher[T interface{}] struct {
-	listeners   []Listener[T]
-	preHandler  func(e Event[T])
-	postHandler func(e Event[T], duration time.Duration)
-	closeCh     chan struct{}
-	events      chan Event[T]
+	listeners      []Listener[T]
+	preHandler     func(e Event[T])
+	postHandler    func(e Event[T], duration time.Duration)
+	preDispatcher  func(e Event[T])
+	postDispatcher func(e Event[T])
+	closeCh        chan struct{}
+	events         chan Event[T]
 }
 
 func New[T interface{}]() *Dispatcher[T] {
 	return &Dispatcher[T]{
 		listeners: make([]Listener[T], 0),
 		closeCh:   make(chan struct{}, 1),
-		events:    make(chan Event[T], 10_000),
+		events:    make(chan Event[T], 100),
 	}
 }
 
@@ -35,8 +37,21 @@ func (c *Dispatcher[T]) SetPostHandler(handler func(e Event[T], duration time.Du
 	c.postHandler = handler
 }
 
-func (c *Dispatcher[T]) Dispatch(event Event[T]) {
-	c.events <- event
+func (c *Dispatcher[T]) SetPreDispatcher(handler func(e Event[T])) {
+	c.preDispatcher = handler
+}
+func (c *Dispatcher[T]) SetPostDispatcher(handler func(e Event[T])) {
+	c.postDispatcher = handler
+}
+
+func (c *Dispatcher[T]) Dispatch(e Event[T]) {
+	if c.preDispatcher != nil {
+		c.preDispatcher(e)
+	}
+	c.events <- e
+	if c.postDispatcher != nil {
+		c.postDispatcher(e)
+	}
 }
 
 func (c *Dispatcher[T]) Subscribe(consumer Listener[T]) {

@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"context"
 	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
@@ -8,7 +9,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/duke-git/lancet/v2/slice"
@@ -36,7 +37,7 @@ type Handler struct {
 	analysisService     *analysis.Service
 	analyticRepository  view.AnalyticInfoRepository
 	indicatorRepository view.IndicatorInfoRepository
-	serv                *service.Service
+	serv                *application.Service
 }
 
 func NewHandler(
@@ -47,7 +48,7 @@ func NewHandler(
 	analysisService *analysis.Service,
 	analyticRepository view.AnalyticInfoRepository,
 	indicatorRepository view.IndicatorInfoRepository,
-	serv *service.Service,
+	serv *application.Service,
 ) *Handler {
 	return &Handler{
 		priceService:        priceService,
@@ -145,6 +146,7 @@ func (h *Handler) GetPricesExchangeExchange(ctx echo.Context, exchange string) e
 			Value:    float32(item.Value),
 		})
 	}
+	_ = slice.SortByField(result, "Symbol", "ASC")
 	return ctx.JSON(http.StatusOK, result)
 }
 
@@ -164,6 +166,7 @@ func (h *Handler) GetPricesSymbolSymbol(ctx echo.Context, symbol string) error {
 			Value:    float32(item.Value),
 		})
 	}
+	_ = slice.SortByField(result, "Exchange", "ASC")
 	return ctx.JSON(http.StatusOK, result)
 }
 
@@ -315,6 +318,9 @@ func checkUnitInterval(unit string, interval int) error {
 }
 
 func errorResponse(ctx echo.Context, err error) error {
+	if errors.Is(err, context.Canceled) {
+		return nil
+	}
 	if errors.Is(err, errNotFoundUnit) {
 		return ctx.JSON(http.StatusInternalServerError, spec.ErrorResponse{Message: "not found unit"})
 	}

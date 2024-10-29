@@ -6,7 +6,7 @@ import (
 
 func init() {
 	viper.Set("app.codename", "crypto_polymath")
-	viper.Set("app.debug", true)
+	viper.Set("app.debug", false)
 	viper.Set("http.host", "")
 	viper.Set("http.port", "80")
 	viper.Set("price.duration.loader", "30s")
@@ -32,4 +32,39 @@ func init() {
 	viper.Set("analysis.storage.limit", 200)
 
 	viper.Set("load.symbols", []string{"BTCUSDT", "ETHUSDT", "TONUSDT"})
+
+	viper.Set("logger.level", "ERROR")
+	viper.Set("logger.output_paths", []string{"stdout"})
+	viper.Set("logger.error_output_paths", []string{"stdout"})
+	viper.Set("logger.stacktrace", false)
+
+	viper.Set("candlestick.logger.level", "ERROR")
+	viper.Set("candlestick.logger.output_paths", []string{"./storage/logs/candlestick_output.log"})
+	viper.Set("candlestick.logger.error_output_paths", []string{"./storage/logs/candlestick_error.log"})
+	viper.Set("candlestick.logger.stacktrace", false)
+
+	viper.Set("analysis.logger.level", "ERROR")
+	viper.Set("analysis.logger.output_paths", []string{"./storage/logs/analysis_output.log"})
+	viper.Set("analysis.logger.error_output_paths", []string{"./storage/logs/analysis_error.log"})
+	viper.Set("analysis.logger.stacktrace", false)
+
+	viper.Set("exchange.logger.level", "ERROR")
+	viper.Set("exchange.logger.output_paths", []string{"./storage/logs/exchange_output.log"})
+	viper.Set("exchange.logger.error_output_paths", []string{"./storage/logs/exchange_error.log"})
+	viper.Set("exchange.logger.stacktrace", false)
+
+	viper.Set("indicator.logger.level", "ERROR")
+	viper.Set("indicator.logger.output_paths", []string{"./storage/logs/indicator_output.log"})
+	viper.Set("indicator.logger.error_output_paths", []string{"./storage/logs/indicator_error.log"})
+	viper.Set("indicator.logger.stacktrace", false)
+
+	viper.Set("price.logger.level", "ERROR")
+	viper.Set("price.logger.output_paths", []string{"./storage/logs/price_output.log"})
+	viper.Set("price.logger.error_output_paths", []string{"./storage/logs/price_error.log"})
+	viper.Set("price.logger.stacktrace", false)
+
+	viper.Set("http_client.logger.level", "ERROR")
+	viper.Set("http_client.logger.output_paths", []string{"./storage/logs/http_client_output.log"})
+	viper.Set("http_client.logger.error_output_paths", []string{"./storage/logs/http_client_error.log"})
+	viper.Set("http_client.logger.stacktrace", false)
 }

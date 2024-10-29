@@ -11,9 +11,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"time"
 )
 
+// Calculator -	компонент, который отвечает за расчет индикаторов и аналитики.
+// Запускается по в виде демона и выполняет расчеты по расписанию.
 type Calculator struct {
 	indicatorService    indicator.Indicator
 	analysisService     *analysis.Service
@@ -47,7 +48,19 @@ func (app *Calculator) Run(ctx context.Context) error {
 				for _, depth := range depths {
 					go func(exchangeName, symbol string, minute, depth int) {
 						defer system.HandlePanic()
-						_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute)
+						_ = scheduler.ExecuteCustomMinute(ctx, minute, 1, func() error {
+							app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+								Name: domain.CreateIndicatorEventEvent,
+								Body: domain.CreateIndicatorEventBody{
+									Exchange: exchangeName,
+									Symbol:   symbol,
+									Unit:     domain.MinuteUnit,
+									Interval: minute,
+								},
+							})
+							return nil
+						})
+						//_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute)
 
 					}(exchangeName, symbol, minute, depth)
 				}
@@ -133,27 +146,6 @@ func (app *Calculator) Run(ctx context.Context) error {
 			return ctx.Err()
 		case err := <-errCh:
 			return err
-		}
-	}
-}
-
-func (app *Calculator) execMinMinIndicator(ctx context.Context, exchangeName, symbol string, min int) error {
-	ticker := time.NewTicker(time.Second / 5)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
-				Name: domain.CreateIndicatorEventEvent,
-				Body: domain.CreateIndicatorEventBody{
-					Exchange: exchangeName,
-					Symbol:   symbol,
-					Unit:     domain.MinuteUnit,
-					Interval: min,
-				},
-			})
 		}
 	}
 }

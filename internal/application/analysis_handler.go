@@ -1,4 +1,4 @@
-package service
+package application
 
 import (
 	"context"
@@ -13,7 +13,10 @@ type AnalysisHandler struct {
 	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]
 }
 
-func NewAnalysisHandler(analysisService *analysis.Service, analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]) *AnalysisHandler {
+func NewAnalysisHandler(
+	analysisService *analysis.Service,
+	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic],
+) *AnalysisHandler {
 	return &AnalysisHandler{analysisService: analysisService, analyticDispatcher: analyticDispatcher}
 }
 

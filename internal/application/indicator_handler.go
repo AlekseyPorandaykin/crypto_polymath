@@ -1,4 +1,4 @@
-package service
+package application
 
 import (
 	"context"
@@ -9,12 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// IndicatorHandler - рассчитываем индикаторы на основе свечей или по расписанию.
 type IndicatorHandler struct {
 	indicatorService    indicator.Indicator
 	indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator]
 	depths              []int
 
-	chans map[string]chan struct{}
+	chans  map[string]chan struct{}
+	logger *zap.Logger
 }
 
 func NewIndicatorHandler(
@@ -27,7 +29,12 @@ func NewIndicatorHandler(
 		indicatorDispatcher: indicatorDispatcher,
 		depths:              depths,
 		chans:               make(map[string]chan struct{}),
+		logger:              zap.NewNop(),
 	}
+}
+
+func (i *IndicatorHandler) SetLogger(logger *zap.Logger) {
+	i.logger = logger
 }
 
 func (i *IndicatorHandler) CalculateByCandle(ctx context.Context, candle domain.Candlestick) {
@@ -36,16 +43,18 @@ func (i *IndicatorHandler) CalculateByCandle(ctx context.Context, candle domain.
 		i.chans[key] = make(chan struct{}, 1)
 	}
 	indicators := make([]domain.Indicator, 0, len(i.depths))
+	i.logger.Debug("start calculate indicator by candle", zap.String("key", key))
 	i.chans[key] <- struct{}{}
 	for _, depth := range i.depths {
 		data, err := i.indicatorService.CalcIndicatorsByCandlestick(ctx, candle, depth)
 		if err != nil {
-			zap.L().Error("calculate indicator", zap.Error(err))
+			i.logger.Error("calculate indicator", zap.Error(err))
 			continue
 		}
 		indicators = append(indicators, data...)
 	}
 	<-i.chans[key]
+	i.logger.Debug("indicator by candle calculated", zap.String("key", key), zap.Int("count", len(indicators)))
 	for _, item := range indicators {
 		i.indicatorDispatcher.Dispatch(dispatcher.Event[domain.Indicator]{
 			Name: domain.CreatedIndicatorEvent,
@@ -60,16 +69,18 @@ func (i *IndicatorHandler) Calculate(ctx context.Context, exchange, symbol strin
 		i.chans[key] = make(chan struct{}, 1)
 	}
 	indicators := make([]domain.Indicator, 0, len(i.depths))
+	i.logger.Debug("start calculate", zap.String("key", key))
 	i.chans[key] <- struct{}{}
 	for _, depth := range i.depths {
 		data, err := i.indicatorService.CalcIndicators(ctx, exchange, symbol, unit, interval, depth)
 		if err != nil {
-			zap.L().Error("calculate indicator", zap.Error(err))
+			i.logger.Error("calculate indicator", zap.Error(err))
 			continue
 		}
 		indicators = append(indicators, data...)
 	}
 	<-i.chans[key]
+	i.logger.Debug("indicator calculated", zap.String("key", key), zap.Int("count", len(indicators)))
 	for _, item := range indicators {
 		i.indicatorDispatcher.Dispatch(dispatcher.Event[domain.Indicator]{
 			Name: domain.CreatedIndicatorEvent,

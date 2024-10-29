@@ -3,21 +3,24 @@ package listeners
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
+	"time"
 )
 
 type CreateIndicator struct {
-	indicatorHandler *service.IndicatorHandler
+	indicatorHandler *application.IndicatorHandler
 }
 
-func NewCreateIndicator(indicatorHandler *service.IndicatorHandler) dispatcher.Listener[domain.CreateIndicatorEventBody] {
+func NewCreateIndicator(indicatorHandler *application.IndicatorHandler) dispatcher.Listener[domain.CreateIndicatorEventBody] {
 	return &CreateIndicator{indicatorHandler: indicatorHandler}
 }
 
 func (c *CreateIndicator) Handle(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 	c.indicatorHandler.Calculate(
-		context.TODO(),
+		ctx,
 		e.Body.Exchange,
 		e.Body.Symbol,
 		e.Body.Unit,

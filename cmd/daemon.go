@@ -24,17 +24,18 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters"
 	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
 	adapter_repository "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/repository"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/event/listeners"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/sqlite"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/logger"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
@@ -55,10 +56,16 @@ var daemonCmd = &cobra.Command{
 		defer system.HandlePanic()
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()
+		logger, errLogger := logger.CreateForNamespace("daemon")
+		if errLogger != nil {
+			fmt.Println("error create logger", errLogger.Error())
+			return
+		}
+		defer func() { _ = logger.Sync() }()
 		conf := config.Create()
 		conn, errConn := database.CreateConnection(conf.DBConnection)
 		if errConn != nil {
-			fmt.Println("error create connection", errConn.Error())
+			logger.Info("error create connection", zap.Error(errConn))
 			return
 		}
 		defer func() { _ = conn.Close() }()
@@ -145,10 +152,12 @@ var daemonCmd = &cobra.Command{
 		)
 		exchangeService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
 
-		serv := service.NewService(analysisDBRepo, indicatorDBRepos)
+		serv := application.NewService(analysisDBRepo, indicatorDBRepos)
 
 		analysisService := analysis.NewService(
-			adapter_repository.NewAnalysisRepository(analysisDBRepo, memory.NewAnalysisRepository(100)), indicatorService,
+			adapter_repository.NewAnalysisRepository(analysisDBRepo, memory.NewAnalysisRepository(100)),
+			indicatorService,
+			viper.GetIntSlice("candlestick.depths"),
 		)
 
 		emaCalc := calculators.NewTrendByEMA(indicatorService)
@@ -173,21 +182,24 @@ var daemonCmd = &cobra.Command{
 
 		//Events
 		candleDispatcher := dispatcher.New[domain.Candlestick]()
-
 		defer candleDispatcher.Close()
+
 		indicatorDispatcher := dispatcher.New[domain.Indicator]()
 		defer indicatorDispatcher.Close()
+
 		createIndicatorDispatcher := dispatcher.New[domain.CreateIndicatorEventBody]()
 		defer createIndicatorDispatcher.Close()
+
 		analyticDispatcher := dispatcher.New[analysis.Analytic]()
 		defer analyticDispatcher.Close()
 
 		//Handlers
-		indicatorHandler := service.NewIndicatorHandler(
+		indicatorHandler := application.NewIndicatorHandler(
 			indicatorService,
 			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
 		)
-		analysisHandler := service.NewAnalysisHandler(analysisService, analyticDispatcher)
+		indicatorHandler.SetLogger(logger)
+		analysisHandler := application.NewAnalysisHandler(analysisService, analyticDispatcher)
 
 		candlestickListener := listeners.NewCandlestick(indicatorHandler)
 		candleDispatcher.Subscribe(candlestickListener)
@@ -211,7 +223,9 @@ var daemonCmd = &cobra.Command{
 			exchangeNames,
 			viper.GetStringSlice("load.symbols"),
 		)
-		calculatorApp := calculator.NewCalculator(createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"))
+		calculatorApp := calculator.NewCalculator(
+			createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"),
+		)
 
 		//Server HTTP
 		serverHttp := http_server.NewServer()
@@ -230,61 +244,81 @@ var daemonCmd = &cobra.Command{
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
 
 		//Debug config
-		if viper.GetBool("app.debug") {
-			candleDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Candlestick], duration time.Duration) {
-				zap.L().Debug(
-					"handle candlestick",
-					zap.String("symbol", e.Body.Symbol),
-					zap.String("unit", string(e.Body.Unit)),
-					zap.Int("interval", e.Body.Interval),
-					zap.Time("start_time", e.Body.StartTime),
-					zap.Int64("duration_ms", duration.Milliseconds()),
-				)
-			})
-			indicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Indicator], duration time.Duration) {
-				zap.L().Debug(
-					"handle indicator",
-					zap.String("symbol", e.Body.Symbol),
-					zap.String("unit", string(e.Body.Unit)),
-					zap.Int("interval", e.Body.Interval),
-					zap.Time("datetime", e.Body.Datetime),
-					zap.String("name", e.Body.Name),
-					zap.Int("depth", e.Body.Depth),
-					zap.Int64("duration_ms", duration.Milliseconds()),
-				)
-			})
-			analyticDispatcher.SetPostHandler(func(e dispatcher.Event[analysis.Analytic], duration time.Duration) {
-				zap.L().Debug("handle analytic",
-					zap.String("Symbol", e.Body.Symbol),
-					zap.String("Unit", string(e.Body.Unit)),
-					zap.Int("Interval", e.Body.Interval),
-					zap.String("Name", e.Body.Name),
-					zap.Time("datetime", e.Body.Datetime),
-					zap.Int("depth", e.Body.Depth),
-					zap.Int64("duration_ms", duration.Milliseconds()),
-				)
-			})
-		}
+		candleDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Candlestick]) {
+			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
+		})
+		candleDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.Candlestick]) {
+			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
+		})
+		candleDispatcher.SetPreHandler(func(e dispatcher.Event[domain.Candlestick]) {
+			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
+		})
+		candleDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Candlestick], duration time.Duration) {
+			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
+			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
+		})
+
+		indicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Indicator]) {
+			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
+		})
+		indicatorDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.Indicator]) {
+			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
+		})
+		indicatorDispatcher.SetPreHandler(func(e dispatcher.Event[domain.Indicator]) {
+			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
+		})
+		indicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Indicator], duration time.Duration) {
+			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
+			metrics.EventDurationQuery.WithLabelValues("indicator").Add(float64(duration.Milliseconds()))
+		})
+
+		createIndicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
+		})
+		createIndicatorDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
+		})
+		createIndicatorDispatcher.SetPreHandler(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
+		})
+		createIndicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.CreateIndicatorEventBody], duration time.Duration) {
+			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
+			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
+		})
+
+		analyticDispatcher.SetPreDispatcher(func(e dispatcher.Event[analysis.Analytic]) {
+			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
+		})
+		analyticDispatcher.SetPostDispatcher(func(e dispatcher.Event[analysis.Analytic]) {
+			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
+		})
+		analyticDispatcher.SetPreHandler(func(e dispatcher.Event[analysis.Analytic]) {
+			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
+		})
+		analyticDispatcher.SetPostHandler(func(e dispatcher.Event[analysis.Analytic], duration time.Duration) {
+			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
+			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
+		})
 
 		//Run applications
 		system.Go(func() {
 			defer cancel()
 			if err := loaderApp.Run(ctx); err != nil {
-				fmt.Println("run loader app", err.Error())
+				logger.Info("run loader app", zap.Error(err))
 				return
 			}
 		})
 		system.Go(func() {
 			defer cancel()
 			if err := calculatorApp.Run(ctx); err != nil {
-				fmt.Println("run calculator app", err.Error())
+				logger.Info("run calculator app", zap.Error(err))
 				return
 			}
 		})
 		system.Go(func() {
 			defer cancel()
 			if err := serverHttp.Run(viper.GetString("http.host"), viper.GetString("http.port")); err != nil {
-				fmt.Println("run http server", err.Error())
+				logger.Info("run http server", zap.Error(err))
 				return
 			}
 		})
@@ -293,6 +327,9 @@ var daemonCmd = &cobra.Command{
 		})
 		system.Go(func() {
 			indicatorDispatcher.Listen()
+		})
+		system.Go(func() {
+			createIndicatorDispatcher.Listen()
 		})
 		system.Go(func() {
 			createIndicatorDispatcher.Listen()
