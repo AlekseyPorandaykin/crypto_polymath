@@ -3,50 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/binance"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bitget"
-	v5 "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
-	bybit_sender "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/sender"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/gateio"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kraken"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin"
-	kukoin_sender "github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin/sender"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/mexc"
-	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis/calculators"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
-	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
-	indicator_calculator "github.com/AlekseyPorandaykin/crypto_polymath/core/indicator/calculator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
-	adapter_repository "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/repository"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/event/listeners"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/sqlite"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/logger"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
-	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
-	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 var daemonCmd = &cobra.Command{
@@ -62,243 +25,47 @@ var daemonCmd = &cobra.Command{
 			return
 		}
 		defer func() { _ = logger.Sync() }()
-		conf := config.Create()
-		conn, errConn := database.CreateConnection(conf.DBConnection)
-		if errConn != nil {
-			logger.Info("error create connection", zap.Error(errConn))
+		c := NewContainer()
+		if err := c.Init(); err != nil {
+			fmt.Println("error init container", errLogger.Error())
 			return
 		}
-		defer func() { _ = conn.Close() }()
-
-		//Constants
-		exchangeNames := []string{
-			adapter_exchange.BinanceExchange,
-			adapter_exchange.BitgetExchange,
-			adapter_exchange.BybitExchange,
-			adapter_exchange.GateIoExchange,
-			adapter_exchange.KrakenExchange,
-			adapter_exchange.KucoinExchange,
-			adapter_exchange.MexcExchange,
-			adapter_exchange.OkxExchange,
+		defer c.Close()
+		loaderApp, errCreateLoader := c.CreateLoader()
+		if errCreateLoader != nil {
+			logger.Error("error create loader app", zap.Error(errCreateLoader))
+			return
 		}
-
-		httpClient := metrics.NewHTTPSenderWithMetrics(http.DefaultClient)
-
-		//Repositories
-		priceRepo := adapter_repository.NewPriceRepository(sqlite.NewPriceRepository(conn), memory.NewPriceRepository())
-		candlestickRepo := adapter_repository.NewCandlestickRepository(
-			sqlite.NewCandlestickRepository(conn),
-			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
-		)
-		indicatorDBRepos := sqlite.NewIndicatorRepository(conn)
-		indicatorRepo := adapter_repository.NewIndicatorRepository(
-			indicatorDBRepos,
-			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
-		)
-		analysisDBRepo := sqlite.NewAnalyticRepository(conn)
-
-		//Clients
-		binanceClient := system.MustInit[*binance.Manager](binance.NewManager(
-			viper.GetString("binance.spot_host"),
-			viper.GetString("binance.future_host"),
-		))
-		bitgetClient := system.MustInit[*bitget.Client](bitget.NewClient(viper.GetString("bitget.host")))
-		bybitBasicSender := bybit_sender.NewBasic()
-		bybitBasicSender.WithHttpClient(httpClient)
-
-		bybitClient := system.MustInit[*v5.Client](v5.NewClient(viper.GetString("bybit.host"), bybitBasicSender))
-		gateIoClient := system.MustInit[*gateio.Client](gateio.NewClient(viper.GetString("gateio.host")))
-		krakenClient := system.MustInit[*kraken.Client](kraken.NewClient(viper.GetString("kraken.host")))
-		kukoinClient := system.MustInit[*kucoin.Client](kucoin.NewClient(viper.GetString("kucoin.host"), kukoin_sender.New()))
-		mexcClient := system.MustInit[*mexc.Client](mexc.NewClient(viper.GetString("mexc.host")))
-		okxClient := system.MustInit[*okx.Client](okx.NewClient(viper.GetString("okx.host")))
-
-		//Exchanges
-		binanceExchange := adapter_exchange.NewBinance(binanceClient)
-		bybitExchange := adapter_exchange.NewByBit(bybitClient)
-		bitgetExchange := adapter_exchange.NewBitget(bitgetClient)
-		gateIoExchange := adapter_exchange.NewGateIo(gateIoClient)
-		krakenExchange := adapter_exchange.NewKraken(krakenClient)
-		kukoinExchange := adapter_exchange.NewKucoin(kukoinClient)
-		mexcExchange := adapter_exchange.NewMexc(mexcClient)
-		okxExchange := adapter_exchange.NewOkx(okxClient)
-
-		//Services
-		priceService := price.NewService(priceRepo)
-		priceService.AddLoader(adapter_exchange.BinanceExchange, binanceExchange)
-		priceService.AddLoader(adapter_exchange.BitgetExchange, bitgetExchange)
-		priceService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
-		priceService.AddLoader(adapter_exchange.GateIoExchange, gateIoExchange)
-		priceService.AddLoader(adapter_exchange.KrakenExchange, krakenExchange)
-		priceService.AddLoader(adapter_exchange.KucoinExchange, kukoinExchange)
-		priceService.AddLoader(adapter_exchange.MexcExchange, mexcExchange)
-		priceService.AddLoader(adapter_exchange.OkxExchange, okxExchange)
-
-		candlestickService := candlestick.NewService(candlestickRepo)
-		candlestickService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
-		candlestickService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
-
-		indicatorService := indicator.NewService(indicatorRepo, adapters.NewCandlestickAdapter(candlestickService))
-		indicatorService.AddCalculator(indicator_calculator.NewMA())
-		indicatorService.AddCalculator(indicator_calculator.NewEMA())
-		indicatorService.AddCalculator(indicator_calculator.NewTypeCandle())
-		indicatorService.AddCalculator(indicator_calculator.NewVolatilityCandlePercent())
-		indicatorService.AddCalculator(indicator_calculator.NewTrend())
-		indicatorService.AddCalculator(indicator_calculator.NewPriceChanges())
-		indicatorService.AddCalculator(indicator_calculator.NewStochasticMainLine())
-
-		exchangeService := core_exchange.New(
-			adapter_repository.NewExchangeRepository(sqlite.NewExchangeRepository(conn), memory.NewExchangeRepository()),
-		)
-		exchangeService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
-
-		serv := application.NewService(analysisDBRepo, indicatorDBRepos)
-
-		analysisService := analysis.NewService(
-			adapter_repository.NewAnalysisRepository(analysisDBRepo, memory.NewAnalysisRepository(100)),
-			indicatorService,
-			viper.GetIntSlice("candlestick.depths"),
-		)
-
-		emaCalc := calculators.NewTrendByEMA(indicatorService)
-		maCalc := calculators.NewTrendByMA(indicatorService)
-		rationCandlerToMACalc := calculators.NewRationCandleToMA(candlestickService)
-		rationCandlerToEMACalc := calculators.NewRationCandleToEMA(candlestickService)
-		rsiCalc := calculators.NewRSI(indicatorService)
-		macdMainLineCalc := calculators.NewMACDMainLine(indicatorService)
-		stochasticSignalLineCalc := calculators.NewStochasticSignalLine(indicatorService)
-		analysisService.AddCalculatorByIndicator(emaCalc)
-		analysisService.AddCalculatorByIndicator(maCalc)
-		analysisService.AddCalculatorByIndicator(rationCandlerToMACalc)
-		analysisService.AddCalculatorByIndicator(rationCandlerToEMACalc)
-		analysisService.AddCalculatorByIndicator(rsiCalc)
-		analysisService.AddCalculatorByIndicator(macdMainLineCalc)
-		analysisService.AddCalculatorByIndicator(stochasticSignalLineCalc)
-
-		macdSignalLineCalc := calculators.NewMACDSignalLine(analysisService)
-		macdHistogramCalc := calculators.NewMACDHistogram(analysisService)
-		analysisService.AddCalculatorByAnalytic(macdSignalLineCalc)
-		analysisService.AddCalculatorByAnalytic(macdHistogramCalc)
-
-		//Events
-		candleDispatcher := dispatcher.New[domain.Candlestick]()
-		defer candleDispatcher.Close()
-
-		indicatorDispatcher := dispatcher.New[domain.Indicator]()
-		defer indicatorDispatcher.Close()
-
-		createIndicatorDispatcher := dispatcher.New[domain.CreateIndicatorEventBody]()
-		defer createIndicatorDispatcher.Close()
-
-		analyticDispatcher := dispatcher.New[analysis.Analytic]()
-		defer analyticDispatcher.Close()
-
-		//Handlers
-		indicatorHandler := application.NewIndicatorHandler(
-			indicatorService,
-			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
-		)
-		indicatorHandler.SetLogger(logger)
-		analysisHandler := application.NewAnalysisHandler(analysisService, analyticDispatcher)
-
-		candlestickListener := listeners.NewCandlestick(indicatorHandler)
-		candleDispatcher.Subscribe(candlestickListener)
-		indicatorListener := listeners.NewIndicator(analysisHandler)
-		indicatorDispatcher.Subscribe(indicatorListener)
-
-		createIndicatorListener := listeners.NewCreateIndicator(indicatorHandler)
-		createIndicatorDispatcher.Subscribe(createIndicatorListener)
-
-		analyticListener := listeners.NewAnalytic(analysisHandler)
-		analyticDispatcher.Subscribe(analyticListener)
-
-		//Applications
-		loaderApp := loader.NewLoader(
-			priceService,
-			candlestickService,
-			exchangeService,
-			indicatorService,
-			candleDispatcher,
-			serv,
-			exchangeNames,
-			viper.GetStringSlice("load.symbols"),
-		)
-		calculatorApp := calculator.NewCalculator(
-			createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"),
-		)
-
-		//Server HTTP
-		serverHttp := http_server.NewServer()
-		defer serverHttp.Close()
-		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
-		handlerHttp := impl.NewHandler(
-			priceService,
-			candlestickService,
-			indicatorService,
-			exchangeService,
-			analysisService,
-			analysisDBRepo,
-			indicatorDBRepos,
-			serv,
-		)
-		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
-
-		//Debug config
-		candleDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Candlestick]) {
-			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
-		})
-		candleDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.Candlestick]) {
-			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
-		})
-		candleDispatcher.SetPreHandler(func(e dispatcher.Event[domain.Candlestick]) {
-			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
-		})
-		candleDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Candlestick], duration time.Duration) {
-			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
-			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
-		})
-
-		indicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Indicator]) {
-			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
-		})
-		indicatorDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.Indicator]) {
-			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
-		})
-		indicatorDispatcher.SetPreHandler(func(e dispatcher.Event[domain.Indicator]) {
-			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
-		})
-		indicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.Indicator], duration time.Duration) {
-			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
-			metrics.EventDurationQuery.WithLabelValues("indicator").Add(float64(duration.Milliseconds()))
-		})
-
-		createIndicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
-			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
-		})
-		createIndicatorDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
-			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
-		})
-		createIndicatorDispatcher.SetPreHandler(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
-			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
-		})
-		createIndicatorDispatcher.SetPostHandler(func(e dispatcher.Event[domain.CreateIndicatorEventBody], duration time.Duration) {
-			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
-			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
-		})
-
-		analyticDispatcher.SetPreDispatcher(func(e dispatcher.Event[analysis.Analytic]) {
-			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
-		})
-		analyticDispatcher.SetPostDispatcher(func(e dispatcher.Event[analysis.Analytic]) {
-			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
-		})
-		analyticDispatcher.SetPreHandler(func(e dispatcher.Event[analysis.Analytic]) {
-			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
-		})
-		analyticDispatcher.SetPostHandler(func(e dispatcher.Event[analysis.Analytic], duration time.Duration) {
-			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
-			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
-		})
+		calculationApp, errCreateCalculator := c.CreateCalculator()
+		if errCreateCalculator != nil {
+			logger.Error("error create calculator app", zap.Error(errCreateCalculator))
+			return
+		}
+		serverHttp, errCreateServer := c.CreateApiServer()
+		if errCreateServer != nil {
+			logger.Error("error create http server", zap.Error(errCreateServer))
+			return
+		}
+		candleDispatcher, errCandleDispatcher := c.CreateCandleDispatcher()
+		if errCandleDispatcher != nil {
+			logger.Error("error create candle dispatcher", zap.Error(errCandleDispatcher))
+			return
+		}
+		indicatorDispatcher, errIndicatorDispatcher := c.CreateIndicatorDispatcher()
+		if errIndicatorDispatcher != nil {
+			logger.Error("error create indicator dispatcher", zap.Error(errIndicatorDispatcher))
+			return
+		}
+		createIndicatorDispatcher, errCreateIndicatorDispatcher := c.CreateCreaterIndicatorDispatcher()
+		if errCreateIndicatorDispatcher != nil {
+			logger.Error("error create creater indicator dispatcher", zap.Error(errCreateIndicatorDispatcher))
+			return
+		}
+		analyticDispatcher, errAnalyticDispatcher := c.CreateAnalyticDispatcher()
+		if errAnalyticDispatcher != nil {
+			logger.Error("error create analytic dispatcher", zap.Error(errAnalyticDispatcher))
+			return
+		}
 
 		//Run applications
 		system.Go(func() {
@@ -310,7 +77,7 @@ var daemonCmd = &cobra.Command{
 		})
 		system.Go(func() {
 			defer cancel()
-			if err := calculatorApp.Run(ctx); err != nil {
+			if err := calculationApp.Run(ctx); err != nil {
 				logger.Info("run calculator app", zap.Error(err))
 				return
 			}
@@ -327,9 +94,6 @@ var daemonCmd = &cobra.Command{
 		})
 		system.Go(func() {
 			indicatorDispatcher.Listen()
-		})
-		system.Go(func() {
-			createIndicatorDispatcher.Listen()
 		})
 		system.Go(func() {
 			createIndicatorDispatcher.Listen()

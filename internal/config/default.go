@@ -31,7 +31,19 @@ func init() {
 	viper.Set("indicator.storage.limit", 200)
 	viper.Set("analysis.storage.limit", 200)
 
-	viper.Set("load.symbols", []string{"BTCUSDT", "ETHUSDT", "TONUSDT"})
+	viper.Set("load.hot_symbols", []string{"BTCUSDT", "ETHUSDT", "TONUSDT"})
+	viper.Set("load.symbols", []string{
+		"BTCUSDT",
+		"ETHUSDT",
+		"TONUSDT",
+		"SOLUSDT",
+		"DOGEUSDT",
+		"XRPUSDT",
+		"SUIUSDT",
+		"NEARUSDT",
+		"LTCUSDT",
+		"UNIUSDT",
+	})
 
 	viper.Set("logger.level", "ERROR")
 	viper.Set("logger.output_paths", []string{"stdout"})

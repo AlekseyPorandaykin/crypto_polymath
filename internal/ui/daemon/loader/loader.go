@@ -12,6 +12,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/scheduler"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -32,7 +33,8 @@ type Loader struct {
 	candleDispatcher   *dispatcher.Dispatcher[domain.Candlestick]
 	service            *application.Service
 
-	symbols []string
+	symbols    []string
+	hotSymbols []string
 }
 
 func NewLoader(
@@ -44,6 +46,7 @@ func NewLoader(
 	service *application.Service,
 	exchangeNames,
 	symbols []string,
+	hotSymbols []string,
 ) *Loader {
 	return &Loader{
 		priceService:       priceService,
@@ -53,7 +56,8 @@ func NewLoader(
 		candleDispatcher:   candleDispatcher,
 		service:            service,
 		exchangeNames:      exchangeNames,
-		symbols:            symbols,
+		symbols:            util.UniqSlice(append(symbols, hotSymbols...)),
+		hotSymbols:         hotSymbols,
 	}
 }
 
@@ -109,7 +113,6 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 	for _, s := range l.symbols {
 		symbol := s
 		l.loadHourCandlesticks(ctx, exchangeName, symbol)
-		l.loadMinuteCandlesticks(ctx, exchangeName, symbol)
 		system.Go(func() {
 			_ = scheduler.ExecuteEveryDay(ctx, func() error {
 				l.loadCandlesticks(ctx, exchangeName, symbol, domain.DayUnit, 1)
@@ -128,6 +131,10 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 				return nil
 			})
 		})
+	}
+	for _, hs := range l.hotSymbols {
+		symbol := hs
+		l.loadMinuteCandlesticks(ctx, exchangeName, symbol)
 	}
 	go func() {
 		defer system.HandlePanic()
