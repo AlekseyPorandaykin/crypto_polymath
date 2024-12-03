@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+// Defines values for CandleIndicatorItemDirection.
+const (
+	CandleIndicatorItemDirectionMinus1 CandleIndicatorItemDirection = -1
+	CandleIndicatorItemDirectionN0     CandleIndicatorItemDirection = 0
+	CandleIndicatorItemDirectionN1     CandleIndicatorItemDirection = 1
+)
+
+// Defines values for CandlestickItemDirection.
+const (
+	CandlestickItemDirectionMinus1 CandlestickItemDirection = -1
+	CandlestickItemDirectionN0     CandlestickItemDirection = 0
+	CandlestickItemDirectionN1     CandlestickItemDirection = 1
+)
+
 // Defines values for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit.
 const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnitD  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit = "D"
@@ -54,6 +68,20 @@ const (
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepthN9  GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth = 9
 )
 
+// Defines values for GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit.
+const (
+	GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnitD  GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit = "D"
+	GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnitH  GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit = "H"
+	GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnitM  GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit = "m"
+	GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnitM1 GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit = "M"
+	GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnitW  GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit = "W"
+)
+
+// Defines values for GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName.
+const (
+	HeikenAshi GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName = "HeikenAshi"
+)
+
 // Defines values for GetCandlestickExchangeSymbolUnitIntervalParamsUnit.
 const (
 	GetCandlestickExchangeSymbolUnitIntervalParamsUnitD  GetCandlestickExchangeSymbolUnitIntervalParamsUnit = "D"
@@ -65,11 +93,11 @@ const (
 
 // Defines values for GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit.
 const (
-	D  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "D"
-	H  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "H"
-	M  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "m"
-	M1 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "M"
-	W  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "W"
+	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitD  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "D"
+	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitH  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "H"
+	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitM  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "m"
+	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitM1 GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "M"
+	GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnitW  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsUnit = "W"
 )
 
 // Defines values for GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName.
@@ -115,15 +143,41 @@ type AnalysisItem struct {
 // AnalysisResponse defines model for AnalysisResponse.
 type AnalysisResponse = []AnalysisItem
 
+// CandleIndicatorItem defines model for CandleIndicatorItem.
+type CandleIndicatorItem struct {
+	CloseLocation     float32                      `json:"close_location"`
+	ClosePrice        float32                      `json:"close_price"`
+	Direction         CandleIndicatorItemDirection `json:"direction"`
+	HighPrice         float32                      `json:"high_price"`
+	LowPrice          float32                      `json:"low_price"`
+	OpenLocation      float32                      `json:"open_location"`
+	OpenPrice         float32                      `json:"open_price"`
+	SizeBodyInPercent float32                      `json:"size_body_in_percent"`
+	StartTime         time.Time                    `json:"start_time"`
+}
+
+// CandleIndicatorItemDirection defines model for CandleIndicatorItem.Direction.
+type CandleIndicatorItemDirection int
+
+// CandleIndicatorResponse defines model for CandleIndicatorResponse.
+type CandleIndicatorResponse = []CandleIndicatorItem
+
 // CandlestickItem defines model for CandlestickItem.
 type CandlestickItem struct {
-	ClosePrice float32   `json:"close_price"`
-	HighPrice  float32   `json:"high_price"`
-	LowPrice   float32   `json:"low_price"`
-	OpenPrice  float32   `json:"open_price"`
-	StartTime  time.Time `json:"start_time"`
-	Volume     float32   `json:"volume"`
+	CloseLocation     float32                  `json:"close_location"`
+	ClosePrice        float32                  `json:"close_price"`
+	Direction         CandlestickItemDirection `json:"direction"`
+	HighPrice         float32                  `json:"high_price"`
+	LowPrice          float32                  `json:"low_price"`
+	OpenLocation      float32                  `json:"open_location"`
+	OpenPrice         float32                  `json:"open_price"`
+	SizeBodyInPercent float32                  `json:"size_body_in_percent"`
+	StartTime         time.Time                `json:"start_time"`
+	Volume            float32                  `json:"volume"`
 }
+
+// CandlestickItemDirection defines model for CandlestickItem.Direction.
+type CandlestickItemDirection int
 
 // CandlesticksResponse defines model for CandlesticksResponse.
 type CandlesticksResponse = []CandlestickItem
@@ -215,6 +269,12 @@ type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicator
 
 // GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth defines parameters for GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth.
 type GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth int
+
+// GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit defines parameters for GetCandleIndicatorExchangeSymbolUnitIntervalName.
+type GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit string
+
+// GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName defines parameters for GetCandleIndicatorExchangeSymbolUnitIntervalName.
+type GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName string
 
 // GetCandlestickExchangeSymbolUnitIntervalParamsUnit defines parameters for GetCandlestickExchangeSymbolUnitInterval.
 type GetCandlestickExchangeSymbolUnitIntervalParamsUnit string

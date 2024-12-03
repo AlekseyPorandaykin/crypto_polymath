@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
+	"math"
 	"time"
 )
 
@@ -15,6 +17,14 @@ const (
 	MonthUnit  Unit = "M"
 )
 
+type Direction int
+
+const (
+	UpDirection         Direction = 1
+	DownDirection       Direction = -1
+	IndefiniteDirection Direction = 0
+)
+
 type Candlestick struct {
 	Exchange   string
 	Symbol     string
@@ -26,6 +36,35 @@ type Candlestick struct {
 	LowPrice   float64
 	ClosePrice float64
 	Volume     float64
+}
+
+func (c Candlestick) SizeBody() float64 {
+	return math.Abs(c.ClosePrice - c.OpenPrice)
+}
+
+func (c Candlestick) Size() float64 {
+	return c.HighPrice - c.LowPrice
+}
+
+func (c Candlestick) SizeBodyInPercent() float64 {
+	return util.RoundCoin(c.SizeBody()/c.Size()*100, 4)
+}
+
+func (c Candlestick) CloseLocation() float64 {
+	return util.RoundCoin(math.Abs(c.ClosePrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 4)
+}
+func (c Candlestick) OpenLocation() float64 {
+	return util.RoundCoin(math.Abs(c.OpenPrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 4)
+}
+
+func (c Candlestick) Direction() Direction {
+	if c.ClosePrice > c.OpenPrice {
+		return UpDirection
+	}
+	if c.ClosePrice < c.OpenPrice {
+		return DownDirection
+	}
+	return IndefiniteDirection
 }
 
 func IsCorrectSequenceCandlesticks(data []Candlestick) bool {

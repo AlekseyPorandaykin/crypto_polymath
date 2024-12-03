@@ -2,6 +2,7 @@ package loader
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
@@ -32,6 +33,7 @@ type Loader struct {
 	exchangeNames      []string
 	candleDispatcher   *dispatcher.Dispatcher[domain.Candlestick]
 	service            *application.Service
+	candleIndicator    candle_indicator.CandleIndicator
 
 	symbols    []string
 	hotSymbols []string
@@ -44,6 +46,7 @@ func NewLoader(
 	indicatorService indicator.Indicator,
 	candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
 	service *application.Service,
+	candleIndicator candle_indicator.CandleIndicator,
 	exchangeNames,
 	symbols []string,
 	hotSymbols []string,
@@ -54,6 +57,7 @@ func NewLoader(
 		exchangeService:    exchangeService,
 		indicatorService:   indicatorService,
 		candleDispatcher:   candleDispatcher,
+		candleIndicator:    candleIndicator,
 		service:            service,
 		exchangeNames:      exchangeNames,
 		symbols:            util.UniqSlice(append(symbols, hotSymbols...)),
@@ -88,6 +92,16 @@ func (l *Loader) Run(ctx context.Context) error {
 	}
 	for _, exchangeName := range []string{exchange.BybitExchange} {
 		l.runLoadCandles(ctx, exchangeName)
+		go func(exchangeName string) {
+			_ = scheduler.ExecuteEveryDay(ctx, func() error {
+				defer system.HandlePanic()
+				defer ExchangeSymbolLoadedHelper(exchangeName)()
+				if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchangeName); err != nil {
+					zap.L().Error("load symbol info", zap.Error(err))
+				}
+				return nil
+			})
+		}(exchangeName)
 	}
 
 	go func() {
@@ -140,16 +154,6 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 		defer system.HandlePanic()
 		l.deleteOldRows(ctx, exchangeName, viper.GetInt("candlestick.storage.limit"))
 	}()
-	go func() {
-		_ = scheduler.ExecuteEveryDay(ctx, func() error {
-			defer system.HandlePanic()
-			defer ExchangeSymbolLoadedHelper(exchangeName)()
-			if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchangeName); err != nil {
-				zap.L().Error("load symbol info", zap.Error(err))
-			}
-			return nil
-		})
-	}()
 }
 
 func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
@@ -194,6 +198,20 @@ func (l *Loader) loadHourCandlesticks(ctx context.Context, exchangeName, symbol 
 }
 
 func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int) []domain.Candlestick {
+	data := l.saveCandlesticks(ctx, exchangeName, symbol, unit, interval)
+	for _, item := range data {
+		l.candleDispatcher.Dispatch(dispatcher.Event[domain.Candlestick]{
+			Name: domain.CreatedCandlestickEvent,
+			Body: item,
+		})
+	}
+	if _, err := l.candleIndicator.CalculateFromCandlesticks(ctx, data); err != nil {
+		zap.L().Error("calculate candle indicator", zap.Error(err))
+	}
+	return data
+}
+
+func (l *Loader) saveCandlesticks(ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int) []domain.Candlestick {
 	defer durationCandlestickLoadedHelper(exchangeName, string(unit), interval)()
 	log := zap.L().With(
 		zap.String("exchange", exchangeName),
@@ -207,12 +225,6 @@ func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol stri
 		errorTotal.WithLabelValues(exchangeName, "load_candlesticks").Inc()
 		log.Error("load candlestick", zap.Error(err))
 		return nil
-	}
-	for _, item := range data {
-		l.candleDispatcher.Dispatch(dispatcher.Event[domain.Candlestick]{
-			Name: domain.CreatedCandlestickEvent,
-			Body: item,
-		})
 	}
 	return data
 }

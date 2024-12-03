@@ -51,6 +51,7 @@ func (s *service) LoadSymbolInfo(ctx context.Context, exchange string) ([]domain
 			Symbol:     resItem.Symbol,
 			BaseAsset:  resItem.BaseAsset,
 			QuoteAsset: resItem.QuoteAsset,
+			Category:   string(resItem.Category),
 			CreatedAt:  now,
 		})
 	}

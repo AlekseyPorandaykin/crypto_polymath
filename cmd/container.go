@@ -13,6 +13,8 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis/calculators"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
+	candle_indicator_calc "github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator/calculators"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
@@ -107,6 +109,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 		indicatorService indicator.Indicator,
 		candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
 		serv *application.Service,
+		candleIndicator candle_indicator.CandleIndicator,
 	) {
 		app = loader.NewLoader(
 			priceService,
@@ -115,6 +118,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 			indicatorService,
 			candleDispatcher,
 			serv,
+			candleIndicator,
 			exchangeNames,
 			viper.GetStringSlice("load.symbols"),
 			viper.GetStringSlice("load.hot_symbols"),
@@ -155,6 +159,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		analysisDBRepo *sqlite.AnalyticRepository,
 		indicatorDBRepos *sqlite.IndicatorRepository,
 		serv *application.Service,
+		candleIndicator candle_indicator.CandleIndicator,
 	) {
 		serverHttp = http_server.NewServer()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
@@ -167,6 +172,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 			analysisDBRepo,
 			indicatorDBRepos,
 			serv,
+			candleIndicator,
 		)
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
 	})
@@ -262,6 +268,15 @@ func (c *Container) initRepositories() error {
 	if err := c.di.Provide(func(conn *sqlx.DB) core_exchange.Repository {
 		return adapter_repository.NewExchangeRepository(
 			sqlite.NewExchangeRepository(conn), memory.NewExchangeRepository(),
+		)
+	}); err != nil {
+		return err
+	}
+
+	if err := c.di.Provide(func(conn *sqlx.DB) candle_indicator.Repository {
+		return adapter_repository.NewCandleIndicatorRepository(
+			sqlite.NewCandleIndicatorRepository(conn),
+			memory.NewCandleIndicatorRepository(100),
 		)
 	}); err != nil {
 		return err
@@ -448,13 +463,14 @@ func (c *Container) initServices() error {
 		indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator],
 		candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
 		createIndicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
+		candleIndicator candle_indicator.CandleIndicator,
 	) *application.IndicatorHandler {
 		indicatorHandler := application.NewIndicatorHandler(
 			indicatorService,
 			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
 		)
 		indicatorHandler.SetLogger(zap.L())
-		candleDispatcher.Subscribe(listeners.NewCandlestick(indicatorHandler))
+		candleDispatcher.Subscribe(listeners.NewCandlestick(indicatorHandler, candleIndicator))
 		createIndicatorDispatcher.Subscribe(listeners.NewCreateIndicator(indicatorHandler))
 		return indicatorHandler
 	}); err != nil {
@@ -476,6 +492,17 @@ func (c *Container) initServices() error {
 		analysisDBRepo *sqlite.AnalyticRepository, indicatorDBRepos *sqlite.IndicatorRepository,
 	) *application.Service {
 		return application.NewService(analysisDBRepo, indicatorDBRepos)
+	}); err != nil {
+		return err
+	}
+
+	if err := c.di.Provide(func(
+		repo candle_indicator.Repository,
+		candlestickService candlestick.Candlestick,
+	) candle_indicator.CandleIndicator {
+		s := candle_indicator.New(repo, candlestickService)
+		s.AddCalculator(candle_indicator_calc.NewHeikenAshi(candlestickService))
+		return s
 	}); err != nil {
 		return err
 	}

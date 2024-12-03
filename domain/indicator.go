@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	// Первичные идентификаторы, на основе свечей.
+	// Первичные индикаторы, на основе свечей.
 	TrendIndicator                   = "Trend"
 	MAIndicator                      = "MA"
 	EMAIndicator                     = "EMA"
@@ -15,7 +15,7 @@ const (
 	PriceChanges                     = "PriceChanges"            //Изменение цены
 	StochasticMainLine               = "StochasticMainLine"      //Стохастический осциллятор (основная линия)
 
-	//Вторичные идентификаторы, на основе первичных идентификаторов
+	//Вторичные индикаторы, на основе первичных индикаторы
 	TrendByMAIndicator        = "TrendByMA"
 	TrendByEMAIndicator       = "TrendByEMA"
 	RatioCandleToMAIndicator  = "RatioCandleToMA"
@@ -25,6 +25,9 @@ const (
 	MACDSignalLineIndicator   = "MACDSignalLine"
 	MACDSHistogramIndicator   = "MACDSHistogram"
 	StochasticSignalLine      = "StochasticSignalLine" //Стохастический осциллятор (сигнальная линия)
+
+	//Свечные индикаторы
+	HeikenAshiIndicator = "HeikenAshi"
 )
 
 var IndicatorDescriptions = map[string]string{

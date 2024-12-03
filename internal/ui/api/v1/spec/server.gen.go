@@ -17,6 +17,9 @@ type ServerInterface interface {
 	// (GET /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth})
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx echo.Context, exchange string, symbol string, unit GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit, interval int, name GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName, indicatorDepth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth, depth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth) error
 
+	// (GET /candle-indicator/{exchange}/{symbol}/{unit}/{interval}/{name})
+	GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx echo.Context, exchange string, symbol string, unit GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit, interval int, name GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName) error
+
 	// (GET /candlestick/{exchange}/{symbol}/{unit}/{interval})
 	GetCandlestickExchangeSymbolUnitInterval(ctx echo.Context, exchange string, symbol string, unit GetCandlestickExchangeSymbolUnitIntervalParamsUnit, interval string) error
 
@@ -105,6 +108,54 @@ func (w *ServerInterfaceWrapper) GetAnalysisExchangeSymbolUnitIntervalNameIndica
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx, exchange, symbol, unit, interval, name, indicatorDepth, depth)
+	return err
+}
+
+// GetCandleIndicatorExchangeSymbolUnitIntervalName converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "exchange" -------------
+	var exchange string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "exchange", runtime.ParamLocationPath, ctx.Param("exchange"), &exchange)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter exchange: %s", err))
+	}
+
+	// ------------- Path parameter "symbol" -------------
+	var symbol string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "symbol", runtime.ParamLocationPath, ctx.Param("symbol"), &symbol)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter symbol: %s", err))
+	}
+
+	// ------------- Path parameter "unit" -------------
+	var unit GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "unit", runtime.ParamLocationPath, ctx.Param("unit"), &unit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter unit: %s", err))
+	}
+
+	// ------------- Path parameter "interval" -------------
+	var interval int
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "interval", runtime.ParamLocationPath, ctx.Param("interval"), &interval)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter interval: %s", err))
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "name", runtime.ParamLocationPath, ctx.Param("name"), &name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter name: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx, exchange, symbol, unit, interval, name)
 	return err
 }
 
@@ -322,6 +373,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/analysis/:exchange/:symbol/:unit/:interval/:name/:indicator_depth/:depth", wrapper.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth)
+	router.GET(baseURL+"/candle-indicator/:exchange/:symbol/:unit/:interval/:name", wrapper.GetCandleIndicatorExchangeSymbolUnitIntervalName)
 	router.GET(baseURL+"/candlestick/:exchange/:symbol/:unit/:interval", wrapper.GetCandlestickExchangeSymbolUnitInterval)
 	router.GET(baseURL+"/exchange/:exchange/:symbol", wrapper.GetExchangeExchangeSymbol)
 	router.GET(baseURL+"/indicator/:exchange/:symbol/:unit/:interval/:name/:depth", wrapper.GetIndicatorExchangeSymbolUnitIntervalNameDepth)

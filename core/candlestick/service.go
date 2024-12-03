@@ -119,7 +119,7 @@ func (s *service) candlesticksHours(
 	ctx context.Context, exchange, symbol string, hours, limit int,
 ) ([]domain.Candlestick, error) {
 	if !isSupportHours(hours) {
-		return nil, errors.New("don't support this minutes")
+		return nil, errors.New("don't support this hours")
 	}
 	result, err := s.candlesticks(ctx, exchange, symbol, string(domain.HourUnit), hours, limit)
 	if err != nil {
@@ -243,7 +243,7 @@ func (s *service) handleCandlesticks(
 		if domain.IsOpenCandle(candle) {
 			continue
 		}
-		//Пропускаем если период еще не закрылся (первый в списке, новый период еще не начал рассчет)
+		//Пропускаем если период еще не закрылся (первый в списке, новый период еще не начал расчет)
 		if i == 0 {
 			continue
 		}

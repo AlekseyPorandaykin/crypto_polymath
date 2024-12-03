@@ -12,6 +12,7 @@ type SymbolInfoStorageDTO struct {
 	Symbol     string    `db:"symbol"`
 	BaseAsset  string    `db:"base_asset"`
 	QuoteAsset string    `db:"quote_asset"`
+	Category   string    `db:"category"`
 	CreatedAt  time.Time `db:"created_at"`
 }
 

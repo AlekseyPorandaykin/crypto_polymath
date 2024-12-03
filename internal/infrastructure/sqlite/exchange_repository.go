@@ -23,10 +23,10 @@ func NewExchangeRepository(db *sqlx.DB) *ExchangeRepository {
 func (repo *ExchangeRepository) SaveSymbolInfo(ctx context.Context, data []core_exchange.SymbolInfoStorageDTO) error {
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_save_symbol_info")()
 	query := `
-INSERT INTO symbol_infos (id, exchange, symbol, base_asset, quote_asset, created_at)
+INSERT INTO symbol_infos (id, exchange, symbol, base_asset, quote_asset, category, created_at)
 VALUES 
 `
-	valueQuery := `(:id, :exchange, :symbol, :base_asset, :quote_asset, :created_at)`
+	valueQuery := `(:id, :exchange, :symbol, :base_asset, :quote_asset, :category, :created_at)`
 	values := make([]string, 0, len(data))
 	args := make([]interface{}, 0, len(data)*6)
 	for _, item := range data {

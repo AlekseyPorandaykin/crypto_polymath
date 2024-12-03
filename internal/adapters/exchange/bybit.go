@@ -130,36 +130,12 @@ func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, 
 	if err != nil {
 		return nil, err
 	}
-	uniqSymbols := make(map[string]bool)
 	result := make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
-	for _, spotInfoItem := range spotInfo {
-		if _, has := uniqSymbols[spotInfoItem.Symbol]; has {
-			continue
-		}
-		result = append(result, spotInfoItem)
-		uniqSymbols[spotInfoItem.Symbol] = true
-	}
-	for _, linearInfoItem := range linearInfo {
-		if _, has := uniqSymbols[linearInfoItem.Symbol]; has {
-			continue
-		}
-		result = append(result, linearInfoItem)
-		uniqSymbols[linearInfoItem.Symbol] = true
-	}
-	for _, inverseInfoItem := range inverseInfo {
-		if _, has := uniqSymbols[inverseInfoItem.Symbol]; has {
-			continue
-		}
-		result = append(result, inverseInfoItem)
-		uniqSymbols[inverseInfoItem.Symbol] = true
-	}
-	for _, optionInfoItem := range optionInfo {
-		if _, has := uniqSymbols[optionInfoItem.Symbol]; has {
-			continue
-		}
-		result = append(result, optionInfoItem)
-		uniqSymbols[optionInfoItem.Symbol] = true
-	}
+
+	result = append(result, spotInfo...)
+	result = append(result, linearInfo...)
+	result = append(result, inverseInfo...)
+	result = append(result, optionInfo...)
 	return result, nil
 }
 
@@ -175,6 +151,7 @@ func (c *Bybit) spotSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoD
 			Exchange:   BybitExchange,
 			BaseAsset:  item.BaseCoin,
 			QuoteAsset: item.QuoteCoin,
+			Category:   core_exchange.SymbolCategorySpot,
 		})
 	}
 
@@ -193,6 +170,7 @@ func (c *Bybit) linearSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInf
 			Exchange:   BybitExchange,
 			BaseAsset:  item.BaseCoin,
 			QuoteAsset: item.QuoteCoin,
+			Category:   core_exchange.SymbolCategoryFuture,
 		})
 	}
 
@@ -211,6 +189,7 @@ func (c *Bybit) inverseSymbolInfo(ctx context.Context) ([]core_exchange.SymbolIn
 			Exchange:   BybitExchange,
 			BaseAsset:  item.BaseCoin,
 			QuoteAsset: item.QuoteCoin,
+			Category:   core_exchange.SymbolCategoryOther,
 		})
 	}
 
@@ -229,6 +208,7 @@ func (c *Bybit) optionSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInf
 			Exchange:   BybitExchange,
 			BaseAsset:  item.BaseCoin,
 			QuoteAsset: item.QuoteCoin,
+			Category:   core_exchange.SymbolCategoryOther,
 		})
 	}
 

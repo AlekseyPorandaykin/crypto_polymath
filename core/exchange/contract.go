@@ -5,11 +5,20 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 )
 
+type SymbolCategory string
+
+const (
+	SymbolCategorySpot   SymbolCategory = "spot"
+	SymbolCategoryFuture SymbolCategory = "future"
+	SymbolCategoryOther  SymbolCategory = "other"
+)
+
 type SymbolInfoDTO struct {
 	Symbol     string
 	Exchange   string
 	BaseAsset  string
 	QuoteAsset string
+	Category   SymbolCategory
 }
 
 type ExternalLoader interface {

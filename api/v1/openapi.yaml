@@ -242,6 +242,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /candle-indicator/{exchange}/{symbol}/{unit}/{interval}/{name}:
+    get:
+      tags:
+        - indicator
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: symbol
+          description: name symbol
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: unit
+          description: unit value
+          schema:
+            type: string
+            enum:
+              - m
+              - H
+              - D
+              - W
+              - M
+          required: true
+        - in: path
+          name: interval
+          description: interval value
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: name
+          description: name indicator
+          schema:
+            type: string
+            enum:
+              - HeikenAshi
+          required: true
+      responses:
+        200:
+          description: return last candlesticks for exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandleIndicatorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /exchange/{exchange}/{symbol}:
     get:
       tags:
@@ -499,9 +555,40 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/IndicatorItem'
+    CandleIndicatorResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/CandleIndicatorItem'
+    CandleIndicatorItem:
+      type: object
+      required: [ start_time, open_price, high_price, low_price, close_price,size_body_in_percent , close_location, open_location, direction ]
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        open_price:
+          type: number
+        high_price:
+          type: number
+        low_price:
+          type: number
+        close_price:
+          type: number
+        size_body_in_percent:
+          type: number
+        close_location:
+          type: number
+        open_location:
+          type: number
+        direction:
+          type: integer
+          enum:
+            - -1
+            - 0
+            - 1
     CandlestickItem:
       type: object
-      required: [ start_time, open_price, high_price, low_price, close_price, volume ]
+      required: [ start_time, open_price, high_price, low_price, close_price, volume, size_body_in_percent, close_location, open_location, direction ]
       properties:
         start_time:
           type: string
@@ -516,6 +603,18 @@ components:
           type: number
         volume:
           type: number
+        size_body_in_percent:
+          type: number
+        close_location:
+          type: number
+        open_location:
+          type: number
+        direction:
+          type: integer
+          enum:
+            - -1
+            - 0
+            - 1
     IndicatorItem:
       type: object
       required: [ datetime,  value ]

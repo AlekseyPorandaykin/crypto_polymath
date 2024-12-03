@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
@@ -38,6 +39,7 @@ type Handler struct {
 	analyticRepository  view.AnalyticInfoRepository
 	indicatorRepository view.IndicatorInfoRepository
 	serv                *application.Service
+	candleIndicator     candle_indicator.CandleIndicator
 }
 
 func NewHandler(
@@ -49,6 +51,7 @@ func NewHandler(
 	analyticRepository view.AnalyticInfoRepository,
 	indicatorRepository view.IndicatorInfoRepository,
 	serv *application.Service,
+	candleIndicator candle_indicator.CandleIndicator,
 ) *Handler {
 	return &Handler{
 		priceService:        priceService,
@@ -59,6 +62,7 @@ func NewHandler(
 		analyticRepository:  analyticRepository,
 		indicatorRepository: indicatorRepository,
 		serv:                serv,
+		candleIndicator:     candleIndicator,
 	}
 }
 
@@ -193,12 +197,16 @@ func (h *Handler) GetCandlestickExchangeSymbolUnitInterval(
 	response := spec.CandlesticksResponse{}
 	for _, item := range data {
 		response = append(response, spec.CandlestickItem{
-			ClosePrice: float32(item.ClosePrice),
-			HighPrice:  float32(item.HighPrice),
-			LowPrice:   float32(item.LowPrice),
-			OpenPrice:  float32(item.OpenPrice),
-			StartTime:  item.StartTime,
-			Volume:     float32(item.Volume),
+			ClosePrice:        float32(item.ClosePrice),
+			HighPrice:         float32(item.HighPrice),
+			LowPrice:          float32(item.LowPrice),
+			OpenPrice:         float32(item.OpenPrice),
+			StartTime:         item.StartTime,
+			Volume:            float32(item.Volume),
+			CloseLocation:     float32(item.CloseLocation()),
+			OpenLocation:      float32(item.OpenLocation()),
+			Direction:         spec.CandlestickItemDirection(item.Direction()),
+			SizeBodyInPercent: float32(item.SizeBodyInPercent()),
 		})
 	}
 	return ctx.JSON(http.StatusOK, response)
@@ -246,6 +254,28 @@ func (h *Handler) GetServer(ctx echo.Context) error {
 		Time:           time.Now().In(time.UTC),
 		Units:          data.Units,
 	})
+}
+
+func (h *Handler) GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx echo.Context, exchange string, symbol string, unit spec.GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsUnit, interval int, name spec.GetCandleIndicatorExchangeSymbolUnitIntervalNameParamsName) error {
+	data, err := h.candleIndicator.Indicators(ctx.Request().Context(), string(name), exchange, symbol, domain.Unit(unit), interval)
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	response := make(spec.CandleIndicatorResponse, 0, 100)
+	for _, item := range data {
+		response = append(response, spec.CandleIndicatorItem{
+			ClosePrice:        float32(item.ClosePrice),
+			HighPrice:         float32(item.HighPrice),
+			LowPrice:          float32(item.LowPrice),
+			OpenLocation:      float32(item.OpenLocation()),
+			OpenPrice:         float32(item.OpenPrice),
+			SizeBodyInPercent: float32(item.SizeBodyInPercent()),
+			StartTime:         item.StartTime,
+			CloseLocation:     float32(item.CloseLocation()),
+			Direction:         spec.CandleIndicatorItemDirection(item.Direction()),
+		})
+	}
+	return ctx.JSON(http.StatusOK, response)
 }
 
 func (h *Handler) GetIndicatorExchangeSymbolUnitIntervalNameDepth(
