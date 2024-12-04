@@ -3,18 +3,18 @@ package calculators
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/pkg/errors"
 	"math"
 )
 
 type heikenAshi struct {
-	candlestickService candlestick.Candlestick
+	repo candle_indicator.Repository
 }
 
-func NewHeikenAshi(candlestickService candlestick.Candlestick) candle_indicator.Calculator {
-	return &heikenAshi{candlestickService: candlestickService}
+func NewHeikenAshi(repo candle_indicator.Repository) candle_indicator.Calculator {
+	return &heikenAshi{repo: repo}
 }
 
 func (c *heikenAshi) Name() string {
@@ -23,22 +23,17 @@ func (c *heikenAshi) Name() string {
 }
 
 func (c *heikenAshi) Calculate(ctx context.Context, candle domain.Candlestick) (*candle_indicator.Indicator, error) {
-	prevCandles, err := c.candlestickService.SequenceCandlesticksToDate(
-		ctx,
-		candle.Exchange,
-		candle.Symbol,
-		string(candle.Unit),
-		candle.Interval,
-		2,
-		candle.StartTime,
-	)
+	prevStorageIndicator, err := c.repo.Find(ctx, c.Name(), candle.Exchange, candle.Symbol, string(candle.Unit), candle.Interval, candle.PrevStartTime())
 	if err != nil {
-		return nil, errors.Wrap(err, "get prev candle")
+		return nil, errors.Wrap(err, "get prev ha candle")
 	}
-	if len(prevCandles) < 2 {
-		return nil, nil
+	openPriceHA := candle.OpenPrice
+	if prevStorageIndicator != nil {
+		prevIndicatorHA := candle_indicator.StorageToDomain(*prevStorageIndicator)
+		//предыдущий хейкен айши
+		openPriceHA = (prevIndicatorHA.ClosePrice + prevIndicatorHA.OpenPrice) / 2
 	}
-	openPrice := (prevCandles[1].ClosePrice + prevCandles[1].OpenPrice) / 2
+	closePriceHA := (candle.OpenPrice + candle.ClosePrice + candle.HighPrice + candle.LowPrice) / 4
 	return &candle_indicator.Indicator{
 		Name:       domain.HeikenAshiIndicator,
 		Exchange:   candle.Exchange,
@@ -46,9 +41,9 @@ func (c *heikenAshi) Calculate(ctx context.Context, candle domain.Candlestick) (
 		Unit:       candle.Unit,
 		Interval:   candle.Interval,
 		StartTime:  candle.StartTime,
-		OpenPrice:  openPrice,
-		HighPrice:  math.Max(candle.HighPrice, openPrice),
-		LowPrice:   math.Min(candle.HighPrice, openPrice),
-		ClosePrice: candle.ClosePrice,
+		OpenPrice:  util.RoundCoin(openPriceHA, 4),
+		HighPrice:  util.RoundCoin(math.Max(candle.HighPrice, math.Max(openPriceHA, closePriceHA)), 4),
+		LowPrice:   util.RoundCoin(math.Min(candle.LowPrice, math.Min(openPriceHA, closePriceHA)), 4),
+		ClosePrice: util.RoundCoin(closePriceHA, 4),
 	}, nil
 }

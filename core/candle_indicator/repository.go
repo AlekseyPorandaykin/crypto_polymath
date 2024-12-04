@@ -28,7 +28,7 @@ type Repository interface {
 	FetchLast(ctx context.Context, name, exchange, symbol, unit string, interval int) ([]StorageDTO, error)
 }
 
-func domainToStorage(data Indicator) StorageDTO {
+func DomainToStorage(data Indicator) StorageDTO {
 	return StorageDTO{
 		ID:         uuid.New(),
 		Name:       data.Name,
@@ -45,7 +45,7 @@ func domainToStorage(data Indicator) StorageDTO {
 	}
 }
 
-func storageToDomain(data StorageDTO) Indicator {
+func StorageToDomain(data StorageDTO) Indicator {
 	return Indicator{
 		Name:       data.Name,
 		Exchange:   data.Exchange,

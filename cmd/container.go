@@ -501,7 +501,7 @@ func (c *Container) initServices() error {
 		candlestickService candlestick.Candlestick,
 	) candle_indicator.CandleIndicator {
 		s := candle_indicator.New(repo, candlestickService)
-		s.AddCalculator(candle_indicator_calc.NewHeikenAshi(candlestickService))
+		s.AddCalculator(candle_indicator_calc.NewHeikenAshi(repo))
 		return s
 	}); err != nil {
 		return err

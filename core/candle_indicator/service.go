@@ -43,7 +43,7 @@ func (s *Service) Indicators(ctx context.Context, name, exchange, symbol string,
 	}
 	result := make([]Indicator, 0, len(data))
 	for _, item := range data {
-		result = append(result, storageToDomain(item))
+		result = append(result, StorageToDomain(item))
 	}
 	return result, nil
 }
@@ -71,7 +71,6 @@ func (s *Service) CalculateFromCandlesticks(ctx context.Context, data []domain.C
 		grouped[key] = append(grouped[key], item)
 	}
 	result := make([]Indicator, 0, len(data))
-	storageData := make([]StorageDTO, 0, len(data))
 	for _, candles := range grouped {
 		slice.SortBy[domain.Candlestick](candles, func(a, b domain.Candlestick) bool {
 			return a.StartTime.Before(b.StartTime)
@@ -85,7 +84,7 @@ func (s *Service) CalculateFromCandlesticks(ctx context.Context, data []domain.C
 					return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", key))
 				}
 				if indicatorStorage != nil {
-					result = append(result, storageToDomain(*indicatorStorage))
+					result = append(result, StorageToDomain(*indicatorStorage))
 					continue
 				}
 				indicator, err := c.Calculate(ctx, candle)
@@ -96,12 +95,12 @@ func (s *Service) CalculateFromCandlesticks(ctx context.Context, data []domain.C
 					continue
 				}
 				result = append(result, *indicator)
-				storageData = append(storageData, domainToStorage(*indicator))
+				if err := s.repo.Save(ctx, []StorageDTO{DomainToStorage(*indicator)}); err != nil {
+					return nil, errors.Wrap(err, "save indicator")
+				}
 			}
 		}
 	}
-	if err := s.repo.Save(ctx, storageData); err != nil {
-		return nil, errors.Wrap(err, "save indicator")
-	}
+
 	return result, nil
 }

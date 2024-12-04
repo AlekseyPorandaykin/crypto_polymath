@@ -58,6 +58,10 @@ func (i Indicator) Direction() domain.Direction {
 	return domain.IndefiniteDirection
 }
 
+func (i Indicator) PrevStartTime() time.Time {
+	return domain.PevSequenceTime(i.Unit, i.Interval, i.StartTime)
+}
+
 type Calculator interface {
 	Name() string
 	Calculate(ctx context.Context, candle domain.Candlestick) (*Indicator, error)

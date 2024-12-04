@@ -67,6 +67,10 @@ func (c Candlestick) Direction() Direction {
 	return IndefiniteDirection
 }
 
+func (c Candlestick) PrevStartTime() time.Time {
+	return PevSequenceTime(c.Unit, c.Interval, c.StartTime)
+}
+
 func IsCorrectSequenceCandlesticks(data []Candlestick) bool {
 	if len(data) == 0 {
 		return false
@@ -111,6 +115,23 @@ func isPrevCandle(current, prev Candlestick) bool {
 		return (current.StartTime.Sub(comparableDate)) == 0
 	}
 	return false
+}
+
+func PevSequenceTime(unit Unit, interval int, startTime time.Time) time.Time {
+	switch unit {
+	case MinuteUnit:
+		return startTime.Add(-time.Duration(interval) * time.Minute)
+	case HourUnit:
+		return startTime.Add(-time.Duration(interval) * time.Hour)
+	case DayUnit:
+		return startTime.Add(-time.Duration(interval) * 24 * time.Hour)
+	case WeekUnit:
+		return startTime.Add(-time.Duration(interval) * 7 * 24 * time.Hour)
+	case MonthUnit:
+		return startTime.AddDate(0, -interval, 0)
+	}
+	return time.Time{}
+
 }
 
 // TODO Доделать фильтрацию

@@ -275,6 +275,10 @@ func (h *Handler) GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx echo.Cont
 			Direction:         spec.CandleIndicatorItemDirection(item.Direction()),
 		})
 	}
+
+	slice.SortBy(response, func(a, b spec.CandleIndicatorItem) bool {
+		return a.StartTime.After(b.StartTime)
+	})
 	return ctx.JSON(http.StatusOK, response)
 }
 
