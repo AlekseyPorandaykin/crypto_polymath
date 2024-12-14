@@ -116,23 +116,16 @@ func (l *Loader) Run(ctx context.Context) error {
 	//Загружаем часовые свечи для всех крипто пар
 	for _, exchangeName := range []string{exchange.BybitExchange} {
 		go func(exchangeName string) {
-			_ = scheduler.ExecuteEveryHour(ctx, 2, slippageSecond, func() error {
-				defer system.HandlePanic()
-				symbols, errSymbol := l.exchangeService.SymbolInfoByCategory(
-					ctx, exchangeName, string(core_exchange.SymbolCategoryFuture),
-				)
-				if errSymbol != nil {
-					return errors.Wrap(errSymbol, "load symbol info")
+			defer system.HandlePanic()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					l.loadSymbolFutureCandlesticks(ctx, exchangeName)
+					time.Sleep(time.Minute * 10)
 				}
-				for _, s := range symbols {
-					if !s.IsExist {
-						continue
-					}
-					l.loadFutureCandlesticks(ctx, exchangeName, s.Symbol)
-					l.logger.Info("load future candlesticks", zap.String("symbol", s.Symbol))
-				}
-				return nil
-			})
+			}
 		}(exchangeName)
 	}
 
@@ -154,6 +147,30 @@ func (l *Loader) Run(ctx context.Context) error {
 			return err
 		}
 	}
+}
+
+func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName string) {
+	start := time.Now()
+	symbols, errSymbol := l.exchangeService.SymbolInfoByCategory(
+		ctx, exchangeName, string(core_exchange.SymbolCategoryFuture),
+	)
+	if errSymbol != nil {
+		l.logger.Error("load symbol info", zap.Error(errSymbol))
+		return
+	}
+	l.logger.Error("start load future candlesticks", zap.Int("count", len(symbols)))
+	if len(symbols) == 0 {
+		return
+	}
+	for _, s := range symbols {
+		if !s.IsExist {
+			continue
+		}
+		l.loadFutureCandlesticks(ctx, exchangeName, s.Symbol)
+		l.logger.Info("load future candlesticks", zap.String("symbol", s.Symbol))
+	}
+	l.logger.Error("load future candlesticks", zap.String("duration", time.Since(start).String()))
+	return
 }
 
 func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {

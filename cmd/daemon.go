@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/logger"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
@@ -70,21 +71,21 @@ var daemonCmd = &cobra.Command{
 		//Run applications
 		system.Go(func() {
 			defer cancel()
-			if err := loaderApp.Run(ctx); err != nil {
+			if err := loaderApp.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {
 				logger.Info("run loader app", zap.Error(err))
 				return
 			}
 		})
 		system.Go(func() {
 			defer cancel()
-			if err := calculationApp.Run(ctx); err != nil {
+			if err := calculationApp.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {
 				logger.Info("run calculator app", zap.Error(err))
 				return
 			}
 		})
 		system.Go(func() {
 			defer cancel()
-			if err := serverHttp.Run(viper.GetString("http.host"), viper.GetString("http.port")); err != nil {
+			if err := serverHttp.Run(viper.GetString("http.host"), viper.GetString("http.port")); !errors.Is(err, context.Canceled) && err != nil {
 				logger.Info("run http server", zap.Error(err))
 				return
 			}

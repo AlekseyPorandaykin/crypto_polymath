@@ -74,7 +74,15 @@ Message: %s
 		body += "\nFields:\n"
 	}
 	for _, field := range fields {
-		body += fmt.Sprintf("%s: %s\n", field.Key, field.String)
+		if field.String != "" {
+			body += fmt.Sprintf("%s: %s\n", field.Key, field.String)
+		}
+		if field.Integer > 0 {
+			body += fmt.Sprintf("%s: %d\n", field.Key, field.Integer)
+		}
+		if field.Interface != nil {
+			body += fmt.Sprintf("%s: %v\n", field.Key, field.Interface)
+		}
 	}
 	body += fmt.Sprintf("\n\nStacktrace:\n%s", entry.Stack)
 	subject := fmt.Sprintf("%s [%s]: %s", entry.LoggerName, entry.Level.String(), entry.Time.String())

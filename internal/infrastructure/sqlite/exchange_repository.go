@@ -72,6 +72,7 @@ func (repo *ExchangeRepository) InfoByCategory(ctx context.Context, exchange, ca
 SELECT id, exchange, symbol, base_asset, quote_asset, created_at
 FROM symbol_infos
 WHERE exchange = ? AND category = ?
+ORDER BY symbol
 `
 		result []core_exchange.SymbolInfoStorageDTO
 	)
