@@ -40,6 +40,22 @@ func (e *ExchangeRepository) InfoBySymbol(ctx context.Context, exchangeName, sym
 	return dataStorage, nil
 }
 
+func (e *ExchangeRepository) InfoByCategory(ctx context.Context, exchangeName, category string) ([]exchange.SymbolInfoStorageDTO, error) {
+	dataCache, _ := e.cache.InfoByCategory(ctx, exchangeName, category)
+	if len(dataCache) > 0 {
+		return dataCache, nil
+	}
+	dataStorage, err := e.storage.InfoByCategory(ctx, exchangeName, category)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch data from storage")
+	}
+	if dataStorage == nil {
+		return nil, nil
+	}
+	e.updateCache(ctx, exchangeName)
+	return dataStorage, nil
+}
+
 func (e *ExchangeRepository) QuoteAssets(ctx context.Context) ([]string, error) {
 	dataCache, _ := e.cache.QuoteAssets(ctx)
 	if len(dataCache) != 0 {

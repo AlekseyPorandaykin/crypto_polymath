@@ -29,4 +29,5 @@ type Exchange interface {
 	AddLoader(exchangeName string, loader ExternalLoader)
 	LoadSymbolInfo(ctx context.Context, exchangeName string) ([]domain.SymbolInfo, error)
 	SymbolInfo(ctx context.Context, exchangeName, symbol string) (*domain.SymbolInfo, error)
+	SymbolInfoByCategory(ctx context.Context, exchange, category string) ([]domain.SymbolInfo, error)
 }

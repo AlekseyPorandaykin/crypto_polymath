@@ -55,6 +55,16 @@ func (c *CandlestickRepository) DeleteOldRows(ctx context.Context, exchange, sym
 	return nil
 }
 
+func (c *CandlestickRepository) DeletePrevRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error {
+	if err := c.storage.DeletePrevRows(ctx, exchange, symbol, unit, interval, to); err != nil {
+		return errors.Wrap(err, "from storage")
+	}
+	if err := c.cache.DeletePrevRows(ctx, exchange, symbol, unit, interval, to); err != nil {
+		return errors.Wrap(err, "from cache")
+	}
+	return nil
+}
+
 func (c *CandlestickRepository) LastToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]candlestick.StorageDTO, error) {
 	dataCache, err := c.cache.LastToDate(ctx, exchange, symbol, unit, interval, limit, to)
 	if err != nil {

@@ -29,6 +29,17 @@ func (e *ExchangeRepository) InfoBySymbol(ctx context.Context, exchangeName, sym
 	return e.data.Get(exchangeName, symbol), nil
 }
 
+func (e *ExchangeRepository) InfoByCategory(ctx context.Context, exchangeName, category string) ([]exchange.SymbolInfoStorageDTO, error) {
+	defer metrics.DBQueryHelper("memory", "exchange_fetch_infos_by_category")()
+	result := make([]exchange.SymbolInfoStorageDTO, 0, 1_000)
+	for _, item := range e.data.ValuesByFirstKey(exchangeName) {
+		if item.Category == category {
+			result = append(result, item)
+		}
+	}
+	return result, nil
+}
+
 func (e *ExchangeRepository) DeleteOldRows(ctx context.Context, exchangeName string, to time.Time) error {
 	defer metrics.DBQueryHelper("memory", "exchange_delete_old_rows")()
 	e.data.DeleteByCondition(func(item exchange.SymbolInfoStorageDTO) bool {

@@ -19,6 +19,7 @@ type SymbolInfoStorageDTO struct {
 type Repository interface {
 	SaveSymbolInfo(ctx context.Context, data []SymbolInfoStorageDTO) error
 	InfoBySymbol(ctx context.Context, exchange, symbol string) (*SymbolInfoStorageDTO, error)
+	InfoByCategory(ctx context.Context, exchangeName, category string) ([]SymbolInfoStorageDTO, error)
 	DeleteOldRows(ctx context.Context, exchangeName string, to time.Time) error
 	ListByExchange(ctx context.Context, exchangeName string) ([]SymbolInfoStorageDTO, error)
 	QuoteAssets(ctx context.Context) ([]string, error)

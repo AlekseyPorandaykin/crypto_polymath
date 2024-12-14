@@ -33,6 +33,7 @@ type Repository interface {
 	//Last - Получаем значения с самого последнего по дате.
 	Last(ctx context.Context, exchange, symbol, unit string, interval, limit, offset int) ([]StorageDTO, error)
 	DeleteOldRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error
+	DeletePrevRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error
 	LastToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]StorageDTO, error)
 	//FromDate - Получаем значения с самого раннего до последнего по дате.
 	FromDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]StorageDTO, error)

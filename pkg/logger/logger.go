@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	Level            string   `mapstructure:"level"`
+	AlertLevel       string   `mapstructure:"alert_level"`
 	OutputPaths      []string `mapstructure:"output_paths"`
 	ErrorOutputPaths []string `mapstructure:"error_output_paths"`
 	Stacktrace       bool     `mapstructure:"stacktrace"`
@@ -42,6 +43,21 @@ func Create(conf Config, opts ...zap.Option) (*zap.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
+	l = l.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+		alertLevel := zap.ErrorLevel
+		if conf.AlertLevel != "" {
+			_ = alertLevel.Set(conf.AlertLevel)
+		}
+		return zapcore.NewTee(core, NewMailZapCore(
+			alertLevel,
+			viper.GetString("smtp_username"),
+			viper.GetString("smtp_password"),
+			viper.GetString("smtp_host"),
+			viper.GetUint("smtp_port"),
+			viper.GetString("smtp_from"),
+			viper.GetString("error_mail_to")),
+		)
+	}))
 	return l, nil
 }
 
@@ -56,21 +72,27 @@ func CreateForNamespace(namespace string) (*zap.Logger, error) {
 func createNamespaceConfig(namespace string) Config {
 	conf := DefaultConf
 	keyLevel := "logger.level"
+	keyAlertLevel := "logger.alert_level"
 	keyOutputPaths := "logger.output_paths"
 	keyErrorOutputPaths := "logger.error_output_paths"
 	keyStacktrace := "logger.stacktrace"
 	if namespace != "" {
 		keyLevel = fmt.Sprintf("%s.%s", namespace, keyLevel)
+		keyAlertLevel = fmt.Sprintf("%s.%s", namespace, keyAlertLevel)
 		keyOutputPaths = fmt.Sprintf("%s.%s", namespace, keyOutputPaths)
 		keyErrorOutputPaths = fmt.Sprintf("%s.%s", namespace, keyErrorOutputPaths)
 		keyStacktrace = fmt.Sprintf("%s.%s", namespace, keyStacktrace)
 	}
 	level := viper.GetString(keyLevel)
+	alertLevel := viper.GetString(keyAlertLevel)
 	outputPaths := viper.GetStringSlice(keyOutputPaths)
 	errorOutputPaths := viper.GetStringSlice(keyErrorOutputPaths)
 	conf.Stacktrace = viper.GetBool(keyStacktrace)
 	if level != "" {
 		conf.Level = level
+	}
+	if alertLevel != "" {
+		conf.AlertLevel = alertLevel
 	}
 	if len(outputPaths) > 0 {
 		conf.OutputPaths = outputPaths

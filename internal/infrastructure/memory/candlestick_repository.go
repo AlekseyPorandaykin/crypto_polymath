@@ -91,6 +91,23 @@ func (c *CandlestickRepository) DeleteOldRows(ctx context.Context, exchange, sym
 
 	return nil
 }
+func (c *CandlestickRepository) DeletePrevRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error {
+	defer metrics.CacheQueryHelper("memory", "candlestick_delete_prev_rows")()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	cache := c.caches[createKeyCandlestick(exchange, symbol, unit, interval)]
+	if cache == nil {
+		return nil
+	}
+
+	for _, v := range cache.Values() {
+		if v.CreatedAt.Before(to) {
+			cache.Remove(v.StartTime)
+		}
+	}
+
+	return nil
+}
 
 func (c *CandlestickRepository) LastToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]candlestick.StorageDTO, error) {
 	defer metrics.CacheQueryHelper("memory", "candlestick_last_to_date")()

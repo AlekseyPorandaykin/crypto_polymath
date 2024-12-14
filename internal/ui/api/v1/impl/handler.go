@@ -119,6 +119,26 @@ func (h *Handler) GetExchangeExchangeSymbol(ctx echo.Context, exchange string, s
 	})
 }
 
+func (h *Handler) GetSymbolsExchangeCategory(
+	ctx echo.Context, exchange string, category spec.GetSymbolsExchangeCategoryParamsCategory,
+) error {
+	res, err := h.exchangeService.SymbolInfoByCategory(ctx.Request().Context(), exchange, string(category))
+	if err != nil {
+		return errorResponse(ctx, err)
+	}
+	result := make([]spec.SymbolInfoResponse, 0, len(res))
+	for _, item := range res {
+		result = append(result, spec.SymbolInfoResponse{
+			Exchange:   item.Exchange,
+			Symbol:     item.Symbol,
+			BaseAsset:  item.BaseAsset,
+			QuoteAsset: item.QuoteAsset,
+			IsExist:    item.IsExist,
+		})
+	}
+	return ctx.JSON(http.StatusOK, result)
+}
+
 func (h *Handler) GetPriceExchangeSymbol(ctx echo.Context, exchange string, symbol string) error {
 	lastPrice, err := h.priceService.LastPrice(ctx.Request().Context(), exchange, symbol)
 	if err != nil {

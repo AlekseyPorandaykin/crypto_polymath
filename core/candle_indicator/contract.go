@@ -30,6 +30,9 @@ func (i Indicator) Size() float64 {
 }
 
 func (i Indicator) SizeBodyInPercent() float64 {
+	if i.SizeBody() == 0 || i.Size() == 0 {
+		return 0
+	}
 	return i.SizeBody() / i.Size() * 100
 }
 

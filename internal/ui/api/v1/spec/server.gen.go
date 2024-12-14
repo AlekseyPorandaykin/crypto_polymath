@@ -40,6 +40,9 @@ type ServerInterface interface {
 
 	// (GET /server)
 	GetServer(ctx echo.Context) error
+
+	// (GET /symbols/{exchange}/{category})
+	GetSymbolsExchangeCategory(ctx echo.Context, exchange string, category GetSymbolsExchangeCategoryParamsCategory) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -344,6 +347,30 @@ func (w *ServerInterfaceWrapper) GetServer(ctx echo.Context) error {
 	return err
 }
 
+// GetSymbolsExchangeCategory converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSymbolsExchangeCategory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "exchange" -------------
+	var exchange string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "exchange", runtime.ParamLocationPath, ctx.Param("exchange"), &exchange)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter exchange: %s", err))
+	}
+
+	// ------------- Path parameter "category" -------------
+	var category GetSymbolsExchangeCategoryParamsCategory
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "category", runtime.ParamLocationPath, ctx.Param("category"), &category)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter category: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSymbolsExchangeCategory(ctx, exchange, category)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -381,5 +408,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/prices/exchange/:exchange", wrapper.GetPricesExchangeExchange)
 	router.GET(baseURL+"/prices/symbol/:symbol", wrapper.GetPricesSymbolSymbol)
 	router.GET(baseURL+"/server", wrapper.GetServer)
+	router.GET(baseURL+"/symbols/:exchange/:category", wrapper.GetSymbolsExchangeCategory)
 
 }

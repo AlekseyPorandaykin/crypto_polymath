@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"strings"
 	"time"
 )
@@ -62,6 +63,24 @@ func (s *service) LoadSymbolInfo(ctx context.Context, exchange string) ([]domain
 		return nil, err
 	}
 	return data, nil
+}
+
+func (s *service) SymbolInfoByCategory(ctx context.Context, exchange, category string) ([]domain.SymbolInfo, error) {
+	data, err := s.repo.InfoByCategory(ctx, exchange, category)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch data from storage")
+	}
+	domains := make([]domain.SymbolInfo, 0, len(data))
+	for _, item := range data {
+		domains = append(domains, domain.SymbolInfo{
+			Symbol:     item.Symbol,
+			Exchange:   item.Exchange,
+			BaseAsset:  item.BaseAsset,
+			QuoteAsset: item.QuoteAsset,
+			IsExist:    true,
+		})
+	}
+	return domains, nil
 }
 
 func (s *service) SymbolInfo(ctx context.Context, exchange, symbol string) (*domain.SymbolInfo, error) {

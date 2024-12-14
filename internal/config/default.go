@@ -6,10 +6,11 @@ import (
 
 func init() {
 	viper.Set("app.codename", "crypto_polymath")
-	viper.Set("app.debug", false)
+	viper.Set("app.debug", true)
 	viper.Set("http.host", "")
 	viper.Set("http.port", "80")
 	viper.Set("price.duration.loader", "30s")
+	viper.Set("error_mail_to", "alekseip17389@yahoo.com")
 
 	viper.Set("bybit.host", "https://api.bybit.com/")
 	viper.Set("binance.spot_host", "https://api.binance.com")
@@ -45,38 +46,52 @@ func init() {
 		"UNIUSDT",
 	})
 
-	viper.Set("logger.level", "ERROR")
+	viper.Set("logger.level", "INFO")
+	viper.Set("logger.logger.alert_level", "ERROR")
 	viper.Set("logger.output_paths", []string{"stdout"})
 	viper.Set("logger.error_output_paths", []string{"stdout"})
 	viper.Set("logger.stacktrace", false)
 
-	viper.Set("candlestick.logger.level", "ERROR")
+	viper.Set("candlestick.logger.level", "INFO")
 	viper.Set("candlestick.logger.output_paths", []string{"./storage/logs/candlestick_output.log"})
 	viper.Set("candlestick.logger.error_output_paths", []string{"./storage/logs/candlestick_error.log"})
 	viper.Set("candlestick.logger.stacktrace", false)
 
-	viper.Set("analysis.logger.level", "ERROR")
+	viper.Set("analysis.logger.level", "INFO")
 	viper.Set("analysis.logger.output_paths", []string{"./storage/logs/analysis_output.log"})
 	viper.Set("analysis.logger.error_output_paths", []string{"./storage/logs/analysis_error.log"})
 	viper.Set("analysis.logger.stacktrace", false)
 
-	viper.Set("exchange.logger.level", "ERROR")
+	viper.Set("exchange.logger.level", "INFO")
 	viper.Set("exchange.logger.output_paths", []string{"./storage/logs/exchange_output.log"})
 	viper.Set("exchange.logger.error_output_paths", []string{"./storage/logs/exchange_error.log"})
 	viper.Set("exchange.logger.stacktrace", false)
 
-	viper.Set("indicator.logger.level", "ERROR")
+	viper.Set("indicator.logger.level", "INFO")
 	viper.Set("indicator.logger.output_paths", []string{"./storage/logs/indicator_output.log"})
 	viper.Set("indicator.logger.error_output_paths", []string{"./storage/logs/indicator_error.log"})
 	viper.Set("indicator.logger.stacktrace", false)
 
-	viper.Set("price.logger.level", "ERROR")
+	viper.Set("price.logger.level", "INFO")
 	viper.Set("price.logger.output_paths", []string{"./storage/logs/price_output.log"})
 	viper.Set("price.logger.error_output_paths", []string{"./storage/logs/price_error.log"})
 	viper.Set("price.logger.stacktrace", false)
 
-	viper.Set("http_client.logger.level", "ERROR")
+	viper.Set("http_client.logger.level", "INFO")
+	viper.Set("http_client.logger.alert_level", "ERROR")
 	viper.Set("http_client.logger.output_paths", []string{"./storage/logs/http_client_output.log"})
 	viper.Set("http_client.logger.error_output_paths", []string{"./storage/logs/http_client_error.log"})
 	viper.Set("http_client.logger.stacktrace", false)
+
+	viper.Set("bybit_sender.logger.level", "INFO")
+	viper.Set("bybit_sender.logger.alert_level", "WARN")
+	viper.Set("bybit_sender.logger.output_paths", []string{"./storage/logs/http_client_output.log"})
+	viper.Set("bybit_sender.logger.error_output_paths", []string{"./storage/logs/http_client_error.log"})
+	viper.Set("bybit_sender.logger.stacktrace", false)
+
+	viper.Set("smtp_username", "j5C5Zm7BUHitAVPgKlsfcoleFOQKoq7S")
+	viper.Set("smtp_password", "BGyBmf8kQMQUWKPw5b71o5LA4MI7jF0m")
+	viper.Set("smtp_host", "mxslurp.click")
+	viper.Set("smtp_port", 2525)
+	viper.Set("smtp_from", "user-41c71b89-b06a-44af-a631-d7f334500982@mailslurp.biz")
 }

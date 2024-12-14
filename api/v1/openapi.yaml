@@ -427,6 +427,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /symbols/{exchange}/{category}:
+    get:
+      tags:
+        - symbol
+      parameters:
+        - in: path
+          name: exchange
+          description: name exchange
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: category
+          description: category symbol
+          schema:
+            type: string
+            enum:
+              - spot
+              - future
+          required: true
+      responses:
+        200:
+          description: return symbols
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SymbolInfoResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     AnalysisResponse:

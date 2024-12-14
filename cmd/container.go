@@ -35,6 +35,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/logger"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/jmoiron/sqlx"
@@ -110,7 +111,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 		candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
 		serv *application.Service,
 		candleIndicator candle_indicator.CandleIndicator,
-	) {
+	) error {
 		app = loader.NewLoader(
 			priceService,
 			candlestickService,
@@ -123,7 +124,12 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 			viper.GetStringSlice("load.symbols"),
 			viper.GetStringSlice("load.hot_symbols"),
 		)
-
+		log, err := logger.CreateForNamespace("loader")
+		if err != nil {
+			return err
+		}
+		app.WithLogger(log)
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -301,6 +307,11 @@ func (c *Container) initClients() error {
 	if err := c.di.Provide(func(httpClient metrics.HTTPSender) (*v5.Client, error) {
 		bybitBasicSender := bybit_sender.NewBasic()
 		bybitBasicSender.WithHttpClient(httpClient)
+		log, err := logger.CreateForNamespace("bybit_sender")
+		if err != nil {
+			return nil, err
+		}
+		bybitBasicSender.WithLogger(log)
 		return v5.NewClient(viper.GetString("bybit.host"), bybitBasicSender)
 	}); err != nil {
 		return err

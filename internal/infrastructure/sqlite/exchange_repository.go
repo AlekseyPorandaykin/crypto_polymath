@@ -65,6 +65,23 @@ LIMIT 1
 	return &result, nil
 }
 
+func (repo *ExchangeRepository) InfoByCategory(ctx context.Context, exchange, category string) ([]core_exchange.SymbolInfoStorageDTO, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "exchange_fetch_infos_by_category")()
+	var (
+		query = `
+SELECT id, exchange, symbol, base_asset, quote_asset, created_at
+FROM symbol_infos
+WHERE exchange = ? AND category = ?
+`
+		result []core_exchange.SymbolInfoStorageDTO
+	)
+	err := repo.db.SelectContext(ctx, &result, query, exchange, category)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *ExchangeRepository) QuoteAssets(ctx context.Context) ([]string, error) {
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_quote_assets")()
 	query := `

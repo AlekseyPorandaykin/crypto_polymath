@@ -124,6 +124,12 @@ const (
 	N9  GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth = 9
 )
 
+// Defines values for GetSymbolsExchangeCategoryParamsCategory.
+const (
+	Future GetSymbolsExchangeCategoryParamsCategory = "future"
+	Spot   GetSymbolsExchangeCategoryParamsCategory = "spot"
+)
+
 // AnalysisInfo defines model for AnalysisInfo.
 type AnalysisInfo struct {
 	Depth          []int  `json:"depth"`
@@ -287,3 +293,6 @@ type GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsName string
 
 // GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth defines parameters for GetIndicatorExchangeSymbolUnitIntervalNameDepth.
 type GetIndicatorExchangeSymbolUnitIntervalNameDepthParamsDepth int
+
+// GetSymbolsExchangeCategoryParamsCategory defines parameters for GetSymbolsExchangeCategory.
+type GetSymbolsExchangeCategoryParamsCategory string

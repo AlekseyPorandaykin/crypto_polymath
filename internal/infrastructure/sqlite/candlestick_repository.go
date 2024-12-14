@@ -177,6 +177,14 @@ func (repo *CandlestickRepository) DeleteOldRows(ctx context.Context, exchange, 
 	}
 	return nil
 }
+func (repo *CandlestickRepository) DeletePrevRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error {
+	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_delete_prev_rows")()
+	var query = `DELETE FROM candlestick WHERE exchange = ? AND symbol = ? AND unit=? AND interval= ? AND  created_at < ?`
+	if _, err := repo.db.ExecContext(ctx, query, exchange, symbol, unit, interval, to); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (repo *CandlestickRepository) ListUniq(ctx context.Context) ([]candlestick.UniqDTO, error) {
 	var (
