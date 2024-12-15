@@ -167,7 +167,7 @@ func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName 
 			continue
 		}
 		l.loadFutureCandlesticks(ctx, exchangeName, s.Symbol)
-		l.logger.Info("load future candlesticks", zap.String("symbol", s.Symbol))
+		l.logger.Debug("load future candlesticks", zap.String("symbol", s.Symbol))
 	}
 	l.logger.Error("load future candlesticks", zap.String("duration", time.Since(start).String()))
 	return

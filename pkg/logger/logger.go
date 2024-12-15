@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
 	"time"
 )
 
@@ -58,6 +59,9 @@ func Create(conf Config, opts ...zap.Option) (*zap.Logger, error) {
 			viper.GetString("error_mail_to")),
 		)
 	}))
+	if hostname, err := os.Hostname(); err == nil {
+		l = l.With(zap.String("hostname", hostname))
+	}
 	return l, nil
 }
 
@@ -110,4 +114,10 @@ func CreateGlobal(conf Config, opts ...zap.Option) {
 
 func InitDefaultLogger() {
 	CreateGlobal(createNamespaceConfig(""))
+}
+
+func AttachCoreToLogger(core zapcore.Core, l *zap.Logger) *zap.Logger {
+	return l.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core {
+		return zapcore.NewTee(c, core)
+	}))
 }

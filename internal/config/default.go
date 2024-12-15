@@ -85,9 +85,20 @@ func init() {
 
 	viper.Set("bybit_sender.logger.level", "INFO")
 	viper.Set("bybit_sender.logger.alert_level", "WARN")
-	viper.Set("bybit_sender.logger.output_paths", []string{"./storage/logs/http_client_output.log"})
-	viper.Set("bybit_sender.logger.error_output_paths", []string{"./storage/logs/http_client_error.log"})
-	viper.Set("bybit_sender.logger.stacktrace", false)
+	viper.Set("bybit_sender.logger.output_paths", []string{"./storage/logs/bybit_sender_output.log"})
+	viper.Set("bybit_sender.logger.error_output_paths", []string{"./storage/logs/bybit_sender_error.log"})
+
+	viper.Set("loader.logger.level", "INFO")
+	viper.Set("loader.logger.alert_level", "WARN")
+	viper.Set("loader.logger.output_paths", []string{"./storage/logs/loader_output.log"})
+	viper.Set("loader.logger.error_output_paths", []string{"./storage/logs/loader_error.log"})
+	viper.Set("loader.logger.stacktrace", false)
+
+	viper.Set("calculator.logger.level", "INFO")
+	viper.Set("calculator.logger.alert_level", "WARN")
+	viper.Set("calculator.logger.output_paths", []string{"./storage/logs/calculator_output.log"})
+	viper.Set("calculator.logger.error_output_paths", []string{"./storage/logs/calculator_error.log"})
+	viper.Set("calculator.logger.stacktrace", false)
 
 	viper.Set("smtp_username", "j5C5Zm7BUHitAVPgKlsfcoleFOQKoq7S")
 	viper.Set("smtp_password", "BGyBmf8kQMQUWKPw5b71o5LA4MI7jF0m")

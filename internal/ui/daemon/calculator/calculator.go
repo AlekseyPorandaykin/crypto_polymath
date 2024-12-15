@@ -20,6 +20,7 @@ type Calculator struct {
 	analysisService     *analysis.Service
 	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
 	symbols             []string
+	logger              *zap.Logger
 }
 
 func NewCalculator(
@@ -33,7 +34,12 @@ func NewCalculator(
 		analysisService:     analysisService,
 		indicatorDispatcher: indicatorDispatcher,
 		symbols:             symbols,
+		logger:              zap.L(),
 	}
+}
+
+func (app *Calculator) WithLogger(logger *zap.Logger) {
+	app.logger = logger
 }
 
 func (app *Calculator) Run(ctx context.Context) error {
@@ -157,7 +163,7 @@ func (app *Calculator) deleteOlIndicators(ctx context.Context) error {
 			ctx,
 			viper.GetInt("indicator.storage.limit"),
 		); err != nil {
-			zap.L().Error("delete old indicators", zap.Error(err))
+			app.logger.Error("delete old indicators", zap.Error(err))
 		}
 		return nil
 	})
@@ -170,7 +176,7 @@ func (app *Calculator) deleteOldAnalysis(ctx context.Context) error {
 			ctx,
 			viper.GetInt("analysis.storage.limit"),
 		); err != nil {
-			zap.L().Error("delete old analysis", zap.Error(err))
+			app.logger.Error("delete old analysis", zap.Error(err))
 		}
 		return nil
 	})

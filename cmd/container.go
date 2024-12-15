@@ -143,10 +143,16 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 		createIndicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
 		indicatorService indicator.Indicator,
 		analysisService *analysis.Service,
-	) {
+	) error {
 		app = calculator.NewCalculator(
 			createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"),
 		)
+		log, err := logger.CreateForNamespace("calculator")
+		if err != nil {
+			return err
+		}
+		app.WithLogger(log)
+		return nil
 	})
 	if err != nil {
 		return nil, err
