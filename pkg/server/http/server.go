@@ -6,9 +6,16 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	_ "github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
 )
+
+var logger = zap.NewNop()
+
+func WithLogger(l *zap.Logger) {
+	if l != nil {
+		logger = l
+	}
+}
 
 type ApplicationInfo struct {
 	Application string `json:"application"`
@@ -121,7 +128,7 @@ func errorApiMiddleware() echo.MiddlewareFunc {
 			if ok && httpErr.Code == http.StatusNotFound {
 				return c.JSON(http.StatusNotFound, nil)
 			}
-			zap.L().Error("error api http execute", zap.Error(err), zap.String("url", c.Request().URL.String()))
+			logger.Error("error api http execute", zap.Error(err), zap.String("url", c.Request().URL.String()))
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		}
 	}
@@ -136,7 +143,7 @@ func errorPageMiddleware() echo.MiddlewareFunc {
 			}
 			httpErr, ok := err.(*echo.HTTPError)
 			if !ok {
-				zap.L().Error("error http execute", zap.Error(err), zap.String("url", c.Request().URL.String()))
+				logger.Error("error http execute", zap.Error(err), zap.String("url", c.Request().URL.String()))
 				return err
 			}
 			if httpErr.Code == http.StatusNotFound {

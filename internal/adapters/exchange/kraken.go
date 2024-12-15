@@ -6,7 +6,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"strings"
 	"time"
 )
@@ -39,8 +38,7 @@ func (c *Kraken) Prices(ctx context.Context) ([]price.ExchangeDTO, error) {
 	for symbolPair, tick := range response.Result {
 		averagePrice, err := tick.AveragePrice()
 		if err != nil {
-			zap.L().Error("get average price from kraken", zap.Error(err), zap.Any("tick", tick))
-			continue
+			return nil, errors.Wrap(err, "error get average price from kraken")
 		}
 		result = append(result, price.ExchangeDTO{
 			Exchange:  KrakenExchange,

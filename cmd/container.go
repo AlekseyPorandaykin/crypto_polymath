@@ -172,7 +172,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		indicatorDBRepos *sqlite.IndicatorRepository,
 		serv *application.Service,
 		candleIndicator candle_indicator.CandleIndicator,
-	) {
+	) error {
 		serverHttp = http_server.NewServer()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
 		handlerHttp := impl.NewHandler(
@@ -186,7 +186,14 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 			serv,
 			candleIndicator,
 		)
+
+		log, err := logger.CreateForNamespace("http_server")
+		if err != nil {
+			return err
+		}
+		http_server.WithLogger(log)
 		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
+		return nil
 	})
 	if err != nil {
 		return nil, err

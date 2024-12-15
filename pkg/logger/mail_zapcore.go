@@ -1,10 +1,11 @@
 package logger
 
 import (
+	"context"
 	"fmt"
+	mailslurp "github.com/mailslurp/mailslurp-client-go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap/zapcore"
-	"log"
-	"net/smtp"
 )
 
 var _ zapcore.Core = (*MailZapCore)(nil)
@@ -86,20 +87,25 @@ Message: %s
 	}
 	body += fmt.Sprintf("\n\nStacktrace:\n%s", entry.Stack)
 	subject := fmt.Sprintf("%s [%s]: %s", entry.LoggerName, entry.Level.String(), entry.Time.String())
-	auth := smtp.PlainAuth("", m.username, m.password, m.host)
 	to := []string{m.to}
+	ctx := context.WithValue(
+		context.Background(),
+		mailslurp.ContextAPIKey,
+		mailslurp.APIKey{Key: "b74ac74bbf95fbdac2ac47ff7e252b9cf42b5e9394dba49a9862f5d9258468d0"})
+	client := mailslurp.NewAPIClient(mailslurp.NewConfiguration())
 
-	msg := []byte(fmt.Sprintf("To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"\r\n"+
-		"%s\r\n", m.to, subject, body))
-	addr := m.host
-	if m.port > 0 {
-		addr = fmt.Sprintf("%s:%d", m.host, m.port)
-	}
-	err := smtp.SendMail(addr, auth, m.from, to, msg)
+	// create an inbox
+	inbox, _, err := client.InboxControllerApi.CreateInbox(ctx, &mailslurp.CreateInboxOpts{})
 	if err != nil {
-		log.Printf("Couldn't send email: %v", err)
+		return errors.Wrap(err, "Couldn't create inbox")
+	}
+	sendEmailOptions := mailslurp.SendEmailOptions{
+		To:      &to,
+		Subject: &subject,
+		Body:    &body,
+	}
+	if _, err := client.InboxControllerApi.SendEmail(ctx, inbox.Id, sendEmailOptions); err != nil {
+		return errors.Wrap(err, "Couldn't send email")
 	}
 	return nil
 }

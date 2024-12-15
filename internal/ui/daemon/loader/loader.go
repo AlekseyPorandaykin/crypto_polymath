@@ -107,7 +107,7 @@ func (l *Loader) Run(ctx context.Context) error {
 				defer system.HandlePanic()
 				defer ExchangeSymbolLoadedHelper(exchangeName)()
 				if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchangeName); err != nil {
-					zap.L().Error("load symbol info", zap.Error(err))
+					l.logger.Error("load symbol info", zap.Error(err))
 				}
 				return nil
 			})
@@ -123,7 +123,6 @@ func (l *Loader) Run(ctx context.Context) error {
 					return
 				default:
 					l.loadSymbolFutureCandlesticks(ctx, exchangeName)
-					time.Sleep(time.Minute * 10)
 				}
 			}
 		}(exchangeName)
@@ -158,7 +157,7 @@ func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName 
 		l.logger.Error("load symbol info", zap.Error(errSymbol))
 		return
 	}
-	l.logger.Error("start load future candlesticks", zap.Int("count", len(symbols)))
+	l.logger.Debug("start load future candlesticks", zap.Int("count", len(symbols)))
 	if len(symbols) == 0 {
 		return
 	}
@@ -169,7 +168,7 @@ func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName 
 		l.loadFutureCandlesticks(ctx, exchangeName, s.Symbol)
 		l.logger.Debug("load future candlesticks", zap.String("symbol", s.Symbol))
 	}
-	l.logger.Error("load future candlesticks", zap.String("duration", time.Since(start).String()))
+	l.logger.Debug("load future candlesticks", zap.String("duration", time.Since(start).String()))
 	return
 }
 

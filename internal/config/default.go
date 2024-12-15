@@ -100,6 +100,12 @@ func init() {
 	viper.Set("calculator.logger.error_output_paths", []string{"./storage/logs/calculator_error.log"})
 	viper.Set("calculator.logger.stacktrace", false)
 
+	viper.Set("http_server.logger.level", "INFO")
+	viper.Set("http_server.logger.alert_level", "WARN")
+	viper.Set("http_server.logger.output_paths", []string{"./storage/logs/http_server_output.log"})
+	viper.Set("http_server.logger.error_output_paths", []string{"./storage/logs/http_server_error.log"})
+	viper.Set("http_server.logger.stacktrace", false)
+
 	viper.Set("smtp_username", "j5C5Zm7BUHitAVPgKlsfcoleFOQKoq7S")
 	viper.Set("smtp_password", "BGyBmf8kQMQUWKPw5b71o5LA4MI7jF0m")
 	viper.Set("smtp_host", "mxslurp.click")
