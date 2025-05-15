@@ -7,12 +7,13 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
 	"go.uber.org/zap"
+	"time"
 )
 
 // IndicatorHandler - рассчитываем индикаторы на основе свечей или по расписанию.
 type IndicatorHandler struct {
 	indicatorService    indicator.Indicator
-	indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator]
+	indicatorDispatcher dispatcher.Dispatcher[domain.Indicator]
 	depths              []int
 
 	chans  map[string]chan struct{}
@@ -21,7 +22,7 @@ type IndicatorHandler struct {
 
 func NewIndicatorHandler(
 	indicatorService indicator.Indicator,
-	indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator],
+	indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
 	depths []int,
 ) *IndicatorHandler {
 	return &IndicatorHandler{
@@ -38,6 +39,7 @@ func (i *IndicatorHandler) SetLogger(logger *zap.Logger) {
 }
 
 func (i *IndicatorHandler) CalculateByCandle(ctx context.Context, candle domain.Candlestick) {
+	start := time.Now()
 	key := uniqKey(candle.Exchange, candle.Symbol, candle.Unit, candle.Interval)
 	if _, has := i.chans[key]; !has {
 		i.chans[key] = make(chan struct{}, 1)
@@ -54,7 +56,12 @@ func (i *IndicatorHandler) CalculateByCandle(ctx context.Context, candle domain.
 		indicators = append(indicators, data...)
 	}
 	<-i.chans[key]
-	i.logger.Debug("indicator by candle calculated", zap.String("key", key), zap.Int("count", len(indicators)))
+	i.logger.Debug(
+		"indicator by candle calculated",
+		zap.String("key", key),
+		zap.Int("count", len(indicators)),
+		zap.String("duration", time.Since(start).String()),
+	)
 	for _, item := range indicators {
 		i.indicatorDispatcher.Dispatch(dispatcher.Event[domain.Indicator]{
 			Name: domain.CreatedIndicatorEvent,
@@ -64,6 +71,7 @@ func (i *IndicatorHandler) CalculateByCandle(ctx context.Context, candle domain.
 }
 
 func (i *IndicatorHandler) Calculate(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) {
+	start := time.Now()
 	key := uniqKey(exchange, symbol, unit, interval)
 	if _, has := i.chans[key]; !has {
 		i.chans[key] = make(chan struct{}, 1)
@@ -80,7 +88,11 @@ func (i *IndicatorHandler) Calculate(ctx context.Context, exchange, symbol strin
 		indicators = append(indicators, data...)
 	}
 	<-i.chans[key]
-	i.logger.Debug("indicator calculated", zap.String("key", key), zap.Int("count", len(indicators)))
+	i.logger.Debug(
+		"indicator calculated",
+		zap.String("key", key),
+		zap.Int("count", len(indicators)),
+		zap.String("duration", time.Since(start).String()))
 	for _, item := range indicators {
 		i.indicatorDispatcher.Dispatch(dispatcher.Event[domain.Indicator]{
 			Name: domain.CreatedIndicatorEvent,

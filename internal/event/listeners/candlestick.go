@@ -23,7 +23,8 @@ func (c *Candlestick) Handle(e dispatcher.Event[domain.Candlestick]) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	c.indicatorHandler.CalculateByCandle(ctx, e.Body)
-	if _, err := c.candleIndicator.CalculateFromCandlesticks(ctx, []domain.Candlestick{e.Body}); err != nil {
-		zap.L().Error("calculate candle indicator", zap.Error(err))
+	data := []domain.Candlestick{e.Body}
+	if _, err := c.candleIndicator.CalculateFromCandlesticks(ctx, data); err != nil {
+		zap.L().Error("calculate candle indicator", zap.Error(err), zap.Any("candle", e.Body))
 	}
 }

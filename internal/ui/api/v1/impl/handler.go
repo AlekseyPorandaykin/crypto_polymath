@@ -289,6 +289,7 @@ func (h *Handler) GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx echo.Cont
 			LowPrice:          float32(item.LowPrice),
 			OpenLocation:      float32(item.OpenLocation()),
 			OpenPrice:         float32(item.OpenPrice),
+			SizeBody:          float32(item.SizeBody()),
 			SizeBodyInPercent: float32(item.SizeBodyInPercent()),
 			StartTime:         item.StartTime,
 			CloseLocation:     float32(item.CloseLocation()),

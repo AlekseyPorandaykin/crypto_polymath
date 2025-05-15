@@ -65,6 +65,13 @@ var futureCandlestickLoadedDuration = prometheus.NewCounterVec(prometheus.Counte
 	Help:      "How long future candlesticks loaded in seconds.",
 }, []string{"exchange", "unit"})
 
+var futureCandlestickLoadedTotalDuration = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: viper.GetString("app.codename"),
+	Subsystem: subsystem,
+	Name:      "future_candlestick_loaded_total_seconds",
+	Help:      "How long future candlesticks total loaded in seconds.",
+}, []string{"exchange"})
+
 var countsPricesLoaded = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: viper.GetString("app.codename"),
 	Subsystem: subsystem,
@@ -182,5 +189,5 @@ func init() {
 	prometheus.DefaultRegisterer.MustRegister(deleteCandlestick, durationDeleteCandlestick)
 	prometheus.DefaultRegisterer.MustRegister(exchangeSymbolTotal, exchangeSymbolDuration)
 	prometheus.DefaultRegisterer.MustRegister(calcIndicator, totalCalculatedIndicator, durationCalcIndicator)
-	prometheus.DefaultRegisterer.MustRegister(futureCandlestickLoaded, futureCandlestickLoadedDuration)
+	prometheus.DefaultRegisterer.MustRegister(futureCandlestickLoaded, futureCandlestickLoadedDuration, futureCandlestickLoadedTotalDuration)
 }

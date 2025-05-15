@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/AlekseyPorandaykin/crypto_polymath/cmd/container"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/logger"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 )
 
@@ -17,6 +19,10 @@ var daemonCmd = &cobra.Command{
 	Use:   "daemon",
 	Short: "Run server",
 	Run: func(cmd *cobra.Command, args []string) {
+		//Init global configs
+		debug.SetMemoryLimit(400*2 ^ 20)
+		debug.SetGCPercent(30)
+
 		defer system.HandlePanic()
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()
@@ -26,7 +32,7 @@ var daemonCmd = &cobra.Command{
 			return
 		}
 		defer func() { _ = logger.Sync() }()
-		c := NewContainer()
+		c := container.NewContainer()
 		if err := c.Init(); err != nil {
 			fmt.Println("error init container", errLogger.Error())
 			return
@@ -47,6 +53,11 @@ var daemonCmd = &cobra.Command{
 			logger.Error("error create http server", zap.Error(errCreateServer))
 			return
 		}
+		serverGrpc, errServerGrpc := c.CreateGRPCServer()
+		if errServerGrpc != nil {
+			logger.Error("error create grpc server", zap.Error(errServerGrpc))
+			return
+		}
 		candleDispatcher, errCandleDispatcher := c.CreateCandleDispatcher()
 		if errCandleDispatcher != nil {
 			logger.Error("error create candle dispatcher", zap.Error(errCandleDispatcher))
@@ -57,7 +68,7 @@ var daemonCmd = &cobra.Command{
 			logger.Error("error create indicator dispatcher", zap.Error(errIndicatorDispatcher))
 			return
 		}
-		createIndicatorDispatcher, errCreateIndicatorDispatcher := c.CreateCreaterIndicatorDispatcher()
+		createIndicatorDispatcher, errCreateIndicatorDispatcher := c.CreateCreatorIndicatorDispatcher()
 		if errCreateIndicatorDispatcher != nil {
 			logger.Error("error create creater indicator dispatcher", zap.Error(errCreateIndicatorDispatcher))
 			return
@@ -65,6 +76,11 @@ var daemonCmd = &cobra.Command{
 		analyticDispatcher, errAnalyticDispatcher := c.CreateAnalyticDispatcher()
 		if errAnalyticDispatcher != nil {
 			logger.Error("error create analytic dispatcher", zap.Error(errAnalyticDispatcher))
+			return
+		}
+		loadedCandlestickDispatcher, errLoadedCandlestick := c.CreateLoadedCandlesticksForSymbolBodyDispatcher()
+		if errLoadedCandlestick != nil {
+			logger.Error("error create loadedCandlestickDispatcher", zap.Error(errLoadedCandlestick))
 			return
 		}
 
@@ -91,6 +107,12 @@ var daemonCmd = &cobra.Command{
 			}
 		})
 		system.Go(func() {
+			if err := serverGrpc.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {
+				logger.Info("run grpc server", zap.Error(err))
+				return
+			}
+		})
+		system.Go(func() {
 			candleDispatcher.Listen()
 		})
 		system.Go(func() {
@@ -101,6 +123,9 @@ var daemonCmd = &cobra.Command{
 		})
 		system.Go(func() {
 			analyticDispatcher.Listen()
+		})
+		system.Go(func() {
+			loadedCandlestickDispatcher.Listen()
 		})
 
 		<-ctx.Done()

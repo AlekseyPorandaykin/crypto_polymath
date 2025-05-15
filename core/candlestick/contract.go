@@ -54,7 +54,7 @@ type Candlestick interface {
 	DeleteOldRows(ctx context.Context, oldValueLimit int) error
 
 	CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]domain.Candlestick, error)
-	UpdateCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) error
+	UpdateCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]domain.Candlestick, error)
 	SequenceCandlesticksToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]domain.Candlestick, error)
 	CandlesticksFromDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]domain.Candlestick, error)
 	//SequenceCandlesticks - Получаем свечи в строгой последовательности или ничего.

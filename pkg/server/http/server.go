@@ -106,7 +106,7 @@ func (s *Server) RegistrationFilesHandler(h FilesHandler) {
 }
 
 func (s *Server) Run(host, port string) error {
-	return s.e.Start(fmt.Sprintf(":%s", port))
+	return s.e.Start(fmt.Sprintf("%s:%s", host, port))
 }
 
 func (s *Server) mainPage(c echo.Context) error {

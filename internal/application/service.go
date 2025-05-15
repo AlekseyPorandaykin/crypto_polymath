@@ -14,6 +14,7 @@ import (
 type Service struct {
 	analyticRepository  view.AnalyticInfoRepository
 	indicatorRepository view.IndicatorInfoRepository
+	symbolRepository    view.SymbolRepository
 
 	dictionaryCache *view.DictionaryModel
 	mu              sync.Mutex
@@ -22,10 +23,12 @@ type Service struct {
 func NewService(
 	analyticRepository view.AnalyticInfoRepository,
 	indicatorRepository view.IndicatorInfoRepository,
+	symbolRepository view.SymbolRepository,
 ) *Service {
 	return &Service{
 		analyticRepository:  analyticRepository,
 		indicatorRepository: indicatorRepository,
+		symbolRepository:    symbolRepository,
 	}
 }
 
@@ -58,8 +61,14 @@ func (s *Service) collectDictionary(ctx context.Context) (view.DictionaryModel, 
 	unitIntervals := make([]view.IntervalModel, 0, 10)
 	analysisData := make([]view.AnalysisModel, 0, 10)
 	indicatorData := make([]view.IndicatorModel, 0, 10)
-	allDepths := make([]int, 0, 1_000)
-	allIndicatorDepths := make([]int, 0, 1_000)
+	symbols := viper.GetStringSlice("load.symbols")
+	allDepths := viper.GetIntSlice("candlestick.depths")
+	allIndicatorDepths := viper.GetIntSlice("candlestick.depths")
+	symbolsData, err := s.symbolRepository.AllSymbols(ctx)
+	if err != nil {
+		return view.DictionaryModel{}, err
+	}
+	symbols = append(symbols, symbolsData...)
 	analyticInfoData, err := s.analyticRepository.AllAnalyticInfo(ctx)
 	if err != nil {
 		return view.DictionaryModel{}, err
@@ -121,12 +130,12 @@ func (s *Service) collectDictionary(ctx context.Context) (view.DictionaryModel, 
 	slice.Sort(allIndicatorDepths)
 	return view.DictionaryModel{
 		Analysis:       analysisData,
-		Depths:         allDepths,
+		Depths:         util.UniqSlice(allDepths),
 		Exchanges:      []string{adapter_exchange.BybitExchange},
-		IndicatorDepth: allIndicatorDepths,
+		IndicatorDepth: util.UniqSlice(allIndicatorDepths),
 		Indicators:     indicatorData,
 		Intervals:      unitIntervals,
-		Symbols:        viper.GetStringSlice("load.symbols"),
+		Symbols:        util.UniqSlice(symbols),
 		Units: []string{
 			string(domain.MinuteUnit),
 			string(domain.HourUnit),

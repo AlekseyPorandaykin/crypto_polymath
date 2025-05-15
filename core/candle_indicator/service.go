@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type CandleIndicator interface {
 	AddCalculator(c Calculator)
 	CalculateFromCandlesticks(ctx context.Context, data []domain.Candlestick) ([]Indicator, error)
 	Indicators(ctx context.Context, name, exchange, symbol string, unit domain.Unit, interval int) ([]Indicator, error)
+	LastIndicatorsFrom(ctx context.Context, name, exchange string, unit domain.Unit, interval int, from time.Time) ([]Indicator, error)
+	CalculateAllIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]Indicator, error)
 }
 
 type Service struct {
@@ -33,18 +37,68 @@ func (s *Service) AddCalculator(c Calculator) {
 	s.calculators[c.Name()] = c
 }
 
-func (s *Service) Indicators(ctx context.Context, name, exchange, symbol string, unit domain.Unit, interval int) ([]Indicator, error) {
-	data, err := s.repo.FetchLast(ctx, name, exchange, symbol, string(unit), interval)
+func (s *Service) LastIndicatorsFrom(ctx context.Context, name, exchange string, unit domain.Unit, interval int, from time.Time) ([]Indicator, error) {
+	data, err := s.repo.LastAddedFromDate(ctx, name, exchange, string(unit), interval, from)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetch last indicators")
+		return nil, errors.Wrap(err, "get last added to date")
 	}
-	if len(data) < 100 {
-		return s.calculateLastCandlesticks(ctx, name, exchange, symbol, unit, interval)
+	return util.ModifySlice(data, func(item StorageDTO) Indicator {
+		return StorageToDomain(item)
+	}), nil
+}
+
+func (s *Service) CalculateAllIndicators(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]Indicator, error) {
+	indicators := make([]Indicator, 0, 100*len(s.calculators))
+	for name := range s.calculators {
+		data, err := s.Indicators(ctx, name, exchange, symbol, unit, interval)
+		if err != nil {
+			return nil, err
+		}
+		indicators = append(indicators, data...)
+	}
+	return indicators, nil
+}
+
+func (s *Service) Indicators(ctx context.Context, name, exchange, symbol string, unit domain.Unit, interval int) ([]Indicator, error) {
+	data, err := s.candlestickService.SequenceCandlesticks(ctx, exchange, symbol, unit, interval, 100)
+	if err != nil {
+		return nil, errors.Wrap(err, "get candlesticks")
+	}
+	if len(data) == 0 {
+		return nil, err
 	}
 	result := make([]Indicator, 0, len(data))
-	for _, item := range data {
-		result = append(result, StorageToDomain(item))
+	slice.SortBy[domain.Candlestick](data, func(a, b domain.Candlestick) bool {
+		return a.StartTime.Before(b.StartTime)
+	})
+	c, has := s.calculators[name]
+	if !has {
+		return nil, nil
 	}
+	for _, candle := range data {
+		indicatorStorage, err := s.repo.Find(
+			ctx, c.Name(), candle.Exchange, candle.Symbol, string(candle.Unit), candle.Interval, candle.StartTime,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", c.Name()))
+		}
+		if indicatorStorage != nil {
+			result = append(result, StorageToDomain(*indicatorStorage))
+			continue
+		}
+		indicator, err := c.Calculate(ctx, candle)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("calculate indicator %s", c.Name()))
+		}
+		if indicator == nil {
+			continue
+		}
+		result = append(result, *indicator)
+		if err := s.repo.Save(ctx, []StorageDTO{DomainToStorage(*indicator)}); err != nil {
+			return nil, errors.Wrap(err, "save indicator")
+		}
+	}
+
 	return result, nil
 }
 

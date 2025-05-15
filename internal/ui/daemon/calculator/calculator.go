@@ -13,18 +13,21 @@ import (
 	"go.uber.org/zap"
 )
 
+//TODO: Запускаем и считываем курсором новые свечи, проверяем какая свеча и запускаем пайплайн(event-source) расчета индикаторов.
+// Все значения запуска будут видны здесь.
+
 // Calculator -	компонент, который отвечает за расчет индикаторов и аналитики.
 // Запускается по в виде демона и выполняет расчеты по расписанию.
 type Calculator struct {
 	indicatorService    indicator.Indicator
 	analysisService     *analysis.Service
-	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
+	indicatorDispatcher dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
 	symbols             []string
 	logger              *zap.Logger
 }
 
 func NewCalculator(
-	indicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
+	indicatorDispatcher dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
 	indicatorService indicator.Indicator,
 	analysisService *analysis.Service,
 	symbols []string,
@@ -47,31 +50,31 @@ func (app *Calculator) Run(ctx context.Context) error {
 	exchangeNames := []string{exchange.BybitExchange}
 
 	for _, exchangeName := range exchangeNames {
-		minutes := viper.GetIntSlice("candlestick.minutes")
-		depths := viper.GetIntSlice("candlestick.depths")
+		//minutes := viper.GetIntSlice("candlestick.minutes")
+		//depths := viper.GetIntSlice("candlestick.depths")
 		for _, symbol := range app.symbols {
-			for _, minute := range minutes {
-				for _, depth := range depths {
-					go func(exchangeName, symbol string, minute, depth int) {
-						defer system.HandlePanic()
-						_ = scheduler.ExecuteCustomMinute(ctx, minute, 1, func() error {
-							app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
-								Name: domain.CreateIndicatorEventEvent,
-								Body: domain.CreateIndicatorEventBody{
-									Exchange: exchangeName,
-									Symbol:   symbol,
-									Unit:     domain.MinuteUnit,
-									Interval: minute,
-								},
-							})
-							return nil
-						})
-						//_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute)
-
-					}(exchangeName, symbol, minute, depth)
-				}
-
-			}
+			//for _, minute := range minutes {
+			//	for _, depth := range depths {
+			//		go func(exchangeName, symbol string, minute, depth int) {
+			//			defer system.HandlePanic()
+			//			_ = scheduler.ExecuteCustomMinute(ctx, minute, 1, func() error {
+			//				app.indicatorDispatcher.Dispatch(dispatcher.Event[domain.CreateIndicatorEventBody]{
+			//					Name: domain.CreateIndicatorEventEvent,
+			//					Body: domain.CreateIndicatorEventBody{
+			//						Exchange: exchangeName,
+			//						Symbol:   symbol,
+			//						Unit:     domain.MinuteUnit,
+			//						Interval: minute,
+			//					},
+			//				})
+			//				return nil
+			//			})
+			//			//_ = app.execMinMinIndicator(ctx, exchangeName, symbol, minute)
+			//
+			//		}(exchangeName, symbol, minute, depth)
+			//	}
+			//
+			//}
 			for _, hour := range viper.GetIntSlice("candlestick.hours") {
 				go func(exchangeName, symbol string, hour int) {
 					defer system.HandlePanic()

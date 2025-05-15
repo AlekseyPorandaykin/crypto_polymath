@@ -596,7 +596,7 @@ components:
         $ref: '#/components/schemas/CandleIndicatorItem'
     CandleIndicatorItem:
       type: object
-      required: [ start_time, open_price, high_price, low_price, close_price,size_body_in_percent , close_location, open_location, direction ]
+      required: [ start_time, open_price, high_price, low_price, close_price,size_body_in_percent , size_body, close_location, open_location, direction ]
       properties:
         start_time:
           type: string
@@ -610,6 +610,8 @@ components:
         close_price:
           type: number
         size_body_in_percent:
+          type: number
+        size_body:
           type: number
         close_location:
           type: number

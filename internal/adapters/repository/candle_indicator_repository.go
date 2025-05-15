@@ -59,3 +59,8 @@ func (repo *CandleIndicatorRepository) FetchLast(ctx context.Context, name, exch
 	_ = repo.cache.Save(ctx, storageData)
 	return storageData, nil
 }
+
+func (repo *CandleIndicatorRepository) LastAddedFromDate(ctx context.Context, name, exchange, unit string, interval int, from time.Time) ([]candle_indicator.StorageDTO, error) {
+	//Всегда берем из хранилища последние добавленные данные
+	return repo.storage.LastAddedFromDate(ctx, name, exchange, unit, interval, from)
+}

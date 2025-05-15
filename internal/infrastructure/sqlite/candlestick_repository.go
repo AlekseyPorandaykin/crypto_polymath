@@ -202,3 +202,19 @@ ORDER BY  exchange,symbol, unit, interval
 
 	return res, nil
 }
+
+func (repo *CandlestickRepository) AllSymbols(ctx context.Context) ([]string, error) {
+	var (
+		query = `
+SELECT  DISTINCT symbol
+FROM candlestick 
+ORDER BY  symbol
+`
+		res []string
+	)
+	if err := repo.db.SelectContext(ctx, &res, query); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

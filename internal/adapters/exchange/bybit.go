@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/request"
+	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/response"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
@@ -46,11 +47,20 @@ func (c *Bybit) LastMonthCandlesticks(ctx context.Context, symbol string) ([]can
 }
 
 func (c *Bybit) lastCandlesticks(ctx context.Context, symbol, interval string) ([]candlestick.ExchangeDTO, error) {
-	resp, err := c.client.MarketGetKline(ctx, request.MarketGetKlineParam{
-		Symbol:   symbol,
-		Interval: interval,
-		Limit:    100,
-	})
+	resp := response.GetKlineResponse{}
+	// Добавляем повторы, т.к. клиент может задерживать запросы ради безопасности и запросы не успеют в окно.
+	err := backoff.Retry(func() error {
+		var errReq error
+		resp, errReq = c.client.MarketGetKline(ctx, request.MarketGetKlineParam{
+			Symbol:   symbol,
+			Interval: interval,
+			Limit:    100,
+		})
+		if errReq != nil {
+			return errReq
+		}
+		return nil
+	}, backoff.NewExponentialBackOff())
 	if err != nil {
 		return nil, errors.Wrap(err, "get MarketGetKline")
 	}
@@ -114,28 +124,35 @@ func (c *Bybit) Price(ctx context.Context, symbol string) (price.ExchangeDTO, er
 }
 
 func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
-	spotInfo, err := c.spotSymbolInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	linearInfo, err := c.linearSymbolInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	inverseInfo, err := c.inverseSymbolInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	optionInfo, err := c.optionSymbolInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
+	var result []core_exchange.SymbolInfoDTO
+	err := backoff.Retry(func() error {
+		spotInfo, err := c.spotSymbolInfo(ctx)
+		if err != nil {
+			return err
+		}
+		linearInfo, err := c.linearSymbolInfo(ctx)
+		if err != nil {
+			return err
+		}
+		inverseInfo, err := c.inverseSymbolInfo(ctx)
+		if err != nil {
+			return err
+		}
+		optionInfo, err := c.optionSymbolInfo(ctx)
+		if err != nil {
+			return err
+		}
+		result = make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
 
-	result = append(result, spotInfo...)
-	result = append(result, linearInfo...)
-	result = append(result, inverseInfo...)
-	result = append(result, optionInfo...)
+		result = append(result, spotInfo...)
+		result = append(result, linearInfo...)
+		result = append(result, inverseInfo...)
+		result = append(result, optionInfo...)
+		return nil
+	}, backoff.NewExponentialBackOff())
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mailslurp "github.com/mailslurp/mailslurp-client-go"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -21,6 +22,8 @@ type MailZapCore struct {
 	port     uint
 	from     string
 	to       string
+
+	client *mailslurp.APIClient
 }
 
 func NewMailZapCore(level zapcore.Level, username, password, host string, port uint, from, to string) *MailZapCore {
@@ -33,6 +36,7 @@ func NewMailZapCore(level zapcore.Level, username, password, host string, port u
 		port:     port,
 		from:     from,
 		to:       to,
+		client:   mailslurp.NewAPIClient(mailslurp.NewConfiguration()),
 	}
 }
 
@@ -87,27 +91,24 @@ Message: %s
 	}
 	body += fmt.Sprintf("\n\nStacktrace:\n%s", entry.Stack)
 	subject := fmt.Sprintf("%s [%s]: %s", entry.LoggerName, entry.Level.String(), entry.Time.String())
-	to := []string{m.to}
-	ctx := context.WithValue(
-		context.Background(),
-		mailslurp.ContextAPIKey,
-		mailslurp.APIKey{Key: "b74ac74bbf95fbdac2ac47ff7e252b9cf42b5e9394dba49a9862f5d9258468d0"})
-	client := mailslurp.NewAPIClient(mailslurp.NewConfiguration())
-
-	// create an inbox
-	inbox, _, err := client.InboxControllerApi.CreateInbox(ctx, &mailslurp.CreateInboxOpts{})
-	if err != nil {
-		return errors.Wrap(err, "Couldn't create inbox")
+	if err := m.sent([]string{m.to}, subject, body); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Couldn't send email (%s:%s)", subject, body))
 	}
-	sendEmailOptions := mailslurp.SendEmailOptions{
+	return nil
+}
+
+func (m *MailZapCore) sent(to []string, subject, body string) error {
+	options := mailslurp.SendEmailOptions{
 		To:      &to,
 		Subject: &subject,
 		Body:    &body,
 	}
-	if _, err := client.InboxControllerApi.SendEmail(ctx, inbox.Id, sendEmailOptions); err != nil {
-		return errors.Wrap(err, "Couldn't send email")
-	}
-	return nil
+	ctx := context.WithValue(
+		context.Background(),
+		mailslurp.ContextAPIKey,
+		mailslurp.APIKey{Key: viper.GetString("mailslurp.api_key")})
+	_, err := m.client.InboxControllerApi.SendEmail(ctx, viper.GetString("mailslurp.inbox_id"), options)
+	return err
 }
 
 func (m *MailZapCore) Sync() error {

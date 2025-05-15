@@ -57,3 +57,7 @@ type IndicatorInfoRepository interface {
 type DictionaryRepository interface {
 	Dictionary(ctx context.Context) (DictionaryModel, error)
 }
+
+type SymbolRepository interface {
+	AllSymbols(ctx context.Context) ([]string, error)
+}

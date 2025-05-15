@@ -37,10 +37,10 @@ func (i Indicator) SizeBodyInPercent() float64 {
 }
 
 func (i Indicator) CloseLocation() float64 {
-	return util.RoundCoin(math.Abs(i.ClosePrice-i.LowPrice)/(i.HighPrice-i.LowPrice)*100, 4)
+	return util.RoundCoin(math.Abs(i.ClosePrice-i.LowPrice)/(i.HighPrice-i.LowPrice)*100, 6)
 }
 func (i Indicator) OpenLocation() float64 {
-	return util.RoundCoin(math.Abs(i.OpenPrice-i.LowPrice)/(i.HighPrice-i.LowPrice)*100, 4)
+	return util.RoundCoin(math.Abs(i.OpenPrice-i.LowPrice)/(i.HighPrice-i.LowPrice)*100, 6)
 }
 
 func (i Indicator) IsUp() bool {

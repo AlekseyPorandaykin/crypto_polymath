@@ -10,12 +10,12 @@ import (
 
 type AnalysisHandler struct {
 	analysisService    *analysis.Service
-	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]
+	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic]
 }
 
 func NewAnalysisHandler(
 	analysisService *analysis.Service,
-	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic],
+	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 ) *AnalysisHandler {
 	return &AnalysisHandler{analysisService: analysisService, analyticDispatcher: analyticDispatcher}
 }

@@ -1,4 +1,4 @@
-package cmd
+package container
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/binance"
@@ -27,8 +27,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/event/listeners"
+	infrastracture_http "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/http"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/sqlite"
+	grpc2 "github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
@@ -78,8 +80,20 @@ func (c *Container) Init() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func() metrics.HTTPSender {
-		return metrics.NewHTTPSenderWithMetrics(http.DefaultClient)
+	//Init default logger
+	if err := c.di.Provide(func() (*zap.Logger, error) {
+		return logger.CreateForNamespace("")
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(logger *zap.Logger) metrics.HTTPSender {
+		return metrics.NewHTTPSenderWithMetrics(
+			infrastracture_http.NewClient(
+				http.DefaultClient,
+				viper.GetUint64("load.symbols"),
+				logger,
+			),
+		)
 	}); err != nil {
 		return err
 	}
@@ -95,6 +109,9 @@ func (c *Container) Init() error {
 	if err := c.initEvents(); err != nil {
 		return err
 	}
+	if err := c.initListeners(); err != nil {
+		return err
+	}
 	if err := c.initServices(); err != nil {
 		return err
 	}
@@ -108,18 +125,17 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 		candlestickService candlestick.Candlestick,
 		exchangeService core_exchange.Exchange,
 		indicatorService indicator.Indicator,
-		candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
 		serv *application.Service,
 		candleIndicator candle_indicator.CandleIndicator,
+		candleDispatcher dispatcher.Dispatcher[domain.ActionBody],
 	) error {
 		app = loader.NewLoader(
 			priceService,
 			candlestickService,
 			exchangeService,
 			indicatorService,
-			candleDispatcher,
 			serv,
-			candleIndicator,
+			candleDispatcher,
 			exchangeNames,
 			viper.GetStringSlice("load.symbols"),
 			viper.GetStringSlice("load.hot_symbols"),
@@ -140,9 +156,21 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 	var app *calculator.Calculator
 	err := c.di.Invoke(func(
-		createIndicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
+		createIndicatorDispatcher dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
 		indicatorService indicator.Indicator,
 		analysisService *analysis.Service,
+		indicatorHandler *application.IndicatorHandler,
+		analysisHandler *application.AnalysisHandler,
+		analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
+		indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
+		indicatorListener dispatcher.Listener[domain.Indicator],
+		analysisListener dispatcher.Listener[analysis.Analytic],
+		candleListener dispatcher.Listener[domain.Candlestick],
+		candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
+		createIndicatorListener dispatcher.Listener[domain.CreateIndicatorEventBody],
+		symbolCandlesticksDispatcher dispatcher.Dispatcher[domain.ActionBody],
+		symbolCandlesticksListener *listeners.ActionHandler,
+		calculateCandleIndicator *listeners.CalculateCandleIndicatorsHandler,
 	) error {
 		app = calculator.NewCalculator(
 			createIndicatorDispatcher, indicatorService, analysisService, viper.GetStringSlice("load.symbols"),
@@ -152,12 +180,36 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 			return err
 		}
 		app.WithLogger(log)
+
+		indicatorDispatcher.Subscribe(indicatorListener)
+		analyticDispatcher.Subscribe(analysisListener)
+		candleDispatcher.Subscribe(candleListener)
+		createIndicatorDispatcher.Subscribe(createIndicatorListener)
+		symbolCandlesticksDispatcher.Subscribe(symbolCandlesticksListener)
+		symbolCandlesticksDispatcher.Subscribe(calculateCandleIndicator)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return app, nil
+}
+
+func (c *Container) CreateGRPCServer() (*grpc2.Server, error) {
+	var server *grpc2.Server
+	err := c.di.Invoke(func(h *grpc2.ActionHandler) error {
+		grpcServer, err := grpc2.NewServer(50052, h)
+		if err != nil {
+			return err
+		}
+		server = grpcServer
+		return nil
+
+	})
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
 }
 
 func (c *Container) CreateApiServer() (*http_server.Server, error) {
@@ -201,9 +253,9 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 	return serverHttp, nil
 }
 
-func (c *Container) CreateCandleDispatcher() (*dispatcher.Dispatcher[domain.Candlestick], error) {
-	var d *dispatcher.Dispatcher[domain.Candlestick]
-	err := c.di.Invoke(func(candleDispatcher *dispatcher.Dispatcher[domain.Candlestick]) {
+func (c *Container) CreateCandleDispatcher() (dispatcher.Dispatcher[domain.Candlestick], error) {
+	var d dispatcher.Dispatcher[domain.Candlestick]
+	err := c.di.Invoke(func(candleDispatcher dispatcher.Dispatcher[domain.Candlestick]) {
 		d = candleDispatcher
 	})
 	if err != nil {
@@ -212,9 +264,9 @@ func (c *Container) CreateCandleDispatcher() (*dispatcher.Dispatcher[domain.Cand
 	return d, nil
 }
 
-func (c *Container) CreateIndicatorDispatcher() (*dispatcher.Dispatcher[domain.Indicator], error) {
-	var d *dispatcher.Dispatcher[domain.Indicator]
-	err := c.di.Invoke(func(indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator]) {
+func (c *Container) CreateIndicatorDispatcher() (dispatcher.Dispatcher[domain.Indicator], error) {
+	var d dispatcher.Dispatcher[domain.Indicator]
+	err := c.di.Invoke(func(indicatorDispatcher dispatcher.Dispatcher[domain.Indicator]) {
 		d = indicatorDispatcher
 	})
 	if err != nil {
@@ -223,9 +275,9 @@ func (c *Container) CreateIndicatorDispatcher() (*dispatcher.Dispatcher[domain.I
 	return d, nil
 }
 
-func (c *Container) CreateCreaterIndicatorDispatcher() (*dispatcher.Dispatcher[domain.CreateIndicatorEventBody], error) {
-	var d *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
-	err := c.di.Invoke(func(createIndicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
+func (c *Container) CreateCreatorIndicatorDispatcher() (dispatcher.Dispatcher[domain.CreateIndicatorEventBody], error) {
+	var d dispatcher.Dispatcher[domain.CreateIndicatorEventBody]
+	err := c.di.Invoke(func(createIndicatorDispatcher dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
 		d = createIndicatorDispatcher
 	})
 	if err != nil {
@@ -234,9 +286,20 @@ func (c *Container) CreateCreaterIndicatorDispatcher() (*dispatcher.Dispatcher[d
 	return d, nil
 }
 
-func (c *Container) CreateAnalyticDispatcher() (*dispatcher.Dispatcher[analysis.Analytic], error) {
-	var d *dispatcher.Dispatcher[analysis.Analytic]
-	err := c.di.Invoke(func(analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]) {
+func (c *Container) CreateLoadedCandlesticksForSymbolBodyDispatcher() (dispatcher.Dispatcher[domain.ActionBody], error) {
+	var d dispatcher.Dispatcher[domain.ActionBody]
+	err := c.di.Invoke(func(sourceDispatcher dispatcher.Dispatcher[domain.ActionBody]) {
+		d = sourceDispatcher
+	})
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func (c *Container) CreateAnalyticDispatcher() (dispatcher.Dispatcher[analysis.Analytic], error) {
+	var d dispatcher.Dispatcher[analysis.Analytic]
+	err := c.di.Invoke(func(analyticDispatcher dispatcher.Dispatcher[analysis.Analytic]) {
 		d = analyticDispatcher
 	})
 	if err != nil {
@@ -246,16 +309,8 @@ func (c *Container) CreateAnalyticDispatcher() (*dispatcher.Dispatcher[analysis.
 }
 
 func (c *Container) initRepositories() error {
-	if err := c.di.Provide(func(conn *sqlx.DB) price.Repository {
-		return adapter_repository.NewPriceRepository(sqlite.NewPriceRepository(conn), memory.NewPriceRepository())
-	}); err != nil {
-		return err
-	}
-	if err := c.di.Provide(func(conn *sqlx.DB) candlestick.Repository {
-		return adapter_repository.NewCandlestickRepository(
-			sqlite.NewCandlestickRepository(conn),
-			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
-		)
+	if err := c.di.Provide(func(conn *sqlx.DB) *sqlite.CandlestickRepository {
+		return sqlite.NewCandlestickRepository(conn)
 	}); err != nil {
 		return err
 	}
@@ -264,16 +319,29 @@ func (c *Container) initRepositories() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(db *sqlite.IndicatorRepository) indicator.Repository {
-		return adapter_repository.NewIndicatorRepository(
-			db,
-			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
+	if err := c.di.Provide(func(conn *sqlx.DB) *sqlite.AnalyticRepository {
+		return sqlite.NewAnalyticRepository(conn)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(conn *sqlx.DB) price.Repository {
+		return adapter_repository.NewPriceRepository(sqlite.NewPriceRepository(conn), memory.NewPriceRepository())
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(dbRepo *sqlite.CandlestickRepository) candlestick.Repository {
+		return adapter_repository.NewCandlestickRepository(
+			dbRepo,
+			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
 		)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(conn *sqlx.DB) *sqlite.AnalyticRepository {
-		return sqlite.NewAnalyticRepository(conn)
+	if err := c.di.Provide(func(dbRepo *sqlite.IndicatorRepository) indicator.Repository {
+		return adapter_repository.NewIndicatorRepository(
+			dbRepo,
+			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
+		)
 	}); err != nil {
 		return err
 	}
@@ -324,8 +392,13 @@ func (c *Container) initClients() error {
 		if err != nil {
 			return nil, err
 		}
-		bybitBasicSender.WithLogger(log)
-		return v5.NewClient(viper.GetString("bybit.host"), bybitBasicSender)
+		bybitSender := bybit_sender.NewWaitAdder(bybit_sender.NewRequestLogger(bybitBasicSender, log))
+		client, err := v5.NewClient(viper.GetString("bybit.host"), bybitSender)
+		if err != nil {
+			return nil, err
+		}
+		client.WithLogger(log)
+		return client, nil
 	}); err != nil {
 		return err
 	}
@@ -430,6 +503,7 @@ func (c *Container) initServices() error {
 	}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(func(
 		candlestickRepo candlestick.Repository,
 		bybitExchange *adapter_exchange.Bybit,
@@ -440,6 +514,7 @@ func (c *Container) initServices() error {
 	}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(
 		func(indicatorRepo indicator.Repository, candlestickService candlestick.Candlestick,
 		) indicator.Indicator {
@@ -455,6 +530,7 @@ func (c *Container) initServices() error {
 		}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(func(
 		conn *sqlx.DB,
 		bybitExchange *adapter_exchange.Bybit,
@@ -466,7 +542,10 @@ func (c *Container) initServices() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(indicatorService indicator.Indicator, candlestickService candlestick.Candlestick, repo analysis.Repository) *analysis.Service {
+
+	if err := c.di.Provide(func(
+		indicatorService indicator.Indicator, candlestickService candlestick.Candlestick, repo analysis.Repository,
+	) *analysis.Service {
 		analysisService := analysis.NewService(repo, indicatorService, viper.GetIntSlice("candlestick.depths"))
 		analysisService.AddCalculatorByIndicator(calculators.NewTrendByEMA(indicatorService))
 		analysisService.AddCalculatorByIndicator(calculators.NewTrendByMA(indicatorService))
@@ -482,40 +561,38 @@ func (c *Container) initServices() error {
 	}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(func(
 		indicatorService indicator.Indicator,
-		indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator],
-		candleDispatcher *dispatcher.Dispatcher[domain.Candlestick],
-		createIndicatorDispatcher *dispatcher.Dispatcher[domain.CreateIndicatorEventBody],
-		candleIndicator candle_indicator.CandleIndicator,
-	) *application.IndicatorHandler {
+		indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
+	) (*application.IndicatorHandler, error) {
 		indicatorHandler := application.NewIndicatorHandler(
 			indicatorService,
 			indicatorDispatcher, viper.GetIntSlice("candlestick.depths"),
 		)
-		indicatorHandler.SetLogger(zap.L())
-		candleDispatcher.Subscribe(listeners.NewCandlestick(indicatorHandler, candleIndicator))
-		createIndicatorDispatcher.Subscribe(listeners.NewCreateIndicator(indicatorHandler))
-		return indicatorHandler
+		log, err := logger.CreateForNamespace("indicator_handler")
+		if err != nil {
+			return nil, err
+		}
+		indicatorHandler.SetLogger(log)
+		return indicatorHandler, nil
 	}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(func(
 		analysisService *analysis.Service,
-		analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic],
-		indicatorDispatcher *dispatcher.Dispatcher[domain.Indicator],
+		analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 	) *application.AnalysisHandler {
-		analysisHandler := application.NewAnalysisHandler(analysisService, analyticDispatcher)
-		indicatorDispatcher.Subscribe(listeners.NewIndicator(analysisHandler))
-		analyticDispatcher.Subscribe(listeners.NewAnalytic(analysisHandler))
-		return analysisHandler
+		return application.NewAnalysisHandler(analysisService, analyticDispatcher)
 	}); err != nil {
 		return err
 	}
+
 	if err := c.di.Provide(func(
-		analysisDBRepo *sqlite.AnalyticRepository, indicatorDBRepos *sqlite.IndicatorRepository,
+		analysisDBRepo *sqlite.AnalyticRepository, indicatorDBRepos *sqlite.IndicatorRepository, symbolDBRepos *sqlite.CandlestickRepository,
 	) *application.Service {
-		return application.NewService(analysisDBRepo, indicatorDBRepos)
+		return application.NewService(analysisDBRepo, indicatorDBRepos, symbolDBRepos)
 	}); err != nil {
 		return err
 	}
@@ -531,12 +608,73 @@ func (c *Container) initServices() error {
 		return err
 	}
 
+	if err := c.di.Provide(func() *grpc2.ActionHandler {
+		return grpc2.NewActionHandler()
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Container) initListeners() error {
+	if err := c.di.Provide(func(analysisHandler *application.AnalysisHandler) dispatcher.Listener[domain.Indicator] {
+		return listeners.NewIndicator(analysisHandler)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(analysisHandler *application.AnalysisHandler) dispatcher.Listener[analysis.Analytic] {
+		return listeners.NewAnalytic(analysisHandler)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(
+		indicatorHandler *application.IndicatorHandler, candleIndicator candle_indicator.CandleIndicator,
+	) dispatcher.Listener[domain.Candlestick] {
+		return listeners.NewCandlestick(indicatorHandler, candleIndicator)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(indicatorHandler *application.IndicatorHandler) dispatcher.Listener[domain.CreateIndicatorEventBody] {
+		return listeners.NewCreateIndicator(indicatorHandler)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(h *grpc2.ActionHandler) *listeners.ActionHandler {
+		return listeners.NewActionHandler(h)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(candleIndicator candle_indicator.CandleIndicator) *listeners.CalculateCandleIndicatorsHandler {
+		return listeners.NewCalculateCandleIndicatorsHandler(candleIndicator)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (c *Container) initEvents() error {
-	if err := c.di.Provide(func() *dispatcher.Dispatcher[domain.Candlestick] {
-		candleDispatcher := dispatcher.New[domain.Candlestick]()
+	//TODO: Пока выключил все события, так как нет необходимости в них
+	if err := c.di.Provide(func() dispatcher.Dispatcher[domain.ActionBody] {
+		candleDispatcher := dispatcher.NewMemoryDispatcher[domain.ActionBody]()
+		candleDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.ActionBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
+		})
+		candleDispatcher.SetPostDispatcher(func(e dispatcher.Event[domain.ActionBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "added").Inc()
+		})
+		candleDispatcher.SetPreHandler(func(e dispatcher.Event[domain.ActionBody]) {
+			metrics.EventCount.WithLabelValues(e.Name, "handle").Inc()
+		})
+		candleDispatcher.SetPostHandler(func(e dispatcher.Event[domain.ActionBody], duration time.Duration) {
+			metrics.EventCount.WithLabelValues(e.Name, "handled").Inc()
+			metrics.EventDurationQuery.WithLabelValues(e.Name).Add(float64(duration.Milliseconds()))
+		})
+		return candleDispatcher
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func() dispatcher.Dispatcher[domain.Candlestick] {
+		candleDispatcher := dispatcher.NewEmptyDispatcher[domain.Candlestick]()
 		candleDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Candlestick]) {
 			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
 		})
@@ -554,8 +692,8 @@ func (c *Container) initEvents() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func() *dispatcher.Dispatcher[domain.Indicator] {
-		indicatorDispatcher := dispatcher.New[domain.Indicator]()
+	if err := c.di.Provide(func() dispatcher.Dispatcher[domain.Indicator] {
+		indicatorDispatcher := dispatcher.NewEmptyDispatcher[domain.Indicator]()
 		indicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.Indicator]) {
 			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
 		})
@@ -573,8 +711,8 @@ func (c *Container) initEvents() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func() *dispatcher.Dispatcher[domain.CreateIndicatorEventBody] {
-		createIndicatorDispatcher := dispatcher.New[domain.CreateIndicatorEventBody]()
+	if err := c.di.Provide(func() dispatcher.Dispatcher[domain.CreateIndicatorEventBody] {
+		createIndicatorDispatcher := dispatcher.NewEmptyDispatcher[domain.CreateIndicatorEventBody]()
 		createIndicatorDispatcher.SetPreDispatcher(func(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
 			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
 		})
@@ -592,8 +730,8 @@ func (c *Container) initEvents() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func() *dispatcher.Dispatcher[analysis.Analytic] {
-		analyticDispatcher := dispatcher.New[analysis.Analytic]()
+	if err := c.di.Provide(func() dispatcher.Dispatcher[analysis.Analytic] {
+		analyticDispatcher := dispatcher.NewEmptyDispatcher[analysis.Analytic]()
 		analyticDispatcher.SetPreDispatcher(func(e dispatcher.Event[analysis.Analytic]) {
 			metrics.EventCount.WithLabelValues(e.Name, "add").Inc()
 		})
@@ -619,13 +757,13 @@ func (c *Container) Close() {
 	_ = c.di.Invoke(func(db *sqlx.DB) {
 		_ = db.Close()
 	})
-	_ = c.di.Invoke(func(d *dispatcher.Dispatcher[domain.Candlestick]) {
+	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Candlestick]) {
 		d.Close()
 	})
-	_ = c.di.Invoke(func(d *dispatcher.Dispatcher[domain.Indicator]) {
+	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Indicator]) {
 		d.Close()
 	})
-	_ = c.di.Invoke(func(d *dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
+	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
 		d.Close()
 	})
 	_ = c.di.Invoke(func(s *http_server.Server) {

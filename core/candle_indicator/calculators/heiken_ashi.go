@@ -41,9 +41,9 @@ func (c *heikenAshi) Calculate(ctx context.Context, candle domain.Candlestick) (
 		Unit:       candle.Unit,
 		Interval:   candle.Interval,
 		StartTime:  candle.StartTime,
-		OpenPrice:  util.RoundCoin(openPriceHA, 4),
-		HighPrice:  util.RoundCoin(math.Max(candle.HighPrice, math.Max(openPriceHA, closePriceHA)), 4),
-		LowPrice:   util.RoundCoin(math.Min(candle.LowPrice, math.Min(openPriceHA, closePriceHA)), 4),
-		ClosePrice: util.RoundCoin(closePriceHA, 4),
+		OpenPrice:  util.RoundCoin(openPriceHA, 6),
+		HighPrice:  util.RoundCoin(math.Max(candle.HighPrice, math.Max(openPriceHA, closePriceHA)), 6),
+		LowPrice:   util.RoundCoin(math.Min(candle.LowPrice, math.Min(openPriceHA, closePriceHA)), 6),
+		ClosePrice: util.RoundCoin(closePriceHA, 6),
 	}, nil
 }

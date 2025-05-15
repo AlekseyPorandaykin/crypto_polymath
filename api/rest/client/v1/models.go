@@ -158,6 +158,7 @@ type CandleIndicatorItem struct {
 	LowPrice          float32                      `json:"low_price"`
 	OpenLocation      float32                      `json:"open_location"`
 	OpenPrice         float32                      `json:"open_price"`
+	SizeBody          float32                      `json:"size_body"`
 	SizeBodyInPercent float32                      `json:"size_body_in_percent"`
 	StartTime         time.Time                    `json:"start_time"`
 }

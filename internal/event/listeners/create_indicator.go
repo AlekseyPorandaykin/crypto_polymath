@@ -17,7 +17,8 @@ func NewCreateIndicator(indicatorHandler *application.IndicatorHandler) dispatch
 }
 
 func (c *CreateIndicator) Handle(e dispatcher.Event[domain.CreateIndicatorEventBody]) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	//Может быть, что давно не рассчитывали индикаторы и будет долгий процесс расчета.
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
 	c.indicatorHandler.Calculate(
 		ctx,

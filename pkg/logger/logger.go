@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
+var setLoggers = map[string]*zap.Logger{}
+
 type Config struct {
+	Namespace        string   `mapstructure:"namespace"`
 	Level            string   `mapstructure:"level"`
 	AlertLevel       string   `mapstructure:"alert_level"`
 	OutputPaths      []string `mapstructure:"output_paths"`
@@ -18,7 +21,7 @@ type Config struct {
 	Stacktrace       bool     `mapstructure:"stacktrace"`
 }
 
-var DefaultConf = Config{Level: "DEBUG", OutputPaths: []string{"stdout"}}
+var DefaultConf = Config{Namespace: "App", Level: "DEBUG", OutputPaths: []string{"stdout"}}
 
 func Create(conf Config, opts ...zap.Option) (*zap.Logger, error) {
 	level, err := zap.ParseAtomicLevel(conf.Level)
@@ -44,21 +47,32 @@ func Create(conf Config, opts ...zap.Option) (*zap.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	l = l.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-		alertLevel := zap.ErrorLevel
-		if conf.AlertLevel != "" {
-			_ = alertLevel.Set(conf.AlertLevel)
-		}
-		return zapcore.NewTee(core, NewMailZapCore(
-			alertLevel,
-			viper.GetString("smtp_username"),
-			viper.GetString("smtp_password"),
-			viper.GetString("smtp_host"),
-			viper.GetUint("smtp_port"),
-			viper.GetString("smtp_from"),
-			viper.GetString("error_mail_to")),
-		)
-	}))
+	alertLevel := zap.ErrorLevel
+	if conf.AlertLevel != "" {
+		_ = alertLevel.Set(conf.AlertLevel)
+	}
+	sentryLog, err := modifyToSentryLogger(l, alertLevel, conf.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	l = sentryLog
+
+	//TODO: выбрать другой канал отправки
+	//l = l.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+	//	alertLevel := zap.ErrorLevel
+	//	if conf.AlertLevel != "" {
+	//		_ = alertLevel.Set(conf.AlertLevel)
+	//	}
+	//	return zapcore.NewTee(core, NewMailZapCore(
+	//		alertLevel,
+	//		viper.GetString("smtp_username"),
+	//		viper.GetString("smtp_password"),
+	//		viper.GetString("smtp_host"),
+	//		viper.GetUint("smtp_port"),
+	//		viper.GetString("smtp_from"),
+	//		viper.GetString("error_mail_to")),
+	//	)
+	//}))
 	if hostname, err := os.Hostname(); err == nil {
 		l = l.With(zap.String("hostname", hostname))
 	}
@@ -66,15 +80,20 @@ func Create(conf Config, opts ...zap.Option) (*zap.Logger, error) {
 }
 
 func CreateForNamespace(namespace string) (*zap.Logger, error) {
+	if logger, has := setLoggers[namespace]; has {
+		return logger, nil
+	}
 	l, err := Create(createNamespaceConfig(namespace))
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("create logger namesapce: %s", namespace))
 	}
+	setLoggers[namespace] = l
 	return l.Named(namespace), nil
 }
 
 func createNamespaceConfig(namespace string) Config {
 	conf := DefaultConf
+	conf.Namespace = namespace
 	keyLevel := "logger.level"
 	keyAlertLevel := "logger.alert_level"
 	keyOutputPaths := "logger.output_paths"
@@ -108,8 +127,14 @@ func createNamespaceConfig(namespace string) Config {
 	return conf
 }
 
-func CreateGlobal(conf Config, opts ...zap.Option) {
-	zap.ReplaceGlobals(zap.Must(Create(conf, opts...)))
+func CreateGlobal(conf Config) {
+	l, has := setLoggers[conf.Namespace]
+	if !has {
+		l = zap.Must(Create(conf))
+		setLoggers[conf.Namespace] = l
+	}
+
+	zap.ReplaceGlobals(l)
 }
 
 func InitDefaultLogger() {

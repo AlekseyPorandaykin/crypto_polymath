@@ -1,3 +1,6 @@
-# crypto_polymath
+# Crypto polymath
 
-[github](https://github.com/AlekseyPorandaykin/crypto_polymath)
+![]() <img src="./img/logo.png"  width="40%">
+
+- [github](https://github.com/AlekseyPorandaykin/crypto_polymath)
+- [sentry](https://test-p43.sentry.io/projects/crypto-polymath/)

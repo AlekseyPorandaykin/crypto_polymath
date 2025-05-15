@@ -90,6 +90,38 @@ LIMIT 100`
 	return result, nil
 }
 
+func (repo *CandleIndicatorRepository) LastAddedFromDate(
+	ctx context.Context, name, exchange, unit string, interval int, from time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_fetch_last")()
+	query := `
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       start_time,
+       open_price,
+       high_price,
+       low_price,
+       close_price,
+       created_at
+FROM candlestick_indicators
+WHERE name = ?
+  AND exchange = ?
+  AND unit = ?
+  AND interval = ?
+	  AND created_at > ?
+ORDER BY created_at ASC
+LIMIT 100`
+	result := make([]candle_indicator.StorageDTO, 0, 100)
+	if err := repo.db.SelectContext(ctx, &result, query, name, exchange, unit, interval, from.In(time.UTC)); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *CandleIndicatorRepository) Save(ctx context.Context, data []candle_indicator.StorageDTO) error {
 	if len(data) == 0 {
 		return nil

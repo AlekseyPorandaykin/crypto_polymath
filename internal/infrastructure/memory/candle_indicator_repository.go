@@ -82,6 +82,12 @@ func (repo *CandleIndicatorRepository) FetchLast(ctx context.Context, name, exch
 	return data, nil
 }
 
+func (repo *CandleIndicatorRepository) LastAddedFromDate(
+	ctx context.Context, name, exchange, unit string, interval int, from time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	return nil, nil
+}
+
 func createCandleIndicatorKey(name, exchange, symbol, unit string, interval int) string {
 	return fmt.Sprintf("%s-%s-%s-%s-%d", name, exchange, symbol, unit, interval)
 }

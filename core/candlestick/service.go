@@ -176,24 +176,25 @@ func (s *service) DeleteOldRows(ctx context.Context, oldValueLimit int) error {
 	return nil
 }
 
-func (s *service) UpdateCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) error {
+func (s *service) UpdateCandlesticks(ctx context.Context, exchange, symbol string, unit domain.Unit, interval int) ([]domain.Candlestick, error) {
 	data, err := s.loadCandlesticks(ctx, exchange, symbol, unit, interval)
 	if err != nil {
-		return err
-	}
-	if _, err := s.handleCandlesticks(ctx, data, unit, exchange, symbol, interval); err != nil {
-		return err
+		return nil, err
 	}
 	if len(data) == 0 {
-		return nil
+		return nil, nil
+	}
+	handleData, errHandle := s.handleCandlesticks(ctx, data, unit, exchange, symbol, interval)
+	if errHandle != nil {
+		return nil, errHandle
 	}
 	slice.SortBy[ExchangeDTO](data, func(a, b ExchangeDTO) bool {
 		return a.StartTime.Before(b.StartTime)
 	})
 	if err := s.repo.DeleteOldRows(ctx, exchange, symbol, string(unit), interval, data[0].StartTime); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return handleData, nil
 }
 
 func (s *service) CandlesticksToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]domain.Candlestick, error) {

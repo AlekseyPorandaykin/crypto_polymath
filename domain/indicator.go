@@ -11,8 +11,8 @@ const (
 	MAIndicator                      = "MA"
 	EMAIndicator                     = "EMA"
 	TypeCandleIndicator              = "TypeCandle"              //Направление свечи
-	VolatilityCandlePercentIndicator = "VolatilityCandlePercent" //Процент изменчивости свечи
-	PriceChanges                     = "PriceChanges"            //Изменение цены
+	VolatilityCandlePercentIndicator = "VolatilityCandlePercent" //Процент изменчивости свечи в рамках одной свечи
+	PriceChanges                     = "PriceChanges"            //Изменение цены, в значениях (надо умножить на 100 для процентов). Показывает как изменяется цена. За последние n-свечей (n зависит от глубины)
 	StochasticMainLine               = "StochasticMainLine"      //Стохастический осциллятор (основная линия)
 
 	//Вторичные индикаторы, на основе первичных индикаторы

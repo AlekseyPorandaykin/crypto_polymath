@@ -11,7 +11,7 @@ import (
 
 type Indicator struct {
 	analysisHandler    *application.AnalysisHandler
-	analyticDispatcher *dispatcher.Dispatcher[analysis.Analytic]
+	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic]
 }
 
 func NewIndicator(analysisHandler *application.AnalysisHandler) dispatcher.Listener[domain.Indicator] {

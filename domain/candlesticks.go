@@ -47,14 +47,14 @@ func (c Candlestick) Size() float64 {
 }
 
 func (c Candlestick) SizeBodyInPercent() float64 {
-	return util.RoundCoin(c.SizeBody()/c.Size()*100, 4)
+	return util.RoundCoin(c.SizeBody()/c.Size()*100, 6)
 }
 
 func (c Candlestick) CloseLocation() float64 {
-	return util.RoundCoin(math.Abs(c.ClosePrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 4)
+	return util.RoundCoin(math.Abs(c.ClosePrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 6)
 }
 func (c Candlestick) OpenLocation() float64 {
-	return util.RoundCoin(math.Abs(c.OpenPrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 4)
+	return util.RoundCoin(math.Abs(c.OpenPrice-c.LowPrice)/(c.HighPrice-c.LowPrice)*100, 6)
 }
 
 func (c Candlestick) Direction() Direction {

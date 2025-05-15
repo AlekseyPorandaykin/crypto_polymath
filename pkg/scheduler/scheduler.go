@@ -54,7 +54,8 @@ func ExecuteCustomMinute(ctx context.Context, minute, addSecond int, fn func() e
 
 func ExecuteEveryHour(ctx context.Context, hours, addSecond int, fn func() error) error {
 	_ = fn()
-	ticker := time.NewTicker(durationToHour(time.Now(), hours) + time.Duration(addSecond)*time.Second)
+	slippageSecond := time.Duration(addSecond) * time.Second
+	ticker := time.NewTicker(durationToHour(time.Now(), hours) + slippageSecond)
 	defer ticker.Stop()
 	for {
 		select {
@@ -65,7 +66,7 @@ func ExecuteEveryHour(ctx context.Context, hours, addSecond int, fn func() error
 			if err := fn(); err != nil {
 				return err
 			}
-			ticker.Reset(durationToHour(time.Now(), hours) + time.Duration(addSecond)*time.Second)
+			ticker.Reset(durationToHour(time.Now(), hours) + slippageSecond)
 		}
 	}
 }

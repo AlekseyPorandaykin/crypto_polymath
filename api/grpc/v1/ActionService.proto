@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package action;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./;action";
+
+message Action {
+  string action = 1;
+  string exchange = 2;
+  string symbol = 3;
+  string unit = 4;
+  int32 interval = 5;
+  int32 depth = 6;
+  google.protobuf.Timestamp createdAt = 7;
+  float durationInMs = 8;
+}
+
+message ActionRequest {
+  string action = 1;
+}
+
+service ActionService {
+  rpc StreamActions(ActionRequest) returns (stream Action);
+}

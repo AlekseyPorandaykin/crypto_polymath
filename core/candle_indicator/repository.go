@@ -26,6 +26,7 @@ type Repository interface {
 	Save(ctx context.Context, data []StorageDTO) error
 	Find(ctx context.Context, name, exchange, symbol, unit string, interval int, from time.Time) (*StorageDTO, error)
 	FetchLast(ctx context.Context, name, exchange, symbol, unit string, interval int) ([]StorageDTO, error)
+	LastAddedFromDate(ctx context.Context, name, exchange, unit string, interval int, from time.Time) ([]StorageDTO, error)
 }
 
 func DomainToStorage(data Indicator) StorageDTO {

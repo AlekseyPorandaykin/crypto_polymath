@@ -15,6 +15,12 @@ var httpClientCountRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help:      "How much requests executed.",
 }, []string{"host", "method", "path"})
 
+var httpClientCountErrorRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: namespaceHTTPClient,
+	Name:      "count_error_request",
+	Help:      "How much error requests.",
+}, []string{"host", "method", "path"})
+
 var httpClientCountResponseCode = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespaceHTTPClient,
 	Name:      "count_response_code",
@@ -36,7 +42,12 @@ func HTTPClientQueryHelper(host, method, path string) func() {
 }
 
 func init() {
-	prometheus.DefaultRegisterer.MustRegister(httpClientCountRequest, httpClientCountResponseCode, httpClientDurationRequest)
+	prometheus.DefaultRegisterer.MustRegister(
+		httpClientCountRequest,
+		httpClientCountErrorRequest,
+		httpClientCountResponseCode,
+		httpClientDurationRequest,
+	)
 }
 
 type HTTPSender interface {
@@ -56,6 +67,9 @@ func (s *HTTPSenderWithMetrics) Do(r *http.Request) (*http.Response, error) {
 	resp, err := s.sender.Do(r)
 	if resp != nil {
 		httpClientCountResponseCode.WithLabelValues(r.URL.Host, r.Method, r.URL.Path, strconv.Itoa(resp.StatusCode)).Inc()
+	}
+	if err != nil {
+		httpClientCountErrorRequest.WithLabelValues(r.URL.Host, r.Method, r.URL.Path).Inc()
 	}
 	return resp, err
 }
