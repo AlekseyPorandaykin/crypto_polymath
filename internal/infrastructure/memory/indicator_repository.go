@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/duke-git/lancet/v2/slice"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"sync"

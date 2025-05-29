@@ -7,7 +7,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"math"

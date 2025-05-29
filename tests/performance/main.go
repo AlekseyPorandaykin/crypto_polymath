@@ -13,38 +13,40 @@ import (
 )
 
 var simpleRequests = []string{
-	"http://37.1.216.169/api/server",
-	"http://37.1.216.169/api/prices/exchange/bybit",
-	"http://37.1.216.169/api/symbols/bybit/future",
-	"http://37.1.216.169/api/symbols/bybit/spot",
-	"http://37.1.216.169/api/price/bybit/BTCUSDT",
-	"http://37.1.216.169/api/prices/symbol/BTCUSDT",
-	"http://37.1.216.169/api/exchange/bybit/BTCUSDT",
+	"/api/server",
+	"/api/prices/exchange/bybit",
+	"/api/symbols/bybit/future",
+	"/api/symbols/bybit/spot",
+	"/api/price/bybit/BTCUSDT",
+	"/api/prices/symbol/BTCUSDT",
+	"/api/exchange/bybit/BTCUSDT",
 }
 
 var requestsWithSymbolParam = []string{
-	"http://37.1.216.169/api/candlestick/bybit/%s/H/1",
+	"/api/candlestick/bybit/%s/H/1",
 
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/Trend/10",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/MA/10",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/EMA/10",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/TypeCandle/1",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/VolatilityCandlePercent/1",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/PriceChanges/10",
-	"http://37.1.216.169/api/indicator/bybit/%s/H/1/StochasticMainLine/10",
+	"/api/indicator/bybit/%s/H/1/Trend/10",
+	"/api/indicator/bybit/%s/H/1/MA/10",
+	"/api/indicator/bybit/%s/H/1/EMA/10",
+	"/api/indicator/bybit/%s/H/1/TypeCandle/1",
+	"/api/indicator/bybit/%s/H/1/VolatilityCandlePercent/1",
+	"/api/indicator/bybit/%s/H/1/PriceChanges/10",
+	"/api/indicator/bybit/%s/H/1/StochasticMainLine/10",
 
-	"http://37.1.216.169/api/candle-indicator/bybit/%s/H/1/HeikenAshi",
+	"/api/candle-indicator/bybit/%s/H/1/HeikenAshi",
 
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/TrendByMA/10/10",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/TrendByEMA/10/10",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/RatioCandleToMA/10/1",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/RatioCandleToEMA/10/1",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/RSI/10/10",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/MACDMainLine/26/1",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/MACDSignalLine/26/1",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/MACDSHistogram/26/1",
-	"http://37.1.216.169/api/analysis/bybit/%s/H/1/StochasticSignalLine/10/3",
+	"/api/analysis/bybit/%s/H/1/TrendByMA/10/10",
+	"/api/analysis/bybit/%s/H/1/TrendByEMA/10/10",
+	"/api/analysis/bybit/%s/H/1/RatioCandleToMA/10/1",
+	"/api/analysis/bybit/%s/H/1/RatioCandleToEMA/10/1",
+	"/api/analysis/bybit/%s/H/1/RSI/10/10",
+	"/api/analysis/bybit/%s/H/1/MACDMainLine/26/1",
+	"/api/analysis/bybit/%s/H/1/MACDSignalLine/26/1",
+	"/api/analysis/bybit/%s/H/1/MACDSHistogram/26/1",
+	"/api/analysis/bybit/%s/H/1/StochasticSignalLine/10/3",
 }
+
+var host = "http://37.1.216.169"
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -95,7 +97,7 @@ func sendManyRequests(ctx context.Context, url string, limit int) {
 
 func sendRequest(ctx context.Context, url string) error {
 	start := time.Now()
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", host, url), nil)
 	if err != nil {
 		return err
 	}
@@ -111,7 +113,7 @@ func sendRequest(ctx context.Context, url string) error {
 
 func fetchAllSymbols() []string {
 	data := []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "LTCUSDT", "DOGEUSDT", "SOLUSDT", "DOTUSDT", "MATICUSDT", "TRXUSDT"}
-	resp, err := http.DefaultClient.Get("http://37.1.216.169/api/symbols/bybit/future")
+	resp, err := http.DefaultClient.Get("/api/symbols/bybit/future")
 	if err != nil {
 		return data
 	}

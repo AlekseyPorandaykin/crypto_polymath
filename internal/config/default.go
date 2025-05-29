@@ -23,8 +23,18 @@ func init() {
 	viper.Set("kraken.host", "https://api.kraken.com/")
 	viper.Set("mexc.host", "https://api.mexc.com/")
 
-	viper.Set("db_connection.driver", "sqlite")
-	viper.Set("db_connection.path_to_db", "./storage/crypto_polymath.db")
+	//viper.Set("db_connection.driver", "sqlite")
+	//viper.Set("db_connection.path_to_db", "./storage/crypto_polymath.db")
+
+	viper.Set("db_connection.driver", "postgres")
+	viper.Set("db_connection.username", "crypto_app")
+	viper.Set("db_connection.password", "crypto_developer")
+	viper.Set("db_connection.host", "37.1.216.169")
+	viper.Set("db_connection.port", "5433")
+	viper.Set("db_connection.database", "crypto_app")
+	viper.Set("db_connection.schema", "crypto_polymath")
+	viper.Set("db_connection.max_open_connections", "10")
+	viper.Set("db_connection.max_idle_connections", "10")
 
 	viper.Set("candlestick.minutes", []int{1, 15, 30})
 	viper.Set("candlestick.hours", []int{1, 2, 4, 6, 12})
@@ -100,15 +110,21 @@ func init() {
 	viper.Set("http_server.logger.error_output_paths", []string{"./storage/logs/http_server_error.log", "stdout", "stderr"})
 	viper.Set("http_server.logger.stacktrace", false)
 
-	viper.Set("indicator_handler.logger.level", "DEBUG")
+	viper.Set("indicator_handler.logger.level", "INFO")
 	viper.Set("indicator_handler.logger.alert_level", "WARN")
 	viper.Set("indicator_handler.logger.output_paths", []string{"stdout"})
 	viper.Set("indicator_handler.logger.error_output_paths", []string{"./storage/logs/indicator_handler_error.log"})
 	viper.Set("indicator_handler.logger.stacktrace", false)
 
-	viper.Set("smtp_username", "j5C5Zm7BUHitAVPgKlsfcoleFOQKoq7S")
-	viper.Set("smtp_password", "BGyBmf8kQMQUWKPw5b71o5LA4MI7jF0m")
-	viper.Set("smtp_host", "mxslurp.click")
-	viper.Set("smtp_port", 2525)
-	viper.Set("smtp_from", "user-41c71b89-b06a-44af-a631-d7f334500982@mailslurp.biz")
+	viper.Set("rabbit_mq.username", "admin")
+	viper.Set("rabbit_mq.password", "crypto_developer_messages")
+	viper.Set("rabbit_mq.addr", "37.1.216.169:5672")
+
+	viper.Set("rabbit_mq.exchange", "")
+	viper.Set("rabbit_mq.consumer", "candlesticks-queue-consumer")
+	viper.Set("rabbit_mq.queue_candlestick", "candlesticks")
+	viper.Set("rabbit_mq.queue_action", "actions")
+	viper.Set("rabbit_mq.queue_indicator", "indicators")
+	viper.Set("rabbit_mq.queue_analytic", "analytics")
+	viper.Set("rabbit_mq.queue_candle_indicator", "candle_indicators")
 }

@@ -1,6 +1,6 @@
 HOME_PATH := $(shell pwd)
 
-DOCKER_DIR="./deployments/docker-compose.yaml"
+DOCKER_DIR="./docker-compose.yaml"
 BIN := "./bin/crypto_polymath"
 VERSION :=$(shell date)
 
@@ -32,7 +32,7 @@ up-deploy:
 	docker-compose --file=$(DOCKER_DIR) up -d
 
 down-deploy:
-	docker-compose --file="./deployments/docker-compose.yaml" down
+	docker-compose --file="./docker-compose.yaml" down
 
 ps:
 	docker-compose --file=$(DOCKER_DIR) ps

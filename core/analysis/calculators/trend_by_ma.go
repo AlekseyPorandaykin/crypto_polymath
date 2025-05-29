@@ -5,7 +5,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/google/uuid"
 )

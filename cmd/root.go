@@ -13,6 +13,18 @@ var rootCmd = &cobra.Command{
 	Use: "crypto_polymath",
 }
 
+var daemonCmd = &cobra.Command{
+	Use: "daemon",
+}
+
+var apiCmd = &cobra.Command{
+	Use: "api",
+}
+
+func init() {
+	rootCmd.AddCommand(daemonCmd, apiCmd)
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil && !errors.Is(err, context.Canceled) {
 		zap.L().Error("execute root cmd", zap.Error(err))

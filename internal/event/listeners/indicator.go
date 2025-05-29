@@ -1,25 +1,36 @@
 package listeners
 
 import (
-	"context"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
+	queue_contract "github.com/AlekseyPorandaykin/crypto_polymath/api/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
-	"time"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
+	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
+	"go.uber.org/zap"
 )
 
 type Indicator struct {
-	analysisHandler    *application.AnalysisHandler
-	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic]
+	p *queue.RabbitMQProducer[queue_contract.Indicator]
 }
 
-func NewIndicator(analysisHandler *application.AnalysisHandler) dispatcher.Listener[domain.Indicator] {
-	return &Indicator{analysisHandler: analysisHandler}
+func NewIndicator(
+	p *queue.RabbitMQProducer[queue_contract.Indicator],
+) dispatcher.Listener[domain.Indicator] {
+	return &Indicator{p: p}
 }
 
-func (i *Indicator) Handle(e dispatcher.Event[domain.Indicator]) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-	i.analysisHandler.HandleIndicator(ctx, e.Body)
+func (c *Indicator) Handle(e dispatcher.Event[domain.Indicator]) {
+	m := queue_contract.Indicator{
+		Exchange: e.Body.Exchange,
+		Symbol:   e.Body.Symbol,
+		Unit:     string(e.Body.Unit),
+		Interval: e.Body.Interval,
+		Datetime: e.Body.Datetime,
+		Name:     e.Body.Name,
+		Depth:    e.Body.Depth,
+		Value:    e.Body.Value,
+	}
+	if err := c.p.Publish(m); err != nil {
+		zap.L().Error("publish indicator", zap.Error(err), zap.Any("indicator", m))
+		return
+	}
 }

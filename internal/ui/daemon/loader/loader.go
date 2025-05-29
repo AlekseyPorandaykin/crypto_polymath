@@ -10,10 +10,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/scheduler"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/go-template/pkg/scheduler"
+	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -33,9 +33,11 @@ type Loader struct {
 	exchangeNames      []string
 	service            *application.Service
 
-	candleDispatcher dispatcher.Dispatcher[domain.ActionBody]
-	symbols          []string
-	hotSymbols       []string
+	loadedCandleDispatcher dispatcher.Dispatcher[domain.LoadedCandlesticksActionBody]
+	priceDispatcher        dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody]
+	candleDispatcher       dispatcher.Dispatcher[domain.Candlestick]
+	symbols                []string
+	hotSymbols             []string
 
 	logger *zap.Logger
 }
@@ -46,22 +48,26 @@ func NewLoader(
 	exchangeService core_exchange.Exchange,
 	indicatorService indicator.Indicator,
 	service *application.Service,
-	candleDispatcher dispatcher.Dispatcher[domain.ActionBody],
+	loadedCandleDispatcher dispatcher.Dispatcher[domain.LoadedCandlesticksActionBody],
+	priceDispatcher dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody],
+	candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
 	exchangeNames,
 	symbols []string,
 	hotSymbols []string,
 ) *Loader {
 	return &Loader{
-		priceService:       priceService,
-		candlestickService: candlestickService,
-		exchangeService:    exchangeService,
-		indicatorService:   indicatorService,
-		service:            service,
-		exchangeNames:      exchangeNames,
-		symbols:            util.UniqSlice(append(symbols, hotSymbols...)),
-		hotSymbols:         hotSymbols,
-		logger:             zap.NewNop(),
-		candleDispatcher:   candleDispatcher,
+		priceService:           priceService,
+		candlestickService:     candlestickService,
+		exchangeService:        exchangeService,
+		indicatorService:       indicatorService,
+		service:                service,
+		exchangeNames:          exchangeNames,
+		symbols:                util.UniqSlice(append(symbols, hotSymbols...)),
+		hotSymbols:             hotSymbols,
+		logger:                 zap.NewNop(),
+		loadedCandleDispatcher: loadedCandleDispatcher,
+		candleDispatcher:       candleDispatcher,
+		priceDispatcher:        priceDispatcher,
 	}
 }
 
@@ -231,6 +237,7 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 
 func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
 	defer durationPricesLoadedHelper(exchangeName)()
+	startLoad := time.Now()
 	prices, err := l.priceService.LoadPrices(ctx, exchangeName)
 	if err != nil {
 		l.logger.Error(
@@ -238,8 +245,17 @@ func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
 			zap.String("exchangeName", exchangeName),
 			zap.Error(err))
 	}
+
+	l.priceDispatcher.Dispatch(dispatcher.Event[domain.LoadedPricesByExchangeActionBody]{
+		Body: domain.LoadedPricesByExchangeActionBody{
+			Exchange:  exchangeName,
+			CreatedAt: time.Now(),
+			Duration:  time.Since(startLoad),
+		},
+	})
 	pricesLoaded.WithLabelValues(exchangeName).Add(float64(len(prices)))
 }
+
 func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbol string) {
 	for _, interval := range viper.GetIntSlice("candlestick.minutes") {
 		minutes := interval
@@ -257,18 +273,20 @@ func (l *Loader) loadMinuteCandlesticks(ctx context.Context, exchangeName, symbo
 	}
 }
 
-// Загружаем с задержкой, чтобы не нагрузить апи
 func (l *Loader) loadFutureCandlesticks(ctx context.Context, exchangeName, symbol string) {
 	startLoadSymbol := time.Now()
-	d := time.Second * 5
 	// Можем упереться на стороне клиента на 11 минут, если запросов будет много.
 	childCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
-	l.updateFutureCandlesticks(childCtx, exchangeName, symbol, domain.HourUnit, 1)
+	data := l.updateFutureCandlesticks(childCtx, exchangeName, symbol, domain.HourUnit, 1)
 	futureCandlestickLoaded.WithLabelValues(exchangeName, "1H").Inc()
-	l.candleDispatcher.Dispatch(dispatcher.Event[domain.ActionBody]{
+	l.logger.Debug("load future candlesticks",
+		zap.String("symbol", symbol),
+		zap.String("duration", time.Since(startLoadSymbol).String()),
+	)
+	l.loadedCandleDispatcher.Dispatch(dispatcher.Event[domain.LoadedCandlesticksActionBody]{
 		Name: domain.LoadedCandlesticksForSymbolAction,
-		Body: domain.ActionBody{
+		Body: domain.LoadedCandlesticksActionBody{
 			Exchange:  exchangeName,
 			Symbol:    symbol,
 			Unit:      domain.HourUnit,
@@ -277,17 +295,11 @@ func (l *Loader) loadFutureCandlesticks(ctx context.Context, exchangeName, symbo
 			Duration:  time.Since(startLoadSymbol),
 		},
 	})
-	l.logger.Debug("load future candlesticks",
-		zap.String("symbol", symbol),
-		zap.String("duration", time.Since(startLoadSymbol).String()),
-	)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.NewTimer(d).C:
-			return
-		}
+	for i := range data {
+		l.candleDispatcher.Dispatch(dispatcher.Event[domain.Candlestick]{
+			Name: domain.CreatedCandlestickEvent,
+			Body: data[i],
+		})
 	}
 }
 
@@ -305,7 +317,6 @@ func (l *Loader) loadHourCandlesticks(ctx context.Context, exchangeName, symbol 
 }
 
 func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int) []domain.Candlestick {
-	start := time.Now()
 	defer durationCandlestickLoadedHelper(exchangeName, string(unit), interval)()
 	log := l.logger.With(
 		zap.String("exchange", exchangeName),
@@ -313,24 +324,34 @@ func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol stri
 		zap.String("unit", string(unit)),
 		zap.Int("interval", interval),
 	)
+	startLoadSymbol := time.Now()
 	data, err := l.candlestickService.LoadCandlesticks(ctx, exchangeName, symbol, unit, interval)
+	log = log.With(zap.String("duration", time.Since(time.Now()).String()))
 	candlestickLoadedTotal.WithLabelValues(exchangeName, string(unit)).Add(float64(len(data)))
 	if err != nil {
 		errorTotal.WithLabelValues(exchangeName, "load_candlesticks").Inc()
 		log.Error("load candlestick", zap.Error(err))
 		return nil
 	}
-	l.candleDispatcher.Dispatch(dispatcher.Event[domain.ActionBody]{
+	l.loadedCandleDispatcher.Dispatch(dispatcher.Event[domain.LoadedCandlesticksActionBody]{
 		Name: domain.LoadedCandlesticksForSymbolAction,
-		Body: domain.ActionBody{
+		Body: domain.LoadedCandlesticksActionBody{
 			Exchange:  exchangeName,
 			Symbol:    symbol,
 			Unit:      unit,
 			Interval:  interval,
 			CreatedAt: time.Now(),
-			Duration:  time.Since(start),
+			Duration:  time.Since(startLoadSymbol),
 		},
 	})
+	for i := range data {
+		if data[i].Unit != domain.MinuteUnit && data[i].Interval == 1 {
+			l.candleDispatcher.Dispatch(dispatcher.Event[domain.Candlestick]{
+				Name: domain.CreatedCandlestickEvent,
+				Body: data[i],
+			})
+		}
+	}
 	return data
 }
 
@@ -338,17 +359,17 @@ func (l *Loader) updateFutureCandlesticks(
 	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int,
 ) []domain.Candlestick {
 	defer durationFutureCandlestickLoadedHelper(exchangeName, fmt.Sprintf("%d%s", interval, string(unit)))()
-	log := l.logger.With(
-		zap.String("exchange", exchangeName),
-		zap.String("symbol", symbol),
-		zap.String("unit", string(unit)),
-		zap.Int("interval", interval),
-	)
-	_, err := l.candlestickService.UpdateCandlesticks(ctx, exchangeName, symbol, unit, interval)
+	data, err := l.candlestickService.UpdateCandlesticks(ctx, exchangeName, symbol, unit, interval)
 	if err != nil {
-		log.Error("update future candlestick", zap.Error(err))
+		l.logger.With(
+			zap.String("exchange", exchangeName),
+			zap.String("symbol", symbol),
+			zap.String("unit", string(unit)),
+			zap.Int("interval", interval),
+		).Error("update future candlestick", zap.Error(err))
 	}
-	return nil
+
+	return data
 }
 
 func (l *Loader) deleteOldRows(ctx context.Context, exchangeName string, oldValueLimit int) {

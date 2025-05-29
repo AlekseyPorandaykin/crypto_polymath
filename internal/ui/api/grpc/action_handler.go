@@ -12,7 +12,7 @@ import (
 
 type ActionEvent struct {
 	Name string
-	Body domain.ActionBody
+	Body domain.LoadedCandlesticksActionBody
 }
 type ActionHandler struct {
 	action.UnimplementedActionServiceServer
@@ -27,7 +27,7 @@ func NewActionHandler() *ActionHandler {
 	return &ActionHandler{actionEvents: make(map[uuid.UUID][]ActionEvent)}
 }
 
-func (h *ActionHandler) Accept(name string, action domain.ActionBody) {
+func (h *ActionHandler) Accept(name string, action domain.LoadedCandlesticksActionBody) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if !h.hasSubscribers() {

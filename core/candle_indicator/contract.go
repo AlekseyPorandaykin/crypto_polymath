@@ -3,7 +3,7 @@ package candle_indicator
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"math"
 	"time"
 )

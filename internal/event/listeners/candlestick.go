@@ -1,30 +1,38 @@
 package listeners
 
 import (
-	"context"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
+	queue_contract "github.com/AlekseyPorandaykin/crypto_polymath/api/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
+	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Candlestick struct {
-	indicatorHandler *application.IndicatorHandler
-	candleIndicator  candle_indicator.CandleIndicator
+	p *queue.RabbitMQProducer[queue_contract.Candlestick]
 }
 
-func NewCandlestick(indicatorHandler *application.IndicatorHandler, candleIndicator candle_indicator.CandleIndicator) dispatcher.Listener[domain.Candlestick] {
-	return &Candlestick{indicatorHandler: indicatorHandler, candleIndicator: candleIndicator}
+func NewCandlestick(
+	p *queue.RabbitMQProducer[queue_contract.Candlestick],
+) dispatcher.Listener[domain.Candlestick] {
+	return &Candlestick{p: p}
 }
 
 func (c *Candlestick) Handle(e dispatcher.Event[domain.Candlestick]) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-	c.indicatorHandler.CalculateByCandle(ctx, e.Body)
-	data := []domain.Candlestick{e.Body}
-	if _, err := c.candleIndicator.CalculateFromCandlesticks(ctx, data); err != nil {
-		zap.L().Error("calculate candle indicator", zap.Error(err), zap.Any("candle", e.Body))
+	m := queue_contract.Candlestick{
+		Exchange:   e.Body.Exchange,
+		Symbol:     e.Body.Symbol,
+		Unit:       string(e.Body.Unit),
+		Interval:   e.Body.Interval,
+		StartTime:  e.Body.StartTime,
+		OpenPrice:  e.Body.OpenPrice,
+		HighPrice:  e.Body.HighPrice,
+		LowPrice:   e.Body.LowPrice,
+		ClosePrice: e.Body.ClosePrice,
+		Volume:     e.Body.Volume,
+	}
+	if err := c.p.Publish(m); err != nil {
+		zap.L().Error("publish candlestick", zap.Error(err), zap.Any("candlestick", m))
+		return
 	}
 }

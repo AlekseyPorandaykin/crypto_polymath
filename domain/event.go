@@ -9,13 +9,21 @@ const (
 	CreateIndicatorEventEvent string = "CreateIndicatorEventEvent"
 
 	LoadedCandlesticksForSymbolAction string = "LoadedCandlesticksForSymbolAction" //Загрузили свечи для символа
+	LoadedPricesByExchangeAction      string = "LoadedPricesByExchangeAction"      //Загрузил послежние цены биржи
 )
 
-type ActionBody struct {
+type LoadedCandlesticksActionBody struct {
 	Exchange  string
 	Symbol    string
 	Unit      Unit
 	Interval  int
+	CreatedAt time.Time
+	Duration  time.Duration
+}
+
+type LoadedPricesByExchangeActionBody struct {
+	Exchange  string
+	Symbol    string
 	CreatedAt time.Time
 	Duration  time.Duration
 }

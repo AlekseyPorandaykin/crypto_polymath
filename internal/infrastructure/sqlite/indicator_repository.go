@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/jmoiron/sqlx"
 	"math"
 	"strings"

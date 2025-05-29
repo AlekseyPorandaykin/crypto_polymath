@@ -3,8 +3,8 @@ package memory
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/cache"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-template/pkg/cache"
+	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"time"
 )
 

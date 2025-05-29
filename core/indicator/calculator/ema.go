@@ -2,7 +2,7 @@ package calculator
 
 import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 )
 

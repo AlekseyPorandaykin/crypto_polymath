@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/database"
+	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"os"
@@ -21,7 +21,7 @@ var migrationCmd = &cobra.Command{
 		defer cancel()
 		cfg := config.Create()
 
-		conn, err := database.CreateConnection(cfg.DBConnection)
+		conn, err := connection.CreateDBConnection(cfg.DBConnection)
 		if err != nil {
 			zap.L().Error("error create connection to db", zap.Error(err))
 			return

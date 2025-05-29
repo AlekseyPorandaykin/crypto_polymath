@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/util"
+	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"math"
 	"time"
