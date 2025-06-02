@@ -38,11 +38,6 @@ var calculatorCmd = &cobra.Command{
 			return
 		}
 		defer c.Close()
-		loaderApp, errCreateLoader := c.CreateLoader()
-		if errCreateLoader != nil {
-			logger.Error("error create loader app", zap.Error(errCreateLoader))
-			return
-		}
 		calculationApp, errCreateCalculator := c.CreateCalculator()
 		if errCreateCalculator != nil {
 			logger.Error("error create calculator app", zap.Error(errCreateCalculator))
@@ -85,13 +80,6 @@ var calculatorCmd = &cobra.Command{
 		}
 
 		//Run applications
-		system.Go(func() {
-			defer cancel()
-			if err := loaderApp.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {
-				logger.Info("run loader app", zap.Error(err))
-				return
-			}
-		})
 		system.Go(func() {
 			defer cancel()
 			if err := calculationApp.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {

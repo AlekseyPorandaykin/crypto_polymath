@@ -1,27 +1,42 @@
-version: "3.4"
-
 services:
-  app:
+  app-external-v1:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-      target: app
-    expose:
-      - 8080:8080
-      - 8081:8081
-      - 80:80
-    networks:
-      - application
-  app-rabbit:
-    image: rabbitmq:3-management
     ports:
-      - 5672:5672
-      - 15672:15672
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: crypto
+      - "8080:8080"
+      - "8085:8085"
+      - "80:80"
+    command:
+      - "api"
+      - "external-v1"
+    restart: unless-stopped         # политика рестарта
     networks:
       - application
+  app-loader:
+    build:
+      context: ./
+      dockerfile: ./deployments/app.Dockerfile
+    environment:
+      - METRIC_PORT=8081
+    ports:
+      - "8081:8081"
+    command:
+      - "daemon"
+      - "loader"
+    restart: unless-stopped         # политика рестарта
+    networks:
+      - application
+#  app-rabbit:
+#    image: rabbitmq:3-management
+#    ports:
+#      - 5672:5672
+#      - 15672:15672
+#    environment:
+#      RABBITMQ_DEFAULT_USER: admin
+#      RABBITMQ_DEFAULT_PASS: crypto
+#    networks:
+#      - application
 networks:
   application:
     driver: bridge

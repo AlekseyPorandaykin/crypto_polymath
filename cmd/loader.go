@@ -7,18 +7,16 @@ import (
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
 	"github.com/AlekseyPorandaykin/go-template/pkg/profiling"
 	"github.com/AlekseyPorandaykin/go-template/pkg/system"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 )
 
-var externalV1Cmd = &cobra.Command{
-	Use:   "external-v1",
-	Short: "Run external v1 server",
+var loaderCmd = &cobra.Command{
+	Use:   "loader",
+	Short: "Run loader daemon",
 	Run: func(cmd *cobra.Command, args []string) {
 		//Init global configs
 		debug.SetMemoryLimit(400*2 ^ 20)
@@ -39,9 +37,10 @@ var externalV1Cmd = &cobra.Command{
 			return
 		}
 		defer c.Close()
-		serverHttp, errCreateServer := c.CreateApiServer()
-		if errCreateServer != nil {
-			logger.Error("error create http server", zap.Error(errCreateServer))
+
+		loader, errLoader := c.CreateLoader()
+		if errLoader != nil {
+			logger.Error("error create loader", zap.Error(errLoader))
 			return
 		}
 		loadedCandlesticksDispatcher, errLoadedCandlesticksDispatcher := c.CreateLoadedCandlesticksForSymbolBodyDispatcher()
@@ -62,13 +61,11 @@ var externalV1Cmd = &cobra.Command{
 
 		//Run applications
 		system.Go(func() {
-			defer cancel()
-			if err := serverHttp.Run(viper.GetString("http.host"), viper.GetString("http.port")); !errors.Is(err, context.Canceled) && err != nil {
-				logger.Info("run http server", zap.Error(err))
+			if err := loader.Run(ctx); err != nil {
+				logger.Error("error start loader", zap.Error(err))
 				return
 			}
 		})
-
 		system.Go(func() {
 			if err := profiling.StartPprofServer("0.0.0.0:6060"); err != nil {
 				logger.Error("error start pprof server", zap.Error(err))
@@ -90,5 +87,5 @@ var externalV1Cmd = &cobra.Command{
 }
 
 func init() {
-	apiCmd.AddCommand(externalV1Cmd)
+	daemonCmd.AddCommand(loaderCmd)
 }

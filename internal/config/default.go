@@ -7,7 +7,7 @@ import (
 func init() {
 	viper.Set("app.codename", "crypto_polymath")
 	viper.Set("app.debug", true)
-	viper.Set("http.host", "")
+	viper.Set("http.host", "0.0.0.0")
 	viper.Set("http.port", "80")
 	viper.Set("price.duration.loader", "30s")
 	viper.Set("error_mail_to", "alekseip17389@yahoo.com")
