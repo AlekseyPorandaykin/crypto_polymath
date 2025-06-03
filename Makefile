@@ -1,24 +1,66 @@
-HOME_PATH := $(shell pwd)
-
-DOCKER_DIR="./docker-compose.yaml"
-BIN := "./bin/crypto_polymath"
-VERSION :=$(shell date)
-
-prepare:
-	go mod download
-	@go generate $(shell go list ./... | grep -v ./.go/)
-	go mod tidy
-
-build:
-	CGO_ENABLED=1 go build -o=./bin/crypto_polymath -ldflags="-X 'main.version=Sat May 18 23:24:22 UTC 2024' -X 'github.com/AlekseyPorandaykin/crypto_polymath/cmd.homeDir=/projects/crypto_polymath'" .
-
-init:
-	go install golang.org/x/tools/cmd/goimports@latest
-
 up:
-	./bin/crypto_polymath daemon
+	docker-compose --file="./docker-compose.yaml" up -d app-external-v1 app-loader app-calculator
 
-linters:
+up-mac:
+	docker compose --file="./docker-compose-dev.yaml" up -d app-external-v1 app-loader app-calculator
+up-dev:
+	docker-compose  --file="./docker-compose-dev.yaml" up -d app-external-v1 app-loader app-calculator cadvisor rabbit-mq postgres
+
+down:
+	docker-compose --file="./docker-compose.yaml" down
+
+ps:
+	docker-compose --file="./docker-compose.yaml"  ps
+
+ps-mac:
+	docker compose --file="./docker-compose.yaml"  ps
+
+ps-dev:
+	docker-compose --file="./docker-compose.yaml"  ps
+
+ps-dev-mac:
+	docker compose --file="./docker-compose-dev.yaml"  ps
+
+recreate:
+	docker-compose --file="./docker-compose.yaml"  rm -f
+	docker-compose --file="./docker-compose.yaml"  pull
+	docker-compose --file="./docker-compose.yaml"  up --build -d
+	docker-compose --file="./docker-compose.yaml" up --build -d
+
+
+up-mac:
+	docker compose --file="./docker-compose.yaml"  up -d app-external-v1 app-loader app-calculator cadvisor
+
+up-dev-mac:
+	docker compose --file="./docker-compose-dev.yaml" up -d cadvisor rabbit-mq postgres
+
+down-mac:
+	docker compose --file="./docker-compose.yaml" down
+
+down-dev-mac:
+	docker compose --file="./docker-compose-dev.yaml" logs down
+
+ps-mac:
+	docker compose --file="./docker-compose.yaml"   ps
+
+recreate-mac:
+	docker compose --file="./docker-compose.yaml"  rm -f
+	docker compose --file="./docker-compose.yaml"  pull
+	docker compose --file="./docker-compose.yaml"  up --build -d
+	docker compose --file="./docker-compose.yaml" up --build -d
+
+recreate-dev-mac:
+	docker compose --file="./docker-compose-dev.yaml"  rm -f
+	docker compose --file="./docker-compose-dev.yaml"  pull
+	docker compose --file="./docker-compose-dev.yaml"  up --build -d
+	docker compose --file="./docker-compose-dev.yaml" up --build -d
+
+go-fix:
+	go mod tidy
+	gci write ./
+	gofumpt -l -w ./
+
+go-linters:
 	go vet .
 	gofmt -w .
 	goimports -w .
@@ -28,24 +70,5 @@ linters:
 	gofmt -s -l $(git ls-files '*.go')
 
 
-up-deploy:
-	docker-compose --file=$(DOCKER_DIR) up -d
 
-down-deploy:
-	docker-compose --file="./docker-compose.yaml" down
-
-ps:
-	docker-compose --file=$(DOCKER_DIR) ps
-
-recreate-deploy:
-	docker-compose --file=$(DOCKER_DIR) rm -f
-	docker-compose --file=$(DOCKER_DIR) pull
-	docker-compose --file=$(DOCKER_DIR) up --build -d
-	docker-compose --file=$(DOCKER_DIR) up --build -d
-
-go-fix:
-	go mod tidy
-	gci write ./
-	gofumpt -l -w ./
-
-.PHONY: build run build-img run-img version test lint
+.PHONY: up down  recreate go-fix go-linters

@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS crypto_polymath;
+
 CREATE TABLE IF NOT EXISTS crypto_polymath.prices
 (
     id         VARCHAR(50) PRIMARY KEY NOT NULL,
@@ -96,3 +98,14 @@ CREATE INDEX candlestick_indicators_symbol_idx ON crypto_polymath.candlestick_in
 CREATE INDEX candlestick_indicators_unit_idx ON crypto_polymath.candlestick_indicators (unit);
 CREATE INDEX candlestick_indicators_interval_idx ON crypto_polymath.candlestick_indicators (interval);
 CREATE INDEX candlestick_indicators_start_time_idx ON crypto_polymath.candlestick_indicators (start_time);
+
+
+CREATE TABLE IF NOT EXISTS crypto_polymath.queues
+(
+    id         VARCHAR(50) PRIMARY KEY NOT NULL,
+    name       VARCHAR(250)            NOT NULL,
+    body       json                    NOT NULL,
+    created_at TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX queues_name ON crypto_polymath.queues (name);

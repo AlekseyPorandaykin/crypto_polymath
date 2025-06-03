@@ -9,11 +9,11 @@ import (
 )
 
 type LoadedCandlesticks struct {
-	p *queue.RabbitMQProducer[queue_contract.Action]
+	p queue.Publisher[queue_contract.Action]
 }
 
 func NewLoadedCandlesticks(
-	p *queue.RabbitMQProducer[queue_contract.Action],
+	p queue.Publisher[queue_contract.Action],
 ) dispatcher.Listener[domain.LoadedCandlesticksActionBody] {
 	return &LoadedCandlesticks{p: p}
 }

@@ -9,11 +9,11 @@ import (
 )
 
 type CandleIndicator struct {
-	p *queue.RabbitMQProducer[queue_contract.CandleIndicator]
+	p queue.Publisher[queue_contract.CandleIndicator]
 }
 
 func NewCandleIndicator(
-	p *queue.RabbitMQProducer[queue_contract.CandleIndicator],
+	p queue.Publisher[queue_contract.CandleIndicator],
 ) dispatcher.Listener[candle_indicator.Indicator] {
 	return &CandleIndicator{p: p}
 }

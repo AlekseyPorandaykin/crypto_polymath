@@ -16,7 +16,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
-	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
@@ -69,11 +68,11 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 	var app *calculator.Calculator
 	err := c.di.Invoke(func(
-		actionConsumer *queue.RabbitMQConsumer[queue_contract.Action],
-		candlestickConsumer *queue.RabbitMQConsumer[queue_contract.Candlestick],
-		indicatorConsumer *queue.RabbitMQConsumer[queue_contract.Indicator],
-		analyticConsumer *queue.RabbitMQConsumer[queue_contract.Analytic],
-		candleIndicatorConsumer *queue.RabbitMQConsumer[queue_contract.CandleIndicator],
+		actionConsumer *postgresql.QueueRepository[queue_contract.Action],
+		candlestickConsumer *postgresql.QueueRepository[queue_contract.Candlestick],
+		indicatorConsumer *postgresql.QueueRepository[queue_contract.Indicator],
+		analyticConsumer *postgresql.QueueRepository[queue_contract.Analytic],
+		candleIndicatorConsumer *postgresql.QueueRepository[queue_contract.CandleIndicator],
 		analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 		candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
 		indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],

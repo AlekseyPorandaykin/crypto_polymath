@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/AlekseyPorandaykin/go-template/pkg/system"
@@ -132,7 +133,7 @@ func NewRabbitMQProducer[T any](conn *amqp.Connection, queueName string, options
 	return &RabbitMQProducer[T]{ch: ch, conf: *conf}, nil
 }
 
-func (p *RabbitMQProducer[T]) Publish(message T) error {
+func (p *RabbitMQProducer[T]) publish(message T) error {
 	body, err := json.Marshal(message)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal message")
@@ -141,6 +142,15 @@ func (p *RabbitMQProducer[T]) Publish(message T) error {
 		ContentType: p.conf.ContentType,
 		Body:        body,
 	})
+}
+
+func (p *RabbitMQProducer[T]) Publish(messages ...T) error {
+	for i := range messages {
+		if err := p.publish(messages[i]); err != nil {
+			return errors.Wrapf(err, "failed to publish message %d", i)
+		}
+	}
+	return nil
 }
 
 func (p *RabbitMQProducer[T]) Close() {
@@ -186,12 +196,12 @@ func NewRabbitMQConsumer[T any](
 		deliveryCh: d,
 	}
 	system.Go(func() {
-		c.listen()
+		c.Listen()
 	})
 	return c, nil
 }
 
-func (c *RabbitMQConsumer[T]) listen() {
+func (c *RabbitMQConsumer[T]) Listen() {
 	for {
 		if c.isClosed.Load() {
 			return
@@ -210,6 +220,29 @@ func (c *RabbitMQConsumer[T]) listen() {
 			if err := d.Ack(c.conf.AskMultiple); err != nil {
 				c.errCh <- errors.Wrap(err, "failed to ack message")
 				continue
+			}
+		}
+	}
+}
+func (c *RabbitMQConsumer[T]) Consume(ctx context.Context, handler func(message T) error) error {
+	for {
+		if c.isClosed.Load() {
+			return nil
+		}
+		select {
+		case d, ok := <-c.deliveryCh:
+			if !ok {
+				return nil
+			}
+			var message T
+			if err := json.Unmarshal(d.Body, &message); err != nil {
+				return errors.Wrap(err, "failed to unmarshal message")
+			}
+			if err := handler(message); err != nil {
+				return errors.Wrap(err, "handler error")
+			}
+			if err := d.Ack(c.conf.AskMultiple); err != nil {
+				return errors.Wrap(err, "failed to ack message")
 			}
 		}
 	}

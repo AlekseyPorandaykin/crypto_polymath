@@ -24,11 +24,11 @@ import (
 // Calculator -	компонент, который отвечает за расчет индикаторов и аналитики.
 // Запускается по в виде демона и выполняет расчеты по расписанию.
 type Calculator struct {
-	actionConsumer          *queue.RabbitMQConsumer[queue_contract.Action]
-	candlestickConsumer     *queue.RabbitMQConsumer[queue_contract.Candlestick]
-	indicatorConsumer       *queue.RabbitMQConsumer[queue_contract.Indicator]
-	analyticConsumer        *queue.RabbitMQConsumer[queue_contract.Analytic]
-	candleIndicatorConsumer *queue.RabbitMQConsumer[queue_contract.CandleIndicator]
+	actionConsumer          queue.Receiver[queue_contract.Action]
+	candlestickConsumer     queue.Receiver[queue_contract.Candlestick]
+	indicatorConsumer       queue.Receiver[queue_contract.Indicator]
+	analyticConsumer        queue.Receiver[queue_contract.Analytic]
+	candleIndicatorConsumer queue.Receiver[queue_contract.CandleIndicator]
 
 	analyticDispatcher        dispatcher.Dispatcher[analysis.Analytic]
 	indicatorDispatcher       dispatcher.Dispatcher[domain.Indicator]
@@ -45,11 +45,11 @@ type Calculator struct {
 }
 
 func NewCalculator(
-	actionConsumer *queue.RabbitMQConsumer[queue_contract.Action],
-	candlestickConsumer *queue.RabbitMQConsumer[queue_contract.Candlestick],
-	indicatorConsumer *queue.RabbitMQConsumer[queue_contract.Indicator],
-	analyticConsumer *queue.RabbitMQConsumer[queue_contract.Analytic],
-	candleIndicatorConsumer *queue.RabbitMQConsumer[queue_contract.CandleIndicator],
+	actionConsumer queue.Receiver[queue_contract.Action],
+	candlestickConsumer queue.Receiver[queue_contract.Candlestick],
+	indicatorConsumer queue.Receiver[queue_contract.Indicator],
+	analyticConsumer queue.Receiver[queue_contract.Analytic],
+	candleIndicatorConsumer queue.Receiver[queue_contract.CandleIndicator],
 	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 	indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
 	candleIndicatorDispatcher dispatcher.Dispatcher[candle_indicator.Indicator],
@@ -85,6 +85,21 @@ func (app *Calculator) WithLogger(logger *zap.Logger) {
 
 func (app *Calculator) Run(ctx context.Context) error {
 	errCh := make(chan error)
+	system.Go(func() {
+		app.actionConsumer.Listen()
+	})
+	system.Go(func() {
+		app.candlestickConsumer.Listen()
+	})
+	system.Go(func() {
+		app.indicatorConsumer.Listen()
+	})
+	system.Go(func() {
+		app.analyticConsumer.Listen()
+	})
+	system.Go(func() {
+		app.candleIndicatorConsumer.Listen()
+	})
 	system.Go(func() {
 		if err := app.listenAction(ctx); err != nil {
 			errCh <- err

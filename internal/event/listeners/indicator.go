@@ -9,11 +9,11 @@ import (
 )
 
 type Indicator struct {
-	p *queue.RabbitMQProducer[queue_contract.Indicator]
+	p queue.Publisher[queue_contract.Indicator]
 }
 
 func NewIndicator(
-	p *queue.RabbitMQProducer[queue_contract.Indicator],
+	p queue.Publisher[queue_contract.Indicator],
 ) dispatcher.Listener[domain.Indicator] {
 	return &Indicator{p: p}
 }

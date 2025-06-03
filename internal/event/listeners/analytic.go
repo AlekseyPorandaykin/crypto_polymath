@@ -9,11 +9,11 @@ import (
 )
 
 type Analytic struct {
-	p *queue.RabbitMQProducer[queue_contract.Analytic]
+	p queue.Publisher[queue_contract.Analytic]
 }
 
 func NewAnalytic(
-	p *queue.RabbitMQProducer[queue_contract.Analytic],
+	p queue.Publisher[queue_contract.Analytic],
 ) dispatcher.Listener[analysis.Analytic] {
 	return &Analytic{p: p}
 }

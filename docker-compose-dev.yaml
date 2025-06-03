@@ -3,16 +3,6 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 256M     # максимум 256 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     ports:
       - "8080:8080"
       - "8085:8085"
@@ -27,16 +17,6 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 512M     # максимум 512 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     environment:
       - METRIC_PORT=8081
     ports:
@@ -51,16 +31,6 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 512M     # максимум 512 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     environment:
       - METRIC_PORT=8082
     ports:
@@ -69,6 +39,29 @@ services:
       - "daemon"
       - "calculator"
     restart: unless-stopped         # политика рестарта
+    networks:
+      - application
+  rabbit-mq:
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: crypto_developer_messages
+    networks:
+      - application
+  postgres:
+    image: postgres
+    restart: unless-stopped         # политика рестарта
+    ports:
+      - "3307:3306"
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: crypto_app
+      POSTGRES_USER: crypto_app
+      POSTGRES_PASSWORD: crypto_developer
+      PGDATA: /data/pgdata
     networks:
       - application
   cadvisor:
