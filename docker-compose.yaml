@@ -3,20 +3,12 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 256M     # максимум 256 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     ports:
       - "8080:8080"
       - "8085:8085"
       - "80:80"
+    environment:
+      - CGO_ENABLED=0
     command:
       - "api"
       - "external-v1"
@@ -27,18 +19,9 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 512M     # максимум 512 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     environment:
       - METRIC_PORT=8081
+      - CGO_ENABLED=0
     ports:
       - "8081:8081"
     command:
@@ -51,18 +34,9 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
-    mem_limit: 512m
-    cpus: 0.5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'     # максимум 50% одного CPU
-          memory: 512M     # максимум 512 мегабайт
-        reservations:
-          cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
     environment:
       - METRIC_PORT=8082
+      - CGO_ENABLED=0
     ports:
       - "8082:8082"
     command:

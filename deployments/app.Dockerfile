@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=1 go build -o=/app/bin/crypto_trader /app
+RUN go build -o=/app/bin/crypto_trader /app
 
 RUN chmod +x /app/bin/crypto_trader
 ENTRYPOINT ["/app/bin/crypto_trader"]

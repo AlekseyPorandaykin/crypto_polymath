@@ -3,6 +3,8 @@ services:
     build:
       context: ./
       dockerfile: ./deployments/app.Dockerfile
+    environment:
+      - CGO_ENABLED=0
     ports:
       - "8080:8080"
       - "8085:8085"
@@ -19,6 +21,7 @@ services:
       dockerfile: ./deployments/app.Dockerfile
     environment:
       - METRIC_PORT=8081
+      - CGO_ENABLED=0
     ports:
       - "8081:8081"
     command:
@@ -33,6 +36,7 @@ services:
       dockerfile: ./deployments/app.Dockerfile
     environment:
       - METRIC_PORT=8082
+      - CGO_ENABLED=0
     ports:
       - "8082:8082"
     command:
