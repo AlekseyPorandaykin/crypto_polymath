@@ -31,8 +31,10 @@ func (c *CandlestickRepository) Last(ctx context.Context, exchange, symbol, unit
 	if err != nil {
 		return nil, errors.Wrap(err, "from cache")
 	}
-	if dataCache != nil {
-		return dataCache, nil
+	if len(dataCache) > 0 {
+		if candlestick.IsPrevCandle(dataCache[0]) {
+			return dataCache, nil
+		}
 	}
 	dataStorage, err := c.storage.Last(ctx, exchange, symbol, unit, interval, limit, offset)
 	if err != nil {

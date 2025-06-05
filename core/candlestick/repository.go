@@ -2,6 +2,7 @@ package candlestick
 
 import (
 	"context"
+	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/google/uuid"
 	"time"
 )
@@ -26,6 +27,44 @@ type UniqDTO struct {
 	Exchange string `db:"exchange"`
 	Unit     string `db:"unit"`
 	Interval int    `db:"interval"`
+}
+
+func IsPrevCandle(data StorageDTO) bool {
+	now := time.Now().In(time.UTC)
+	startTime := data.StartTime.In(time.UTC)
+	switch data.Unit {
+	case string(domain.MonthUnit):
+		if !(startTime.Year() == now.Year()) {
+			return false
+		}
+		return int(now.Month()-startTime.Month()) == data.Interval
+	case string(domain.WeekUnit):
+		if !(startTime.Year() == now.Year() && startTime.Month() == now.Month()) {
+			return false
+		}
+		return int(now.Weekday()-startTime.Weekday()) == data.Interval
+	case string(domain.DayUnit):
+		if !(startTime.Year() == now.Year() && startTime.Month() == now.Month()) {
+			return false
+		}
+		return (now.Day() - startTime.Day()) == data.Interval
+	case string(domain.HourUnit):
+		if !(startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day()) {
+			return false
+		}
+		return (now.Hour() - startTime.Hour()) == data.Interval
+	case string(domain.MinuteUnit):
+		if !(startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day() &&
+			startTime.Hour() == now.Hour()) {
+			return false
+		}
+		return (now.Minute() - startTime.Minute()) == data.Interval
+	}
+	return false
 }
 
 type Repository interface {

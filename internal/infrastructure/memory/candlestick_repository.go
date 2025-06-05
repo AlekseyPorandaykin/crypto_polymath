@@ -16,7 +16,8 @@ var _ candlestick.Repository = (*CandlestickRepository)(nil)
 type CandlestickRepository struct {
 	caches map[string]*lru.Cache[time.Time, candlestick.StorageDTO]
 	mu     sync.Mutex
-	size   int
+
+	size int
 }
 
 func NewCandlestickRepository(size int) candlestick.Repository {

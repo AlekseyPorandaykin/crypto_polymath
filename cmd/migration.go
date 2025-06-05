@@ -44,7 +44,7 @@ var migrationCmd = &cobra.Command{
 }
 
 func specification() (map[string]string, error) {
-	dirName := "./migrations/sqlite"
+	dirName := "./migrations/postgres"
 	dirs, err := os.ReadDir(dirName)
 	if err != nil {
 		return nil, err
@@ -69,5 +69,5 @@ func specification() (map[string]string, error) {
 }
 
 func init() {
-	rootCmd.AddCommand(migrationCmd)
+	scriptCmd.AddCommand(migrationCmd)
 }

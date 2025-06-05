@@ -55,6 +55,33 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+
+  postgres:
+    image: postgres
+    mem_limit: 512m
+    cpus: 0.5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'     # максимум 50% одного CPU
+          memory: 512M     # максимум 512 мегабайт
+        reservations:
+          cpus: '0.25'     # желательно 25% CPU
+          memory: 256M     # желательно 256Мб
+    restart: unless-stopped         # политика рестарта
+    ports:
+      - "3307:3306"
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: crypto_app
+      POSTGRES_USER: crypto_app
+      POSTGRES_PASSWORD: crypto_developer
+      PGDATA: /data/pgdata
+    volumes:
+      - ./deployments/storage/postgres:/data/pgdata
+      - ./migrations/postgres:/docker-entrypoint-initdb.dч
+    networks:
+      - application
 networks:
   application:
     driver: bridge

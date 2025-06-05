@@ -163,3 +163,41 @@ func IsOpenCandle(data Candlestick) bool {
 	}
 	return false
 }
+
+func IsPrevCandle(data Candlestick) bool {
+	now := time.Now().In(time.UTC)
+	startTime := data.StartTime.In(time.UTC)
+	switch data.Unit {
+	case MonthUnit:
+		if !(startTime.Year() == now.Year()) {
+			return false
+		}
+		return int(now.Month()-startTime.Month()) == data.Interval
+	case WeekUnit:
+		if !(startTime.Year() == now.Year() && startTime.Month() == now.Month()) {
+			return false
+		}
+		return int(now.Weekday()-startTime.Weekday()) == data.Interval
+	case DayUnit:
+		if !(startTime.Year() == now.Year() && startTime.Month() == now.Month()) {
+			return false
+		}
+		return (now.Day() - startTime.Day()) == data.Interval
+	case HourUnit:
+		if !(startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day()) {
+			return false
+		}
+		return (now.Hour() - startTime.Hour()) == data.Interval
+	case MinuteUnit:
+		if !(startTime.Year() == now.Year() &&
+			startTime.Month() == now.Month() &&
+			startTime.Day() == now.Day() &&
+			startTime.Hour() == now.Hour()) {
+			return false
+		}
+		return (now.Minute() - startTime.Minute()) == data.Interval
+	}
+	return false
+}

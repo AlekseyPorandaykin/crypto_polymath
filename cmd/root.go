@@ -21,8 +21,12 @@ var apiCmd = &cobra.Command{
 	Use: "api",
 }
 
+var scriptCmd = &cobra.Command{
+	Use: "script",
+}
+
 func init() {
-	rootCmd.AddCommand(daemonCmd, apiCmd)
+	rootCmd.AddCommand(daemonCmd, apiCmd, scriptCmd)
 }
 
 func Execute() {

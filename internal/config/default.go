@@ -29,7 +29,7 @@ func init() {
 	viper.Set("db_connection.driver", "postgres")
 	viper.Set("db_connection.username", "crypto_app")
 	viper.Set("db_connection.password", "crypto_developer")
-	viper.Set("db_connection.host", "37.1.216.169")
+	viper.Set("db_connection.host", "0.0.0.0")
 	viper.Set("db_connection.port", "5433")
 	viper.Set("db_connection.database", "crypto_app")
 	viper.Set("db_connection.schema", "crypto_polymath")
