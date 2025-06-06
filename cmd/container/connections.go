@@ -11,7 +11,6 @@ import (
 	kukoin_sender "github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin/sender"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/mexc"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
@@ -19,16 +18,25 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 func (c *Container) initConnections() error {
-	if err := c.di.Provide(func() config.AppConf {
-		return config.Create()
-	}); err != nil {
-		return err
-	}
-	if err := c.di.Provide(func(conf config.AppConf) (*sqlx.DB, error) {
-		return connection.CreateDBConnection(conf.DBConnection)
+	if err := c.di.Provide(func() (*sqlx.DB, error) {
+		conf := connection.DBConfig{
+			Driver:             viper.GetString("db_connection.driver"),
+			Username:           viper.GetString("db_connection.username"),
+			Password:           viper.GetString("db_connection.password"),
+			Host:               viper.GetString("db_connection.host"),
+			Port:               viper.GetString("db_connection.port"),
+			Database:           viper.GetString("db_connection.database"),
+			PathToDB:           viper.GetString("db_connection.path_to_db"),
+			SchemaName:         viper.GetString("db_connection.schema"),
+			MaxOpenConnections: 5,
+			MaxIdleConnections: 5,
+		}
+		zap.L().Info("Create database connection", zap.Any("driver", conf))
+		return connection.CreateDBConnection(conf)
 	}); err != nil {
 		return err
 	}

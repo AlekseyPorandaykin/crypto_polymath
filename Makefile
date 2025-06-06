@@ -1,5 +1,6 @@
 up:
-	docker-compose --file="./docker-compose.yaml" up -d app-external-v1 app-loader app-calculator postgres
+	docker-compose --file="./docker-compose.yaml" up -d  postgres
+	docker-compose --file="./docker-compose.yaml" up -d app-external-v1 app-loader app-calculator
 
 up-mac:
 	docker compose --file="./docker-compose-dev.yaml" up -d app-external-v1 app-loader app-calculator

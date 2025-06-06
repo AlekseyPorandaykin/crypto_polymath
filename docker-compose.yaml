@@ -9,6 +9,8 @@ services:
       - "80:80"
     environment:
       - CGO_ENABLED=0
+      - DB_CONNECTION_HOST=postgres
+      - DB_CONNECTION_PORT=5432
     command:
       - "api"
       - "external-v1"
@@ -22,6 +24,8 @@ services:
     environment:
       - METRIC_PORT=8081
       - CGO_ENABLED=0
+      - DB_CONNECTION_HOST=postgres
+      - DB_CONNECTION_PORT=5432
     ports:
       - "8081:8081"
     command:
@@ -37,6 +41,8 @@ services:
     environment:
       - METRIC_PORT=8082
       - CGO_ENABLED=0
+      - DB_CONNECTION_HOST=postgres
+      - DB_CONNECTION_PORT=5432
     ports:
       - "8082:8082"
     command:
