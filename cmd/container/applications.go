@@ -16,6 +16,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/web"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
@@ -152,6 +153,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 	) error {
 		serverHttp = http_server.NewServer()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
+		serverHttp.WithIndexHtmlResponse(string(web.IndexPage))
 		handlerHttp := impl.NewHandler(
 			priceService,
 			candlestickService,

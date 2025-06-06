@@ -50,6 +50,8 @@ type Server struct {
 	apiGroup  *echo.Group
 	pageGroup *echo.Group
 	fileGroup *echo.Group
+
+	indexHtmlResponse string
 }
 
 func NewServer() *Server {
@@ -79,6 +81,9 @@ func (s *Server) ApiGroup() *echo.Group {
 
 func (s *Server) WithAuthor(author string) {
 	s.info.Author = author
+}
+func (s *Server) WithIndexHtmlResponse(indexHtmlResponse string) {
+	s.indexHtmlResponse = indexHtmlResponse
 }
 
 func (s *Server) WithApplicationName(name string) {
@@ -113,6 +118,9 @@ func (s *Server) mainPage(c echo.Context) error {
 	contentType := c.Request().Header.Get(echo.HeaderContentType)
 	if contentType == echo.MIMEApplicationJSON {
 		return c.JSON(http.StatusOK, s.info)
+	}
+	if s.indexHtmlResponse != "" {
+		return c.HTML(http.StatusOK, s.indexHtmlResponse)
 	}
 	return c.String(http.StatusOK, "Index page")
 }
