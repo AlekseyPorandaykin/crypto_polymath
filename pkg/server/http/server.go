@@ -75,7 +75,10 @@ func (s *Server) AddMiddleware(middleware echo.MiddlewareFunc) {
 	s.e.Use(middleware)
 }
 
-func (s *Server) ApiGroup() *echo.Group {
+func (s *Server) ApiGroup(prefix string) *echo.Group {
+	if prefix != "" {
+		return s.apiGroup.Group(prefix)
+	}
 	return s.apiGroup
 }
 
@@ -100,10 +103,6 @@ func (s *Server) WithIndexPage(path string) {
 
 func (s *Server) RegistrationPage(h PageHandler) {
 	h.RegistrationPageRoute(s.pageGroup)
-}
-
-func (s *Server) RegistrationApi(h ApiHandler) {
-	h.RegistrationApiRoute(s.apiGroup)
 }
 
 func (s *Server) RegistrationFilesHandler(h FilesHandler) {

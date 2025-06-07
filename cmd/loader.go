@@ -7,6 +7,7 @@ import (
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
 	"github.com/AlekseyPorandaykin/go-template/pkg/profiling"
 	"github.com/AlekseyPorandaykin/go-template/pkg/system"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"os/signal"
@@ -43,6 +44,11 @@ var loaderCmd = &cobra.Command{
 			logger.Error("error create loader", zap.Error(errLoader))
 			return
 		}
+		grpcServer, errGrpcServer := c.CreateGRPCServer()
+		if errGrpcServer != nil {
+			logger.Error("error create grpc server", zap.Error(errGrpcServer))
+			return
+		}
 		loadedCandlesticksDispatcher, errLoadedCandlesticksDispatcher := c.CreateLoadedCandlesticksForSymbolBodyDispatcher()
 		if errLoadedCandlesticksDispatcher != nil {
 			logger.Error("error create loaded candlesticks dispatcher", zap.Error(errLoadedCandlesticksDispatcher))
@@ -63,6 +69,13 @@ var loaderCmd = &cobra.Command{
 		system.Go(func() {
 			if err := loader.Run(ctx); err != nil {
 				logger.Error("error start loader", zap.Error(err))
+				return
+			}
+		})
+		system.Go(func() {
+			defer cancel()
+			if err := grpcServer.Run(ctx); !errors.Is(err, context.Canceled) && err != nil {
+				logger.Info("run grpcServer app", zap.Error(err))
 				return
 			}
 		})

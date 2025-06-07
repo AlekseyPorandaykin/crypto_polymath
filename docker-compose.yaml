@@ -24,11 +24,13 @@ services:
       dockerfile: ./deployments/app.Dockerfile
     environment:
       - METRIC_PORT=8081
+      - GRPC_PORT=50052
       - CGO_ENABLED=0
       - DB_CONNECTION_HOST=postgres
       - DB_CONNECTION_PORT=5432
     ports:
       - "8081:8081"
+      - "50052:50052"
     command:
       - "daemon"
       - "loader"

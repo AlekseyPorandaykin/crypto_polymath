@@ -8,7 +8,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
@@ -34,7 +33,6 @@ type Calculator struct {
 	indicatorDispatcher       dispatcher.Dispatcher[domain.Indicator]
 	candleIndicatorDispatcher dispatcher.Dispatcher[candle_indicator.Indicator]
 
-	clientSender     *grpc.ActionHandler
 	indicatorService indicator.Indicator
 	analysisService  *analysis.Service
 	candleIndicator  candle_indicator.CandleIndicator
@@ -53,7 +51,6 @@ func NewCalculator(
 	analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 	indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
 	candleIndicatorDispatcher dispatcher.Dispatcher[candle_indicator.Indicator],
-	clientSender *grpc.ActionHandler,
 	indicatorService indicator.Indicator,
 	analysisService *analysis.Service,
 	candleIndicator candle_indicator.CandleIndicator,
@@ -69,7 +66,6 @@ func NewCalculator(
 		analyticDispatcher:        analyticDispatcher,
 		indicatorDispatcher:       indicatorDispatcher,
 		candleIndicatorDispatcher: candleIndicatorDispatcher,
-		clientSender:              clientSender,
 		indicatorService:          indicatorService,
 		analysisService:           analysisService,
 		candleIndicator:           candleIndicator,
@@ -278,7 +274,6 @@ func (app *Calculator) handleAction(ctx context.Context, m queue_contract.Action
 			CreatedAt: m.CreatedAt,
 			Duration:  m.Duration,
 		}
-		app.clientSender.Accept(m.Name, action)
 		if action.Unit == domain.MinuteUnit || action.Interval != 1 {
 			// Пропускаем минутные свечи и не единичные, т.к. они не нужны для расчета индикаторов.
 			return nil

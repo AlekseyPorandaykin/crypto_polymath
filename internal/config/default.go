@@ -10,6 +10,7 @@ func init() {
 	viper.SetDefault("app.debug", true)
 	viper.SetDefault("http.host", "0.0.0.0")
 	viper.SetDefault("http.port", "80")
+	viper.SetDefault("grpc.port", "50052")
 	viper.SetDefault("price.duration.loader", "30s")
 	viper.SetDefault("error_mail_to", "alekseip17389@yahoo.com")
 	viper.SetDefault("sentry_dsn", "https://b85f50af518fefe30eb6b703f238293b@o4508576056999936.ingest.de.sentry.io/4508576065781840")

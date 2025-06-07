@@ -3,22 +3,25 @@ package listeners
 import (
 	queue_contract "github.com/AlekseyPorandaykin/crypto_polymath/api/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"go.uber.org/zap"
 )
 
 type LoadedCandlesticks struct {
-	p queue.Publisher[queue_contract.Action]
+	p            queue.Publisher[queue_contract.Action]
+	clientSender *grpc.ActionHandler
 }
 
 func NewLoadedCandlesticks(
-	p queue.Publisher[queue_contract.Action],
+	p queue.Publisher[queue_contract.Action], clientSender *grpc.ActionHandler,
 ) dispatcher.Listener[domain.LoadedCandlesticksActionBody] {
-	return &LoadedCandlesticks{p: p}
+	return &LoadedCandlesticks{p: p, clientSender: clientSender}
 }
 
 func (c *LoadedCandlesticks) Handle(e dispatcher.Event[domain.LoadedCandlesticksActionBody]) {
+	c.clientSender.Accept(domain.LoadedCandlesticksForSymbolAction, e.Body)
 	m := queue_contract.Action{
 		Name:      domain.LoadedCandlesticksForSymbolAction,
 		Exchange:  e.Body.Exchange,

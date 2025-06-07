@@ -78,7 +78,6 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 		candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
 		indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
 		candleIndicatorDispatcher dispatcher.Dispatcher[candle_indicator.Indicator],
-		clientSender *grpc.ActionHandler,
 		indicatorService indicator.Indicator,
 		analysisService *analysis.Service,
 		candleIndicator candle_indicator.CandleIndicator,
@@ -101,7 +100,6 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 			analyticDispatcher,
 			indicatorDispatcher,
 			candleIndicatorDispatcher,
-			clientSender,
 			indicatorService,
 			analysisService,
 			candleIndicator,
@@ -124,7 +122,7 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 func (c *Container) CreateGRPCServer() (*grpc.Server, error) {
 	var server *grpc.Server
 	err := c.di.Invoke(func(h *grpc.ActionHandler) error {
-		grpcServer, err := grpc.NewServer(50052, h)
+		grpcServer, err := grpc.NewServer(viper.GetUint("grpc.port"), h)
 		if err != nil {
 			return err
 		}
@@ -171,7 +169,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 			return err
 		}
 		http_server.WithLogger(log)
-		spec.RegisterHandlers(serverHttp.ApiGroup(), handlerHttp)
+		spec.RegisterHandlers(serverHttp.ApiGroup("/v1"), handlerHttp)
 		return nil
 	})
 	if err != nil {

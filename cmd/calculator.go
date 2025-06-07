@@ -38,11 +38,13 @@ var calculatorCmd = &cobra.Command{
 			return
 		}
 		defer c.Close()
+		//Create applications
 		calculationApp, errCreateCalculator := c.CreateCalculator()
 		if errCreateCalculator != nil {
 			logger.Error("error create calculator app", zap.Error(errCreateCalculator))
 			return
 		}
+		//Create dispatchers
 		candleDispatcher, errCandleDispatcher := c.CreateCandleDispatcher()
 		if errCandleDispatcher != nil {
 			logger.Error("error create candle dispatcher", zap.Error(errCandleDispatcher))

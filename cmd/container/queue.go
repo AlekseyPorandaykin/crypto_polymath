@@ -7,6 +7,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/event/listeners"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
@@ -185,8 +186,9 @@ func (c *Container) initListeners() error {
 	//Listeners
 	if err := c.di.Provide(func(
 		p *postgresql.QueueRepository[queue_contract.Action],
+		clientSender *grpc.ActionHandler,
 	) dispatcher.Listener[domain.LoadedCandlesticksActionBody] {
-		return listeners.NewLoadedCandlesticks(p)
+		return listeners.NewLoadedCandlesticks(p, clientSender)
 	}); err != nil {
 		return err
 	}
