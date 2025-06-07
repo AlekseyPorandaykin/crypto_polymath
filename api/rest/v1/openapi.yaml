@@ -8,8 +8,10 @@ info:
     email: porandaikinaleksei@gmail.com
 
 servers:
-  - url: localhost/api
-  - url: http://localhost:8081/api
+  - url: localhost/api/v1
+    description: Local server for development
+  - url: http://www.cryptopolymath.org/api/v1
+    description: Production server
 
 paths:
   /server:

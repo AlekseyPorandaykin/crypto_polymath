@@ -84,8 +84,7 @@ services:
       POSTGRES_PASSWORD: crypto_developer
       PGDATA: /data/pgdata
     volumes:
-      - ./deployments/storage/postgres:/data/pgdata
-      - ./migrations/postgres:/docker-entrypoint-initdb.dч
+      - /projects/storage:/data/pgdata
     networks:
       - application
 networks:
