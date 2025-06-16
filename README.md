@@ -1,4 +1,4 @@
-# Crypto polymath
+# Crypto polymath (cryptopolymath.org)
 
 ![]() <img src="./img/logo.png"  width="40%">
 

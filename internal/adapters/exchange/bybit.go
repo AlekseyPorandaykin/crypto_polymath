@@ -60,7 +60,11 @@ func (c *Bybit) lastCandlesticks(ctx context.Context, symbol, interval string) (
 			return errReq
 		}
 		return nil
-	}, backoff.NewExponentialBackOff())
+	}, backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(15*time.Second),
+		backoff.WithMaxInterval(time.Minute),
+	),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "get MarketGetKline")
 	}
@@ -97,7 +101,11 @@ func (c *Bybit) Prices(ctx context.Context) ([]price.ExchangeDTO, error) {
 			return err
 		}
 		return nil
-	}, backoff.NewExponentialBackOff())
+	}, backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(15*time.Second),
+		backoff.WithMaxInterval(time.Minute),
+		backoff.WithMaxElapsedTime(time.Minute),
+	))
 	if err != nil {
 		return nil, errors.Wrap(err, "error get price from bybit")
 	}
@@ -149,7 +157,11 @@ func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, 
 		result = append(result, inverseInfo...)
 		result = append(result, optionInfo...)
 		return nil
-	}, backoff.NewExponentialBackOff())
+	}, backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(20*time.Second),
+		backoff.WithMaxInterval(5*time.Minute),
+		backoff.WithMaxElapsedTime(30*time.Minute),
+	))
 	if err != nil {
 		return nil, err
 	}

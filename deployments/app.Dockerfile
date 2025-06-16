@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o=/app/bin/crypto_trader /app
+RUN go build -o=/app/bin/crypto_polymath /app
 
-RUN chmod +x /app/bin/crypto_trader
-ENTRYPOINT ["/app/bin/crypto_trader"]
+RUN chmod +x /app/bin/crypto_polymath
+ENTRYPOINT ["/app/bin/crypto_polymath"]
