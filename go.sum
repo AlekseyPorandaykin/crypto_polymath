@@ -5,6 +5,8 @@ github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250516054434-a2dc0fe69064 h
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250516054434-a2dc0fe69064/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250616081645-f5caa31b48c8 h1:C8wEBJjhwiMxOMwASMUyyDL13I64x6Oh4+8yUbzs+qI=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250616081645-f5caa31b48c8/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
+github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250617051853-4d46de001d15 h1:XGb2QyhfLi7UhrWXQAriFCaRmmM5f9S3ON48FKYusA4=
+github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250617051853-4d46de001d15/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
 github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df h1:Q2OtkYpNlD+lIozaKI8X85Xv6a0LKUq8YoEKEUYTYGA=
 github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df/go.mod h1:5J2KeH8TO6H69tuF7Chbb6cH9MyQz/bjuDis+SeITSo=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=

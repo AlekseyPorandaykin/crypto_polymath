@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.8
 
 require (
-	github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250616081645-f5caa31b48c8
+	github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250617051853-4d46de001d15
 	github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/duke-git/lancet/v2 v2.3.0

@@ -87,8 +87,30 @@ services:
       PGDATA: /data/pgdata
     volumes:
       - /projects/storage:/data/pgdata
+    healthcheck: # Проверка состояния для PostgreSQL
+      test: [ "CMD-SHELL", "pg_isready -U crypto_app -d crypto_app" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - application
+  postgres_exporter:
+    image: prometheuscommunity/postgres_exporter:latest
+    restart: unless-stopped
+    environment:
+      # Важно: Host должен быть именем сервиса PostgreSQL (db в данном случае)
+      DATA_SOURCE_NAME: "postgresql://crypto_app:crypto_developer@postgres:5432/crypto_app?sslmode=disable"
+    ports:
+      - "9187:9187" # Порт по умолчанию для postgres_exporter
+    depends_on:
+      postgres:
+        condition: service_healthy # Запускать экспортер только после того, как PostgreSQL готов
+    command:
+      - "--web.listen-address=:9187"
+      # - "--collect.database=mydatabase" # Можно указать конкретную БД, если DATA_SOURCE_NAME не хватает
+      # - "--collect.schema_privileges" # Пример: включить сбор метрик привилегий по схемам
+      # - "--exclude-pattern=^pg_temp_" # Пример: исключить временные схемы
+
 networks:
   application:
     driver: bridge

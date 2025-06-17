@@ -47,6 +47,13 @@ CREATE TABLE IF NOT EXISTS crypto_polymath.indicators
     value      double precision        NOT NULL DEFAULT 0,
     created_at TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS indicators_exchange_idx ON crypto_polymath.indicators (exchange);
+CREATE INDEX IF NOT EXISTS indicators_symbol_idx ON crypto_polymath.indicators (symbol);
+CREATE INDEX IF NOT EXISTS indicators_unit_idx ON crypto_polymath.indicators (unit);
+CREATE INDEX IF NOT EXISTS indicators_interval_idx ON crypto_polymath.indicators (interval);
+CREATE INDEX IF NOT EXISTS indicators_datetime_idx ON crypto_polymath.indicators (datetime);
+CREATE INDEX IF NOT EXISTS indicators_name_idx ON crypto_polymath.indicators (name);
+CREATE INDEX IF NOT EXISTS indicators_depth_idx ON crypto_polymath.indicators (depth);
 
 CREATE TABLE IF NOT EXISTS crypto_polymath.symbol_infos
 (
