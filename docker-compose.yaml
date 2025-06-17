@@ -95,7 +95,7 @@ services:
     networks:
       - application
   postgres_exporter:
-    image: prometheuscommunity/postgres_exporter:latest
+    image: prometheuscommunity/postgres-exporter:master
     restart: unless-stopped
     environment:
       # Важно: Host должен быть именем сервиса PostgreSQL (db в данном случае)
