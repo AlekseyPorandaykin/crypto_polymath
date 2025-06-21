@@ -7,13 +7,15 @@ import (
 )
 
 type SymbolInfoStorageDTO struct {
-	ID         uuid.UUID `db:"id"`
-	Exchange   string    `db:"exchange"`
-	Symbol     string    `db:"symbol"`
-	BaseAsset  string    `db:"base_asset"`
-	QuoteAsset string    `db:"quote_asset"`
-	Category   string    `db:"category"`
-	CreatedAt  time.Time `db:"created_at"`
+	ID              uuid.UUID  `db:"id"`
+	Exchange        string     `db:"exchange"`
+	Symbol          string     `db:"symbol"`
+	BaseAsset       string     `db:"base_asset"`
+	QuoteAsset      string     `db:"quote_asset"`
+	Category        string     `db:"category"`
+	FundingRate     float32    `db:"funding_rate"`
+	NextFundingTime *time.Time `db:"next_funding_time"`
+	CreatedAt       time.Time  `db:"created_at"`
 }
 
 type Repository interface {

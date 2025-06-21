@@ -67,7 +67,7 @@ var loaderCmd = &cobra.Command{
 
 		//Run applications
 		system.Go(func() {
-			if err := loader.Run(ctx); err != nil {
+			if err := loader.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				logger.Error("error start loader", zap.Error(err))
 				return
 			}

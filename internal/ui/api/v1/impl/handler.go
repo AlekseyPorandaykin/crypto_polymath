@@ -128,13 +128,20 @@ func (h *Handler) GetSymbolsExchangeCategory(
 	}
 	result := make([]spec.SymbolInfoResponse, 0, len(res))
 	for _, item := range res {
-		result = append(result, spec.SymbolInfoResponse{
-			Exchange:   item.Exchange,
-			Symbol:     item.Symbol,
-			BaseAsset:  item.BaseAsset,
-			QuoteAsset: item.QuoteAsset,
-			IsExist:    item.IsExist,
-		})
+		si := spec.SymbolInfoResponse{
+			Exchange:    item.Exchange,
+			Symbol:      item.Symbol,
+			BaseAsset:   item.BaseAsset,
+			QuoteAsset:  item.QuoteAsset,
+			IsExist:     item.IsExist,
+			FundingRate: item.FundingRate,
+		}
+		if item.NextFundingTime != nil {
+			si.NextFundingTime = item.NextFundingTime
+			si.CountdownFundingTimeSeconds = float32(item.CountdownFundingTime().Seconds())
+			si.CountdownFundingTime = item.CountdownFundingTime().String()
+		}
+		result = append(result, si)
 	}
 	return ctx.JSON(http.StatusOK, result)
 }

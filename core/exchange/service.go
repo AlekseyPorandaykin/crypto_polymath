@@ -39,21 +39,27 @@ func (s *service) LoadSymbolInfo(ctx context.Context, exchange string) ([]domain
 	now := time.Now().In(time.UTC)
 	for _, resItem := range res {
 		domainVal := domain.SymbolInfo{
-			Symbol:     resItem.Symbol,
-			Exchange:   resItem.Exchange,
-			BaseAsset:  resItem.BaseAsset,
-			QuoteAsset: resItem.QuoteAsset,
-			IsExist:    true,
+			Symbol:      resItem.Symbol,
+			Exchange:    resItem.Exchange,
+			BaseAsset:   resItem.BaseAsset,
+			QuoteAsset:  resItem.QuoteAsset,
+			IsExist:     true,
+			FundingRate: resItem.FundingRate,
+		}
+		if !resItem.NextFundingTime.IsZero() {
+			domainVal.NextFundingTime = &resItem.NextFundingTime
 		}
 		data = append(data, domainVal)
 		storageDTOs = append(storageDTOs, SymbolInfoStorageDTO{
-			ID:         uuid.New(),
-			Exchange:   resItem.Exchange,
-			Symbol:     resItem.Symbol,
-			BaseAsset:  resItem.BaseAsset,
-			QuoteAsset: resItem.QuoteAsset,
-			Category:   string(resItem.Category),
-			CreatedAt:  now,
+			ID:              uuid.New(),
+			Exchange:        domainVal.Exchange,
+			Symbol:          domainVal.Symbol,
+			BaseAsset:       domainVal.BaseAsset,
+			QuoteAsset:      domainVal.QuoteAsset,
+			Category:        string(resItem.Category),
+			FundingRate:     domainVal.FundingRate,
+			NextFundingTime: domainVal.NextFundingTime,
+			CreatedAt:       now,
 		})
 	}
 	if err := s.repo.SaveSymbolInfo(ctx, storageDTOs); err != nil {
@@ -73,11 +79,13 @@ func (s *service) SymbolInfoByCategory(ctx context.Context, exchange, category s
 	domains := make([]domain.SymbolInfo, 0, len(data))
 	for _, item := range data {
 		domains = append(domains, domain.SymbolInfo{
-			Symbol:     item.Symbol,
-			Exchange:   item.Exchange,
-			BaseAsset:  item.BaseAsset,
-			QuoteAsset: item.QuoteAsset,
-			IsExist:    true,
+			Symbol:          item.Symbol,
+			Exchange:        item.Exchange,
+			BaseAsset:       item.BaseAsset,
+			QuoteAsset:      item.QuoteAsset,
+			IsExist:         true,
+			FundingRate:     item.FundingRate,
+			NextFundingTime: item.NextFundingTime,
 		})
 	}
 	return domains, nil

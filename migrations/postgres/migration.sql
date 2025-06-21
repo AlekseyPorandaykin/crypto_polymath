@@ -57,14 +57,22 @@ CREATE INDEX IF NOT EXISTS indicators_depth_idx ON crypto_polymath.indicators (d
 
 CREATE TABLE IF NOT EXISTS crypto_polymath.symbol_infos
 (
-    id          VARCHAR(50) PRIMARY KEY NOT NULL,
-    exchange    VARCHAR(50)             NOT NULL,
-    symbol      VARCHAR(50)             NOT NULL,
-    base_asset  VARCHAR(20)             NOT NULL,
-    quote_asset VARCHAR(20)             NOT NULL,
-    category    VARCHAR(50)             NOT NULL DEFAULT '',
-    created_at  TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id                VARCHAR(50) PRIMARY KEY NOT NULL,
+    exchange          VARCHAR(50)             NOT NULL,
+    symbol            VARCHAR(50)             NOT NULL,
+    base_asset        VARCHAR(20)             NOT NULL,
+    quote_asset       VARCHAR(20)             NOT NULL,
+    category          VARCHAR(50)             NOT NULL DEFAULT '',
+    funding_rate      double precision        NOT NULL DEFAULT 0,
+    next_funding_time TIMESTAMP               NULL,
+    created_at        TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE crypto_polymath.symbol_infos
+    ADD COLUMN IF NOT EXISTS funding_rate double precision NOT NULL DEFAULT 0;
+
+ALTER TABLE crypto_polymath.symbol_infos
+    ADD COLUMN IF NOT EXISTS next_funding_time TIMESTAMP NULL;
 
 CREATE TABLE IF NOT EXISTS crypto_polymath.analytics
 (

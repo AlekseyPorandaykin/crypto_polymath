@@ -3,6 +3,7 @@ package exchange
 import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
+	"time"
 )
 
 type SymbolCategory string
@@ -14,11 +15,13 @@ const (
 )
 
 type SymbolInfoDTO struct {
-	Symbol     string
-	Exchange   string
-	BaseAsset  string
-	QuoteAsset string
-	Category   SymbolCategory
+	Symbol          string
+	Exchange        string
+	BaseAsset       string
+	QuoteAsset      string
+	Category        SymbolCategory
+	FundingRate     float32
+	NextFundingTime time.Time
 }
 
 type ExternalLoader interface {

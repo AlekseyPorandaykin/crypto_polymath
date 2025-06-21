@@ -150,8 +150,8 @@ func (c *Bybit) SymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, 
 		if err != nil {
 			return err
 		}
-		result = make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
 
+		result = make([]core_exchange.SymbolInfoDTO, 0, len(spotInfo)+len(linearInfo)+len(inverseInfo)+len(optionInfo))
 		result = append(result, spotInfo...)
 		result = append(result, linearInfo...)
 		result = append(result, inverseInfo...)
@@ -183,10 +183,36 @@ func (c *Bybit) spotSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoD
 			Category:   core_exchange.SymbolCategorySpot,
 		})
 	}
+	tickerData, err := c.client.MarketSpotTicker(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return result, nil
+	return c.enrichFundingRate(result, tickerData.Result.List), nil
 }
 
+func (c *Bybit) enrichFundingRate(data []core_exchange.SymbolInfoDTO, tickerData []v5.SymbolTick) []core_exchange.SymbolInfoDTO {
+	tickerBySymbol := make(map[string]v5.SymbolTick, len(tickerData))
+	for _, tickerItem := range tickerData {
+		tickerBySymbol[tickerItem.Symbol] = tickerItem
+	}
+	for i := range data {
+		tickerItem, has := tickerBySymbol[data[i].Symbol]
+		if !has {
+			continue
+		}
+		if tickerItem.FundingRate != "" {
+			fundingRate, _ := strconv.ParseFloat(tickerItem.FundingRate, 32)
+			data[i].FundingRate = float32(fundingRate)
+		}
+		nextFundingTime, errNFT := strconv.ParseInt(tickerItem.NextFundingTime, 10, 64)
+		if errNFT == nil {
+			data[i].NextFundingTime = time.UnixMilli(nextFundingTime).In(time.UTC)
+		}
+	}
+
+	return data
+}
 func (c *Bybit) linearSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
 	instrumentInfo, err := c.client.MarketInstrumentsLinearInfo(ctx)
 	if err != nil {
@@ -202,8 +228,12 @@ func (c *Bybit) linearSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInf
 			Category:   core_exchange.SymbolCategoryFuture,
 		})
 	}
+	tickerData, err := c.client.MarketLinearTicker(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return result, nil
+	return c.enrichFundingRate(result, tickerData.Result.List), nil
 }
 
 func (c *Bybit) inverseSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
@@ -221,8 +251,12 @@ func (c *Bybit) inverseSymbolInfo(ctx context.Context) ([]core_exchange.SymbolIn
 			Category:   core_exchange.SymbolCategoryOther,
 		})
 	}
+	tickerData, err := c.client.MarketInverseTicker(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return result, nil
+	return c.enrichFundingRate(result, tickerData.Result.List), nil
 }
 
 func (c *Bybit) optionSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInfoDTO, error) {
@@ -240,6 +274,10 @@ func (c *Bybit) optionSymbolInfo(ctx context.Context) ([]core_exchange.SymbolInf
 			Category:   core_exchange.SymbolCategoryOther,
 		})
 	}
+	tickerData, err := c.client.MarketOptionTicker(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return result, nil
+	return c.enrichFundingRate(result, tickerData.Result.List), nil
 }

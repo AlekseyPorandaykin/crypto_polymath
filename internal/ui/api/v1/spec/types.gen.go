@@ -245,11 +245,21 @@ type SymbolInfoResponse struct {
 	// BaseAsset Base coin
 	BaseAsset string `json:"base_asset"`
 
+	// CountdownFundingTime Countdown funding time, if not future then 0
+	CountdownFundingTime string `json:"countdown_funding_time"`
+
+	// CountdownFundingTimeSeconds Countdown funding time in seconds, if not future then 0
+	CountdownFundingTimeSeconds float32 `json:"countdown_funding_time_seconds"`
+
 	// Exchange Name exchange
 	Exchange string `json:"exchange"`
 
+	// FundingRate Funding rate for future symbol, if not future then 0
+	FundingRate float32 `json:"funding_rate"`
+
 	// IsExist Symbol exist in exchange
-	IsExist bool `json:"is_exist"`
+	IsExist         bool       `json:"is_exist"`
+	NextFundingTime *time.Time `json:"next_funding_time,omitempty"`
 
 	// QuoteAsset Quote coin
 	QuoteAsset string `json:"quote_asset"`

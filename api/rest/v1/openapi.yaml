@@ -682,7 +682,7 @@ components:
           description: Last price value
     SymbolInfoResponse:
       type: object
-      required: [ symbol, exchange, base_asset, quote_asset, is_exist ]
+      required: [ symbol, exchange, base_asset, quote_asset, is_exist, funding_rate, countdown_funding_time, countdown_funding_time_seconds ]
       properties:
         symbol:
           type: string
@@ -699,6 +699,18 @@ components:
         is_exist:
           type: boolean
           description: Symbol exist in exchange
+        funding_rate:
+          type: number
+          description: Funding rate for future symbol, if not future then 0
+        next_funding_time:
+          type: string
+          format: date-time
+        countdown_funding_time_seconds:
+          type: number
+          description: Countdown funding time in seconds, if not future then 0
+        countdown_funding_time:
+          type: string
+          description: Countdown funding time, if not future then 0
   examples:
     PriceResponse:
       value:

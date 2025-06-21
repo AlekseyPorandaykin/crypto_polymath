@@ -110,6 +110,8 @@ services:
       # - "--collect.database=mydatabase" # Можно указать конкретную БД, если DATA_SOURCE_NAME не хватает
       # - "--collect.schema_privileges" # Пример: включить сбор метрик привилегий по схемам
       # - "--exclude-pattern=^pg_temp_" # Пример: исключить временные схемы
+    networks:
+      - application
 
 networks:
   application:

@@ -23,16 +23,16 @@ func NewExchangeRepository(db *sqlx.DB) *ExchangeRepository {
 func (repo *ExchangeRepository) SaveSymbolInfo(ctx context.Context, data []core_exchange.SymbolInfoStorageDTO) error {
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_save_symbol_info")()
 	query := `
-INSERT INTO symbol_infos (id, exchange, symbol, base_asset, quote_asset, category, created_at)
+INSERT INTO symbol_infos (id, exchange, symbol, base_asset, quote_asset, category, funding_rate, next_funding_time, created_at)
 VALUES 
 `
-	valueQuery := `(?, ?, ?, ?, ?, ?, ?)`
+	valueQuery := `(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	values := make([]string, 0, len(data))
 	args := make([]interface{}, 0, len(data)*6)
 	for _, item := range data {
 		values = append(values, valueQuery)
 		args = append(args, []any{
-			item.ID, item.Exchange, item.Symbol, item.BaseAsset, item.QuoteAsset, item.Category, item.CreatedAt,
+			item.ID, item.Exchange, item.Symbol, item.BaseAsset, item.QuoteAsset, item.Category, item.FundingRate, item.NextFundingTime, item.CreatedAt,
 		}...)
 	}
 	preparedQuery := fmt.Sprintf("%s %s", query, strings.Join(values, ", "))
@@ -46,7 +46,7 @@ func (repo *ExchangeRepository) InfoBySymbol(ctx context.Context, exchange, symb
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_fetch_info_by_symbol")()
 	var (
 		query = `
-SELECT id, exchange, symbol, base_asset, quote_asset, created_at
+SELECT id, exchange, symbol, base_asset, quote_asset, category, funding_rate, next_funding_time, created_at
 FROM symbol_infos
 WHERE exchange= ? AND symbol = ?
 LIMIT 1
@@ -67,7 +67,7 @@ func (repo *ExchangeRepository) InfoByCategory(ctx context.Context, exchange, ca
 	defer metrics.DBQueryHelper("crypto_polymath", "exchange_fetch_infos_by_category")()
 	var (
 		query = `
-SELECT id, exchange, symbol, base_asset, quote_asset, created_at
+SELECT id, exchange, symbol, base_asset, quote_asset, category, funding_rate, next_funding_time, created_at
 FROM symbol_infos
 WHERE exchange = ? AND category = ?
 ORDER BY symbol
@@ -105,7 +105,7 @@ func (repo *ExchangeRepository) DeleteOldRows(ctx context.Context, exchangeName 
 
 func (repo *ExchangeRepository) ListByExchange(ctx context.Context, exchangeName string) ([]core_exchange.SymbolInfoStorageDTO, error) {
 	var query = `
-SELECT id, exchange, symbol, base_asset, quote_asset, created_at
+SELECT id, exchange, symbol, base_asset, quote_asset, category, funding_rate, next_funding_time, created_at
 FROM symbol_infos
 WHERE exchange = ?
 `

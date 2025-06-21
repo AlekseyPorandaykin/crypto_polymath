@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"strings"
@@ -77,7 +78,15 @@ func (repo *QueueRepository[T]) Close() {
 }
 
 func (repo *QueueRepository[T]) Receive() (*T, error) {
-	data, err := repo.receive(context.Background(), repo.name, 1)
+	data := make([]QueueMessage, 0, 1)
+	err := backoff.Retry(func() error {
+		var err error
+		data, err = repo.receive(context.Background(), repo.name, 1)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(time.Minute)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to receive messages: %w", err)
 	}
