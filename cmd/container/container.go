@@ -1,8 +1,10 @@
 package container
 
 import (
+	"net/http"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	infrastracture_http "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/http"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
@@ -13,18 +15,17 @@ import (
 	"github.com/streadway/amqp"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 var exchangeNames = []string{
-	adapter_exchange.BinanceExchange,
-	adapter_exchange.BitgetExchange,
-	adapter_exchange.BybitExchange,
-	adapter_exchange.GateIoExchange,
-	adapter_exchange.KrakenExchange,
-	adapter_exchange.KucoinExchange,
-	adapter_exchange.MexcExchange,
-	adapter_exchange.OkxExchange,
+	exchange.BinanceExchange,
+	exchange.BitgetExchange,
+	exchange.BybitExchange,
+	exchange.GateIoExchange,
+	exchange.KrakenExchange,
+	exchange.KucoinExchange,
+	exchange.MexcExchange,
+	exchange.OkxExchange,
 }
 
 type Container struct {

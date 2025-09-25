@@ -3,13 +3,15 @@ package loader
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/go-template/pkg/scheduler"
@@ -17,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Проскальзывание в секундах, при запросе данные в точное время на стороне сервера данные еще могут не сохраниться.
@@ -31,7 +32,7 @@ type Loader struct {
 	exchangeService    core_exchange.Exchange
 	indicatorService   indicator.Indicator
 	exchangeNames      []string
-	service            *application.Service
+	service            *service.Service
 
 	loadedCandleDispatcher dispatcher.Dispatcher[domain.LoadedCandlesticksActionBody]
 	priceDispatcher        dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody]
@@ -47,7 +48,7 @@ func NewLoader(
 	candlestickService candlestick.Candlestick,
 	exchangeService core_exchange.Exchange,
 	indicatorService indicator.Indicator,
-	service *application.Service,
+	service *service.Service,
 	loadedCandleDispatcher dispatcher.Dispatcher[domain.LoadedCandlesticksActionBody],
 	priceDispatcher dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody],
 	candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
@@ -105,12 +106,19 @@ func (l *Loader) Run(ctx context.Context) error {
 	for _, exchangeName := range []string{exchange.BybitExchange} {
 		l.runLoadCandles(ctx, exchangeName)
 		go func(exchangeName string) {
-			_ = scheduler.ExecuteEveryDay(ctx, func() error {
+			_ = scheduler.ExecuteCustomMinute(ctx, 5, 1, func() error {
 				defer system.HandlePanic()
 				defer ExchangeSymbolLoadedHelper(exchangeName)()
-				if _, err := l.exchangeService.LoadSymbolInfo(ctx, exchangeName); err != nil {
-					l.logger.Error("load symbol info", zap.Error(err))
+				start := time.Now()
+				data, errSy := l.exchangeService.LoadSymbolInfo(ctx, exchangeName)
+				if errSy != nil {
+					l.logger.Error("load symbol info", zap.Error(errSy))
 				}
+				l.logger.Debug(
+					"load symbol infos",
+					zap.String("duration", time.Since(start).String()),
+					zap.Int("count", len(data)),
+				)
 				return nil
 			})
 		}(exchangeName)

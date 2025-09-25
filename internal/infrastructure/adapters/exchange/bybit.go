@@ -3,6 +3,9 @@ package exchange
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/request"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/response"
@@ -11,8 +14,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"strconv"
-	"time"
 )
 
 const BybitExchange = "bybit"

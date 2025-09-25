@@ -2,11 +2,12 @@ package exchange
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/mexc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"time"
 )
 
 const MexcExchange = "mexc"

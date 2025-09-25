@@ -124,3 +124,7 @@ CREATE TABLE IF NOT EXISTS crypto_polymath.queues
 );
 
 CREATE INDEX queues_name ON crypto_polymath.queues (name);
+
+CREATE ROLE root WITH LOGIN PASSWORD 'crypto_developer';
+-- При желании предоставьте права суперпользователя, если это необходимо:
+ALTER ROLE root WITH SUPERUSER;

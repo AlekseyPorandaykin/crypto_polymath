@@ -10,9 +10,9 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
@@ -38,7 +38,7 @@ type Handler struct {
 	analysisService     *analysis.Service
 	analyticRepository  view.AnalyticInfoRepository
 	indicatorRepository view.IndicatorInfoRepository
-	serv                *application.Service
+	serv                *service.Service
 	candleIndicator     candle_indicator.CandleIndicator
 }
 
@@ -50,7 +50,7 @@ func NewHandler(
 	analysisService *analysis.Service,
 	analyticRepository view.AnalyticInfoRepository,
 	indicatorRepository view.IndicatorInfoRepository,
-	serv *application.Service,
+	serv *service.Service,
 	candleIndicator candle_indicator.CandleIndicator,
 ) *Handler {
 	return &Handler{
@@ -127,6 +127,7 @@ func (h *Handler) GetSymbolsExchangeCategory(
 		return errorResponse(ctx, err)
 	}
 	result := make([]spec.SymbolInfoResponse, 0, len(res))
+	now := time.Now().In(time.UTC)
 	for _, item := range res {
 		si := spec.SymbolInfoResponse{
 			Exchange:    item.Exchange,
@@ -136,7 +137,7 @@ func (h *Handler) GetSymbolsExchangeCategory(
 			IsExist:     item.IsExist,
 			FundingRate: item.FundingRate,
 		}
-		if item.NextFundingTime != nil {
+		if item.NextFundingTime != nil && item.NextFundingTime.After(now) {
 			si.NextFundingTime = item.NextFundingTime
 			si.CountdownFundingTimeSeconds = float32(item.CountdownFundingTime().Seconds())
 			si.CountdownFundingTime = item.CountdownFundingTime().String()

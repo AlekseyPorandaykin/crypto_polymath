@@ -1,14 +1,15 @@
-package application
+package service
 
 import (
 	"context"
+	"sync"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/view"
+	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
 	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/spf13/viper"
-	"sync"
 )
 
 type Service struct {

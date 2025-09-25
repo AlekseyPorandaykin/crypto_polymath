@@ -3,11 +3,12 @@ package exchange
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bitget"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"time"
 )
 
 const BitgetExchange = "bitget"

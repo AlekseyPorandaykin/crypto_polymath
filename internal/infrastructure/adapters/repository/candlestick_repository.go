@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/pkg/errors"
-	"time"
 )
 
 var _ candlestick.Repository = (*CandlestickRepository)(nil)

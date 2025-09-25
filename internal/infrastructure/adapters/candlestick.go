@@ -2,11 +2,12 @@ package adapters
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type CandlestickAdapter struct {

@@ -245,8 +245,11 @@ type SymbolInfoResponse struct {
 	// BaseAsset Base coin
 	BaseAsset string `json:"base_asset"`
 
-	// CountdownFundingTime Countdown funding time in seconds, if not future then 0
-	CountdownFundingTime *float32 `json:"countdown_funding_time,omitempty"`
+	// CountdownFundingTime Countdown funding time, if not future then 0
+	CountdownFundingTime string `json:"countdown_funding_time"`
+
+	// CountdownFundingTimeSeconds Countdown funding time in seconds, if not future then 0
+	CountdownFundingTimeSeconds float32 `json:"countdown_funding_time_seconds"`
 
 	// Exchange Name exchange
 	Exchange string `json:"exchange"`

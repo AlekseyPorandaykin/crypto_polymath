@@ -7,7 +7,7 @@ import (
 	core_exchange "github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	adapter_repository "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/repository"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/repository"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/memory"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
 	"github.com/jmoiron/sqlx"
@@ -31,12 +31,12 @@ func (c *Container) initRepositories() error {
 		return err
 	}
 	if err := c.di.Provide(func(conn *sqlx.DB) price.Repository {
-		return adapter_repository.NewPriceRepository(postgresql.NewPriceRepository(conn), memory.NewPriceRepository())
+		return repository.NewPriceRepository(postgresql.NewPriceRepository(conn), memory.NewPriceRepository())
 	}); err != nil {
 		return err
 	}
 	if err := c.di.Provide(func(dbRepo *postgresql.CandlestickRepository) candlestick.Repository {
-		return adapter_repository.NewCandlestickRepository(
+		return repository.NewCandlestickRepository(
 			dbRepo,
 			memory.NewCandlestickRepository(viper.GetInt("candlestick.storage.limit")),
 		)
@@ -44,7 +44,7 @@ func (c *Container) initRepositories() error {
 		return err
 	}
 	if err := c.di.Provide(func(dbRepo *postgresql.IndicatorRepository) indicator.Repository {
-		return adapter_repository.NewIndicatorRepository(
+		return repository.NewIndicatorRepository(
 			dbRepo,
 			memory.NewIndicatorRepository(viper.GetInt("indicator.storage.limit")),
 		)
@@ -52,22 +52,24 @@ func (c *Container) initRepositories() error {
 		return err
 	}
 	if err := c.di.Provide(func(db *postgresql.AnalyticRepository) analysis.Repository {
-		return adapter_repository.NewAnalysisRepository(
+		return repository.NewAnalysisRepository(
 			db, memory.NewAnalysisRepository(100),
 		)
 	}); err != nil {
 		return err
 	}
 	if err := c.di.Provide(func(conn *sqlx.DB) core_exchange.Repository {
-		return adapter_repository.NewExchangeRepository(
-			postgresql.NewExchangeRepository(conn), memory.NewExchangeRepository(),
-		)
+		//return adapter_repository.NewExchangeRepository(
+		//	postgresql.NewExchangeRepository(conn), memory.NewExchangeRepository(),
+		//)
+		// Сервисы разделены на инстансы и кеш в памяти не работает
+		return postgresql.NewExchangeRepository(conn)
 	}); err != nil {
 		return err
 	}
 
 	if err := c.di.Provide(func(conn *sqlx.DB) candle_indicator.Repository {
-		return adapter_repository.NewCandleIndicatorRepository(
+		return repository.NewCandleIndicatorRepository(
 			postgresql.NewCandleIndicatorRepository(conn),
 			memory.NewCandleIndicatorRepository(100),
 		)

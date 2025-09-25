@@ -18,53 +18,53 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	indicator_calculator "github.com/AlekseyPorandaykin/crypto_polymath/core/indicator/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/adapters/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
 	grpc2 "github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 )
 
 func (c *Container) initExchanges() error {
-	if err := c.di.Provide(func(binanceClient *binance.Manager) *adapter_exchange.Binance {
-		return adapter_exchange.NewBinance(binanceClient)
+	if err := c.di.Provide(func(binanceClient *binance.Manager) *exchange.Binance {
+		return exchange.NewBinance(binanceClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(bybitClient *v5.Client) *adapter_exchange.Bybit {
-		return adapter_exchange.NewByBit(bybitClient)
+	if err := c.di.Provide(func(bybitClient *v5.Client) *exchange.Bybit {
+		return exchange.NewByBit(bybitClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(bitgetClient *bitget.Client) *adapter_exchange.Bitget {
-		return adapter_exchange.NewBitget(bitgetClient)
+	if err := c.di.Provide(func(bitgetClient *bitget.Client) *exchange.Bitget {
+		return exchange.NewBitget(bitgetClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(gateIoClient *gateio.Client) *adapter_exchange.GateIo {
-		return adapter_exchange.NewGateIo(gateIoClient)
+	if err := c.di.Provide(func(gateIoClient *gateio.Client) *exchange.GateIo {
+		return exchange.NewGateIo(gateIoClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(krakenClient *kraken.Client) *adapter_exchange.Kraken {
-		return adapter_exchange.NewKraken(krakenClient)
+	if err := c.di.Provide(func(krakenClient *kraken.Client) *exchange.Kraken {
+		return exchange.NewKraken(krakenClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(kukoinClient *kucoin.Client) *adapter_exchange.Kucoin {
-		return adapter_exchange.NewKucoin(kukoinClient)
+	if err := c.di.Provide(func(kukoinClient *kucoin.Client) *exchange.Kucoin {
+		return exchange.NewKucoin(kukoinClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(mexcClient *mexc.Client) *adapter_exchange.Mexc {
-		return adapter_exchange.NewMexc(mexcClient)
+	if err := c.di.Provide(func(mexcClient *mexc.Client) *exchange.Mexc {
+		return exchange.NewMexc(mexcClient)
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(okxClient *okx.Client) *adapter_exchange.Okx {
-		return adapter_exchange.NewOkx(okxClient)
+	if err := c.di.Provide(func(okxClient *okx.Client) *exchange.Okx {
+		return exchange.NewOkx(okxClient)
 	}); err != nil {
 		return err
 	}
@@ -75,23 +75,23 @@ func (c *Container) initServices() error {
 	if err := c.di.Provide(func(priceRepo price.Repository) price.Price {
 		priceService := price.NewService(priceRepo)
 		err := c.di.Invoke(func(
-			binanceExchange *adapter_exchange.Binance,
-			bitgetExchange *adapter_exchange.Bitget,
-			bybitExchange *adapter_exchange.Bybit,
-			gateIoExchange *adapter_exchange.GateIo,
-			krakenExchange *adapter_exchange.Kraken,
-			kukoinExchange *adapter_exchange.Kucoin,
-			mexcExchange *adapter_exchange.Mexc,
-			okxExchange *adapter_exchange.Okx,
+			binanceExchange *exchange.Binance,
+			bitgetExchange *exchange.Bitget,
+			bybitExchange *exchange.Bybit,
+			gateIoExchange *exchange.GateIo,
+			krakenExchange *exchange.Kraken,
+			kukoinExchange *exchange.Kucoin,
+			mexcExchange *exchange.Mexc,
+			okxExchange *exchange.Okx,
 		) {
-			priceService.AddLoader(adapter_exchange.BinanceExchange, binanceExchange)
-			priceService.AddLoader(adapter_exchange.BitgetExchange, bitgetExchange)
-			priceService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
-			priceService.AddLoader(adapter_exchange.GateIoExchange, gateIoExchange)
-			priceService.AddLoader(adapter_exchange.KrakenExchange, krakenExchange)
-			priceService.AddLoader(adapter_exchange.KucoinExchange, kukoinExchange)
-			priceService.AddLoader(adapter_exchange.MexcExchange, mexcExchange)
-			priceService.AddLoader(adapter_exchange.OkxExchange, okxExchange)
+			priceService.AddLoader(exchange.BinanceExchange, binanceExchange)
+			priceService.AddLoader(exchange.BitgetExchange, bitgetExchange)
+			priceService.AddLoader(exchange.BybitExchange, bybitExchange)
+			priceService.AddLoader(exchange.GateIoExchange, gateIoExchange)
+			priceService.AddLoader(exchange.KrakenExchange, krakenExchange)
+			priceService.AddLoader(exchange.KucoinExchange, kukoinExchange)
+			priceService.AddLoader(exchange.MexcExchange, mexcExchange)
+			priceService.AddLoader(exchange.OkxExchange, okxExchange)
 		})
 		if err != nil {
 			return nil
@@ -103,10 +103,10 @@ func (c *Container) initServices() error {
 
 	if err := c.di.Provide(func(
 		candlestickRepo candlestick.Repository,
-		bybitExchange *adapter_exchange.Bybit,
+		bybitExchange *exchange.Bybit,
 	) candlestick.Candlestick {
 		candlestickService := candlestick.NewService(candlestickRepo)
-		candlestickService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
+		candlestickService.AddLoader(exchange.BybitExchange, bybitExchange)
 		return candlestickService
 	}); err != nil {
 		return err
@@ -130,11 +130,11 @@ func (c *Container) initServices() error {
 
 	if err := c.di.Provide(func(
 		conn *sqlx.DB,
-		bybitExchange *adapter_exchange.Bybit,
+		bybitExchange *exchange.Bybit,
 		repo core_exchange.Repository,
 	) core_exchange.Exchange {
 		exchangeService := core_exchange.New(repo)
-		exchangeService.AddLoader(adapter_exchange.BybitExchange, bybitExchange)
+		exchangeService.AddLoader(exchange.BybitExchange, bybitExchange)
 		return exchangeService
 	}); err != nil {
 		return err
@@ -161,8 +161,8 @@ func (c *Container) initServices() error {
 
 	if err := c.di.Provide(func(
 		analysisDBRepo *postgresql.AnalyticRepository, indicatorDBRepos *postgresql.IndicatorRepository, symbolDBRepos *postgresql.CandlestickRepository,
-	) *application.Service {
-		return application.NewService(analysisDBRepo, indicatorDBRepos, symbolDBRepos)
+	) *service.Service {
+		return service.NewService(analysisDBRepo, indicatorDBRepos, symbolDBRepos)
 	}); err != nil {
 		return err
 	}

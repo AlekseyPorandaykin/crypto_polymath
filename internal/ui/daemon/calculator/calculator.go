@@ -124,12 +124,28 @@ func (app *Calculator) Run(ctx context.Context) error {
 
 	system.Go(func() {
 		_ = scheduler.ExecuteEveryHour(ctx, 1, 1, func() error {
-			return app.deleteOlIndicators(ctx)
+			return scheduler.ExecuteEveryDay(ctx, func() error {
+				defer deleteIndicatorHelper()()
+				if err := app.indicatorService.DeleteOldRows(
+					ctx,
+					viper.GetInt("indicator.storage.limit"),
+				); err != nil {
+					app.logger.Error("delete old indicators", zap.Error(err))
+				}
+				return nil
+			})
 		})
 	})
 	system.Go(func() {
-		_ = scheduler.ExecuteEveryHour(ctx, 1, 1, func() error {
-			return app.deleteOldAnalysis(ctx)
+		_ = scheduler.ExecuteEveryDay(ctx, func() error {
+			defer deleteAnalysisHelper()()
+			if err := app.analysisService.DeleteOldRows(
+				ctx,
+				viper.GetInt("analysis.storage.limit"),
+			); err != nil {
+				app.logger.Error("delete old analysis", zap.Error(err))
+			}
+			return nil
 		})
 	})
 	for {
@@ -425,29 +441,4 @@ func (app *Calculator) calculateIndicatorsByCandle(ctx context.Context, c domain
 		"indicator calculated",
 		zap.Int("count", len(indicators)),
 		zap.String("duration", time.Since(start).String()))
-}
-
-func (app *Calculator) deleteOlIndicators(ctx context.Context) error {
-	return scheduler.ExecuteEveryDay(ctx, func() error {
-		defer deleteIndicatorHelper()()
-		if err := app.indicatorService.DeleteOldRows(
-			ctx,
-			viper.GetInt("indicator.storage.limit"),
-		); err != nil {
-			app.logger.Error("delete old indicators", zap.Error(err))
-		}
-		return nil
-	})
-}
-func (app *Calculator) deleteOldAnalysis(ctx context.Context) error {
-	return scheduler.ExecuteEveryDay(ctx, func() error {
-		defer deleteAnalysisHelper()()
-		if err := app.analysisService.DeleteOldRows(
-			ctx,
-			viper.GetInt("analysis.storage.limit"),
-		); err != nil {
-			app.logger.Error("delete old analysis", zap.Error(err))
-		}
-		return nil
-	})
 }

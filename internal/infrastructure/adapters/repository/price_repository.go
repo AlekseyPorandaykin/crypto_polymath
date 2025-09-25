@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/pkg/errors"
-	"time"
 )
 
 var _ price.Repository = (*PriceRepository)(nil)

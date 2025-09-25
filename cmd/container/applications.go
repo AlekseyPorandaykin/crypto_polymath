@@ -9,10 +9,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/application"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl"
+	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/calculator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
@@ -31,7 +31,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 		candlestickService candlestick.Candlestick,
 		exchangeService core_exchange.Exchange,
 		indicatorService indicator.Indicator,
-		serv *application.Service,
+		serv *service.Service,
 		loadedCandleDispatcher dispatcher.Dispatcher[domain.LoadedCandlesticksActionBody],
 		candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
 		priceDispatcher dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody],
@@ -146,7 +146,7 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		analysisService *analysis.Service,
 		analysisDBRepo *postgresql.AnalyticRepository,
 		indicatorDBRepos *postgresql.IndicatorRepository,
-		serv *application.Service,
+		serv *service.Service,
 		candleIndicator candle_indicator.CandleIndicator,
 	) error {
 		serverHttp = http_server.NewServer()

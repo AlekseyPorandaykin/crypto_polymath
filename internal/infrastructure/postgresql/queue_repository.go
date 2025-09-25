@@ -21,10 +21,11 @@ type QueueMessage struct {
 type QueueRepository[T any] struct {
 	db   *sqlx.DB
 	name string
+	ttl  time.Duration
 }
 
-func NewQueueRepository[T any](db *sqlx.DB, name string) *QueueRepository[T] {
-	return &QueueRepository[T]{db: db, name: name}
+func NewQueueRepository[T any](db *sqlx.DB, name string, ttl time.Duration) *QueueRepository[T] {
+	return &QueueRepository[T]{db: db, name: name, ttl: ttl}
 }
 
 func (repo *QueueRepository[T]) Publish(message ...T) error {
@@ -78,10 +79,15 @@ func (repo *QueueRepository[T]) Close() {
 }
 
 func (repo *QueueRepository[T]) Receive() (*T, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if err := repo.deleteByTtl(ctx); err != nil {
+		return nil, fmt.Errorf("failed to delete old messages: %w", err)
+	}
 	data := make([]QueueMessage, 0, 1)
 	err := backoff.Retry(func() error {
 		var err error
-		data, err = repo.receive(context.Background(), repo.name, 1)
+		data, err = repo.receive(ctx, repo.name, 1)
 		if err != nil {
 			return err
 		}
@@ -97,7 +103,7 @@ func (repo *QueueRepository[T]) Receive() (*T, error) {
 	if err := json.Unmarshal(data[0].Body, &msg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
 	}
-	if err := repo.delete(context.Background(), []string{data[0].ID}, 1); err != nil {
+	if err := repo.delete(ctx, []string{data[0].ID}, 1); err != nil {
 		return nil, fmt.Errorf("failed to delete message: %w", err)
 	}
 	return &msg, nil
@@ -152,6 +158,18 @@ DELETE FROM crypto_polymath.queues WHERE id IN (?)
 	}
 	if _, err := repo.db.ExecContext(ctx, repo.db.Rebind(preparedQuery), values...); err != nil {
 		return fmt.Errorf("failed to delete messages: %w", err)
+	}
+	return nil
+}
+
+func (repo *QueueRepository[T]) deleteByTtl(ctx context.Context) error {
+	to := time.Now().In(time.UTC).Add(-repo.ttl)
+	query := `
+DELETE FROM crypto_polymath.queues WHERE name = $1 AND created_at < $2
+`
+	_, err := repo.db.ExecContext(ctx, query, repo.name, to)
+	if err != nil {
+		return err
 	}
 	return nil
 }

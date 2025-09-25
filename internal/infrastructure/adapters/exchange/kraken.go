@@ -2,12 +2,13 @@ package exchange
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kraken"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"strings"
-	"time"
 )
 
 const KrakenExchange = "kraken"

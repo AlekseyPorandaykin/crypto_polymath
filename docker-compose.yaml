@@ -66,16 +66,16 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
   postgres:
     image: postgres
-    mem_limit: 512m
+    mem_limit: 2048m
     cpus: 0.5
     deploy:
       resources:
         limits:
           cpus: '0.50'     # максимум 50% одного CPU
-          memory: 512M     # максимум 512 мегабайт
+          memory: 2048m     # максимум 2048 мегабайт
         reservations:
           cpus: '0.25'     # желательно 25% CPU
-          memory: 256M     # желательно 256Мб
+          memory: 1024M     # желательно 1024Мб
     restart: unless-stopped         # политика рестарта
     ports:
       - "3307:3306"
@@ -86,7 +86,7 @@ services:
       POSTGRES_PASSWORD: crypto_developer
       PGDATA: /data/pgdata
     volumes:
-      - /projects/storage:/data/pgdata
+      - ./deployments/storage:/data/pgdata
     healthcheck: # Проверка состояния для PostgreSQL
       test: [ "CMD-SHELL", "pg_isready -U crypto_app -d crypto_app" ]
       interval: 10s

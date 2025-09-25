@@ -137,6 +137,7 @@ func (c *Container) initEventImplementations() error {
 		producer := postgresql.NewQueueRepository[queue_contract.CandleIndicator](
 			conn,
 			viper.GetString("events.queue_candle_indicator"),
+			2*time.Hour,
 		)
 		return producer, nil
 	}); err != nil {
@@ -146,6 +147,7 @@ func (c *Container) initEventImplementations() error {
 		producer := postgresql.NewQueueRepository[queue_contract.Analytic](
 			conn,
 			viper.GetString("events.queue_analytic"),
+			2*time.Hour,
 		)
 		return producer, nil
 	}); err != nil {
@@ -155,6 +157,7 @@ func (c *Container) initEventImplementations() error {
 		producer := postgresql.NewQueueRepository[queue_contract.Indicator](
 			conn,
 			viper.GetString("events.queue_indicator"),
+			2*time.Hour,
 		)
 		return producer, nil
 	}); err != nil {
@@ -164,6 +167,7 @@ func (c *Container) initEventImplementations() error {
 		producer := postgresql.NewQueueRepository[queue_contract.Action](
 			conn,
 			viper.GetString("events.queue_action"),
+			2*time.Hour,
 		)
 		return producer, nil
 	}); err != nil {
@@ -173,6 +177,7 @@ func (c *Container) initEventImplementations() error {
 		producer := postgresql.NewQueueRepository[queue_contract.Candlestick](
 			conn,
 			viper.GetString("events.queue_candlestick"),
+			2*time.Hour,
 		)
 		return producer, nil
 	}); err != nil {

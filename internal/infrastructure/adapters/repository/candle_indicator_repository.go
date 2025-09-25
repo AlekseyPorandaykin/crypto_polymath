@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type CandleIndicatorRepository struct {

@@ -2,11 +2,12 @@ package exchange
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/gateio"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
-	"strings"
-	"time"
 )
 
 const GateIoExchange = "gate.io"

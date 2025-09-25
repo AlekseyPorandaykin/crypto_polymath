@@ -3,13 +3,14 @@ package exchange
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin/response"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
-	"strings"
-	"time"
 )
 
 const KucoinExchange = "kucoin"
