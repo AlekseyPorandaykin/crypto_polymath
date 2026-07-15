@@ -2,21 +2,6 @@ package view
 
 import "context"
 
-type AnalyticInfoModel struct {
-	Unit           string
-	Interval       int
-	Name           string
-	Depth          int
-	IndicatorDepth int
-}
-
-type IndicatorInfoModel struct {
-	Unit     string
-	Interval int
-	Name     string
-	Depth    int
-}
-
 type AnalysisModel struct {
 	Depth          []int
 	Name           string
@@ -46,18 +31,6 @@ type DictionaryModel struct {
 	Units          []string
 }
 
-type AnalyticInfoRepository interface {
-	AllAnalyticInfo(ctx context.Context) (map[string][]AnalyticInfoModel, error)
-}
-
-type IndicatorInfoRepository interface {
-	AllIndicatorInfoModel(ctx context.Context) (map[string][]IndicatorInfoModel, error)
-}
-
 type DictionaryRepository interface {
 	Dictionary(ctx context.Context) (DictionaryModel, error)
-}
-
-type SymbolRepository interface {
-	AllSymbols(ctx context.Context) ([]string, error)
 }

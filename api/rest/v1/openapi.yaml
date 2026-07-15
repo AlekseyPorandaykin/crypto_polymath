@@ -16,11 +16,12 @@ servers:
 paths:
   /server:
     get:
+      summary: Server information
       tags:
-        - server
+        - info
       responses:
         200:
-          description: get server info
+          description: Get server info
           content:
             application/json:
               schema:
@@ -33,6 +34,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /prices/exchange/{exchange}:
     get:
+      summary: Last exchange price
       tags:
         - price
       parameters:
@@ -60,6 +62,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /prices/symbol/{symbol}:
     get:
+      summary: Last prices
       tags:
         - price
       parameters:
@@ -87,6 +90,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /price/{exchange}/{symbol}:
     get:
+      summary: Last symbol price
       tags:
         - price
       parameters:
@@ -120,6 +124,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /candlestick/{exchange}/{symbol}/{unit}/{interval}:
     get:
+      summary: Last candlesticks
       tags:
         - candlestick
       parameters:
@@ -168,6 +173,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /indicator/{exchange}/{symbol}/{unit}/{interval}/{name}/{depth}:
     get:
+      summary: Last indicators
       tags:
         - indicator
       parameters:
@@ -246,6 +252,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /candle-indicator/{exchange}/{symbol}/{unit}/{interval}/{name}:
     get:
+      summary: Last candle-indicators
       tags:
         - indicator
       parameters:
@@ -302,8 +309,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /exchange/{exchange}/{symbol}:
     get:
+      summary: Symbol info
       tags:
-        - exchange
+        - symbol
       parameters:
         - in: path
           name: exchange
@@ -334,6 +342,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth}:
     get:
+      summary: Last analysis
       parameters:
         - in: path
           name: exchange
@@ -431,6 +440,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /symbols/{exchange}/{category}:
     get:
+      summary: Symbol infos
       tags:
         - symbol
       parameters:
@@ -458,6 +468,276 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/SymbolInfoResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/avg-entry-price:
+    post:
+      tags:
+        - calculator
+      summary: Средняя цена входа после докупки по объёму
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingAvgEntryPriceRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAvgEntryPriceResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/avg-entry-price-by-sum:
+    post:
+      tags:
+        - calculator
+      summary: Средняя цена входа после докупки на сумму залога
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingAvgEntryPriceBySumRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAvgEntryPriceResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/volume-from-margin:
+    post:
+      tags:
+        - calculator
+      summary: Объём позиции из залога и плеча
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingVolumeFromMarginRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingVolumeResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/liquidation-price:
+    post:
+      tags:
+        - calculator
+      summary: Цена ликвидации изолированной позиции
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingLiquidationPriceRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingLiquidationPriceResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/unrealized-pnl:
+    post:
+      tags:
+        - calculator
+      summary: Нереализованный PnL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingUnrealizedPnLRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingUnrealizedPnLResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/distance-to-liquidation:
+    post:
+      tags:
+        - calculator
+      summary: Запас до ликвидации в процентах
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingDistanceToLiquidationRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingDistanceToLiquidationResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/simulate-add-on:
+    post:
+      tags:
+        - calculator
+      summary: Симуляция докупки (вход, ликвидация, риски)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingSimulateAddOnRequest'
+      responses:
+        200:
+          description: Результат симуляции
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingAddOnResultResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/risk-at-price:
+    post:
+      tags:
+        - calculator
+      summary: Снимок риска позиции при рыночной цене
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingRiskAtPriceRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingRiskSnapshotResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /calculator/trading/spot-pnl:
+    post:
+      tags:
+        - calculator
+      summary: PnL спотовой позиции в значении и в процентах
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradingSpotPnLRequest'
+      responses:
+        200:
+          description: Результат расчёта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingSpotPnLResponse'
+        400:
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -711,6 +991,277 @@ components:
         countdown_funding_time:
           type: string
           description: Countdown funding time, if not future then 0
+    TradingSide:
+      type: string
+      enum: [ long, short ]
+      description: Направление позиции
+    TradingPosition:
+      type: object
+      required: [ side, volume, entry_price, margin, leverage ]
+      properties:
+        side:
+          $ref: '#/components/schemas/TradingSide'
+        volume:
+          type: number
+          description: Объём в базовом активе
+        entry_price:
+          type: number
+          description: Средняя цена входа (USDT)
+        margin:
+          type: number
+          description: Залог (USDT)
+        leverage:
+          type: number
+          description: Плечо
+    TradingAddOn:
+      type: object
+      required: [ price ]
+      properties:
+        price:
+          type: number
+          description: Цена докупки (USDT)
+        volume:
+          type: number
+          description: Доп. объём; если 0 — считается из margin
+        margin:
+          type: number
+          description: Доп. залог (USDT)
+    TradingAvgEntryPriceRequest:
+      type: object
+      required: [ entry_volume, entry_price, new_volume, new_price ]
+      properties:
+        entry_volume:
+          type: number
+        entry_price:
+          type: number
+        new_volume:
+          type: number
+        new_price:
+          type: number
+    TradingAvgEntryPriceBySumRequest:
+      type: object
+      required: [ entry_volume, entry_price, sum, leverage, new_price ]
+      properties:
+        entry_volume:
+          type: number
+        entry_price:
+          type: number
+        sum:
+          type: number
+          description: Сумма залога докупки (USDT)
+        leverage:
+          type: number
+        new_price:
+          type: number
+    TradingAvgEntryPriceResponse:
+      type: object
+      required: [ avg_entry_price ]
+      properties:
+        avg_entry_price:
+          type: number
+    TradingVolumeFromMarginRequest:
+      type: object
+      required: [ margin, leverage, price ]
+      properties:
+        margin:
+          type: number
+        leverage:
+          type: number
+        price:
+          type: number
+    TradingVolumeResponse:
+      type: object
+      required: [ volume ]
+      properties:
+        volume:
+          type: number
+    TradingLiquidationPriceRequest:
+      type: object
+      required: [ side, volume, entry_price, margin ]
+      properties:
+        side:
+          $ref: '#/components/schemas/TradingSide'
+        volume:
+          type: number
+        entry_price:
+          type: number
+        margin:
+          type: number
+        maintenance_margin_rate:
+          type: number
+          default: 0.005
+          description: MMR (0.005 = 0.5%)
+    TradingLiquidationPriceResponse:
+      type: object
+      required: [ liquidation_price ]
+      properties:
+        liquidation_price:
+          type: number
+    TradingUnrealizedPnLRequest:
+      type: object
+      required: [ side, volume, entry_price, mark_price ]
+      properties:
+        side:
+          $ref: '#/components/schemas/TradingSide'
+        volume:
+          type: number
+        entry_price:
+          type: number
+        mark_price:
+          type: number
+    TradingUnrealizedPnLResponse:
+      type: object
+      required: [ unrealized_pnl ]
+      properties:
+        unrealized_pnl:
+          type: number
+    TradingDistanceToLiquidationRequest:
+      type: object
+      required: [ side, mark_price, liquidation_price ]
+      properties:
+        side:
+          $ref: '#/components/schemas/TradingSide'
+        mark_price:
+          type: number
+        liquidation_price:
+          type: number
+    TradingDistanceToLiquidationResponse:
+      type: object
+      required: [ distance_percent ]
+      properties:
+        distance_percent:
+          type: number
+    TradingSimulateAddOnRequest:
+      type: object
+      required: [ position, add_on ]
+      properties:
+        position:
+          $ref: '#/components/schemas/TradingPosition'
+        add_on:
+          $ref: '#/components/schemas/TradingAddOn'
+        maintenance_margin_rate:
+          type: number
+          default: 0.005
+    TradingRiskAtPriceRequest:
+      type: object
+      required: [ position, mark_price ]
+      properties:
+        position:
+          $ref: '#/components/schemas/TradingPosition'
+        mark_price:
+          type: number
+        maintenance_margin_rate:
+          type: number
+          default: 0.005
+    TradingAddOnResultResponse:
+      type: object
+      required:
+        - before
+        - after
+        - volume_added
+        - entry_delta
+        - entry_delta_percent
+        - liquidation_before
+        - liquidation_after
+        - liquidation_delta
+        - margin_added
+        - notional_after
+        - effective_leverage
+        - maintenance_margin
+        - unrealized_pnl_at_price
+        - pnl_percent_on_margin
+        - distance_to_liquidation_pct
+        - break_even_price
+      properties:
+        before:
+          $ref: '#/components/schemas/TradingPosition'
+        after:
+          $ref: '#/components/schemas/TradingPosition'
+        volume_added:
+          type: number
+        entry_delta:
+          type: number
+        entry_delta_percent:
+          type: number
+        liquidation_before:
+          type: number
+        liquidation_after:
+          type: number
+        liquidation_delta:
+          type: number
+        margin_added:
+          type: number
+        notional_after:
+          type: number
+        effective_leverage:
+          type: number
+        maintenance_margin:
+          type: number
+        unrealized_pnl_at_price:
+          type: number
+        pnl_percent_on_margin:
+          type: number
+        distance_to_liquidation_pct:
+          type: number
+        break_even_price:
+          type: number
+    TradingRiskSnapshotResponse:
+      type: object
+      required:
+        - mark_price
+        - entry_price
+        - liquidation_price
+        - unrealized_pnl
+        - pnl_percent_on_margin
+        - notional
+        - effective_leverage
+        - maintenance_margin
+        - margin_usage_percent
+        - distance_to_liquidation_pct
+      properties:
+        mark_price:
+          type: number
+        entry_price:
+          type: number
+        liquidation_price:
+          type: number
+        unrealized_pnl:
+          type: number
+        pnl_percent_on_margin:
+          type: number
+        notional:
+          type: number
+        effective_leverage:
+          type: number
+        maintenance_margin:
+          type: number
+        margin_usage_percent:
+          type: number
+        distance_to_liquidation_pct:
+          type: number
+    TradingSpotPnLRequest:
+      type: object
+      required: [ volume, entry_price, mark_price ]
+      properties:
+        volume:
+          type: number
+          description: Объём в базовом активе
+        entry_price:
+          type: number
+          description: Средняя цена входа (USDT)
+        mark_price:
+          type: number
+          description: Текущая рыночная цена (USDT)
+    TradingSpotPnLResponse:
+      type: object
+      required: [ value, percent ]
+      properties:
+        value:
+          type: number
+          description: PnL в валюте котировки (USDT)
+        percent:
+          type: number
+          description: PnL в процентах от цены входа
   examples:
     PriceResponse:
       value:

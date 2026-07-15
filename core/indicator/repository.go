@@ -28,9 +28,20 @@ type UniqDTO struct {
 	Depth    int    `db:"depth"`
 }
 
+type IndicatorInfo struct {
+	Unit     string
+	Interval int
+	Name     string
+	Depth    int
+}
+
 type Repository interface {
 	Save(ctx context.Context, data ...StorageDTO) error
 	Find(ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, name string, depth int) (*StorageDTO, error)
+	// FindMany - Пакетный поиск по конкретным datetime, чтобы не ходить в БД по одной свече за раз.
+	FindMany(ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int, datetimes []time.Time) ([]StorageDTO, error)
+	// FindManyByName - Пакетный поиск сразу по нескольким индикаторам (name) для одной свечи.
+	FindManyByName(ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, depth int, names []string) ([]StorageDTO, error)
 	List(ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit, offset int) ([]StorageDTO, error)
 	Last(
 		ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int,
@@ -40,4 +51,5 @@ type Repository interface {
 	LastToDate(
 		ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
 	) ([]StorageDTO, error)
+	AllIndicatorInfo(ctx context.Context) (map[string][]IndicatorInfo, error)
 }

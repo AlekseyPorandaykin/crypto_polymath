@@ -19,7 +19,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/web"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/spf13/viper"
 )
@@ -37,6 +36,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 		priceDispatcher dispatcher.Dispatcher[domain.LoadedPricesByExchangeActionBody],
 		loadedCandleListener dispatcher.Listener[domain.LoadedCandlesticksActionBody],
 		candleListener dispatcher.Listener[domain.Candlestick],
+		log LoaderLogger,
 	) error {
 		loadedCandleDispatcher.Subscribe(loadedCandleListener)
 		candleDispatcher.Subscribe(candleListener)
@@ -53,11 +53,7 @@ func (c *Container) CreateLoader() (*loader.Loader, error) {
 			viper.GetStringSlice("load.symbols"),
 			viper.GetStringSlice("load.hot_symbols"),
 		)
-		log, err := logger.CreateForNamespace("loader")
-		if err != nil {
-			return err
-		}
-		app.WithLogger(log)
+		app.WithLogger(asZapLogger(log))
 		return nil
 	})
 	if err != nil {
@@ -77,20 +73,18 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 		analyticDispatcher dispatcher.Dispatcher[analysis.Analytic],
 		candleDispatcher dispatcher.Dispatcher[domain.Candlestick],
 		indicatorDispatcher dispatcher.Dispatcher[domain.Indicator],
-		candleIndicatorDispatcher dispatcher.Dispatcher[candle_indicator.Indicator],
 		indicatorService indicator.Indicator,
 		analysisService *analysis.Service,
 		candleIndicator candle_indicator.CandleIndicator,
 		analysisListener dispatcher.Listener[analysis.Analytic],
 		candleListener dispatcher.Listener[domain.Candlestick],
 		indicatorListener dispatcher.Listener[domain.Indicator],
-		candleIndicatorListener dispatcher.Listener[candle_indicator.Indicator],
 		h *grpc.ActionHandler,
+		log CalculatorLogger,
 	) error {
 		analyticDispatcher.Subscribe(analysisListener)
 		candleDispatcher.Subscribe(candleListener)
 		indicatorDispatcher.Subscribe(indicatorListener)
-		candleIndicatorDispatcher.Subscribe(candleIndicatorListener)
 		app = calculator.NewCalculator(
 			actionConsumer,
 			candlestickConsumer,
@@ -99,18 +93,13 @@ func (c *Container) CreateCalculator() (*calculator.Calculator, error) {
 			candleIndicatorConsumer,
 			analyticDispatcher,
 			indicatorDispatcher,
-			candleIndicatorDispatcher,
 			indicatorService,
 			analysisService,
 			candleIndicator,
 			viper.GetIntSlice("candlestick.depths"),
 			viper.GetIntSlice("candlestick.depths"),
 		)
-		log, err := logger.CreateForNamespace("calculator")
-		if err != nil {
-			return err
-		}
-		app.WithLogger(log)
+		app.WithLogger(asZapLogger(log))
 		return nil
 	})
 	if err != nil {
@@ -144,10 +133,9 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		indicatorService indicator.Indicator,
 		exchangeService core_exchange.Exchange,
 		analysisService *analysis.Service,
-		analysisDBRepo *postgresql.AnalyticRepository,
-		indicatorDBRepos *postgresql.IndicatorRepository,
 		serv *service.Service,
 		candleIndicator candle_indicator.CandleIndicator,
+		log HTTPServerLogger,
 	) error {
 		serverHttp = http_server.NewServer()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
@@ -158,17 +146,11 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 			indicatorService,
 			exchangeService,
 			analysisService,
-			analysisDBRepo,
-			indicatorDBRepos,
 			serv,
 			candleIndicator,
 		)
 
-		log, err := logger.CreateForNamespace("http_server")
-		if err != nil {
-			return err
-		}
-		http_server.WithLogger(log)
+		http_server.WithLogger(asZapLogger(log))
 		spec.RegisterHandlers(serverHttp.ApiGroup("/v1"), handlerHttp)
 		return nil
 	})

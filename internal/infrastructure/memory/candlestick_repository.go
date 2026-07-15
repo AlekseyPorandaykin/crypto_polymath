@@ -121,7 +121,7 @@ func (c *CandlestickRepository) LastToDate(ctx context.Context, exchange, symbol
 	data := make([]candlestick.StorageDTO, 0, limit)
 	datetimes := cache.Keys()
 	for _, datetime := range datetimes {
-		if datetime.Before(to) && datetime.Equal(to) {
+		if !datetime.After(to) {
 			if v, ok := cache.Get(datetime); ok {
 				data = append(data, v)
 			}
@@ -150,7 +150,7 @@ func (c *CandlestickRepository) FromDate(ctx context.Context, exchange, symbol, 
 	data := make([]candlestick.StorageDTO, 0, limit)
 	datetimes := cache.Keys()
 	for _, datetime := range datetimes {
-		if datetime.After(to) && datetime.Equal(to) {
+		if !datetime.Before(to) {
 			if v, ok := cache.Get(datetime); ok {
 				data = append(data, v)
 			}
@@ -193,4 +193,8 @@ func keyCandlestickFromDto(data candlestick.StorageDTO) string {
 
 func createKeyCandlestick(exchangeName, symbol, unit string, interval int) string {
 	return fmt.Sprintf("%s-%s-%s-%d", exchangeName, symbol, unit, interval)
+}
+
+func (c *CandlestickRepository) AllSymbols(ctx context.Context) ([]string, error) {
+	return nil, nil
 }

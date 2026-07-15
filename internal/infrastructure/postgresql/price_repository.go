@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
-	"github.com/jmoiron/sqlx"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
+	"github.com/jmoiron/sqlx"
 )
 
 var _ price.Repository = (*PriceRepository)(nil)
@@ -23,7 +23,6 @@ func NewPriceRepository(db *sqlx.DB) *PriceRepository {
 }
 
 func (p *PriceRepository) Save(ctx context.Context, data ...price.StorageDTO) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "price_save")()
 	const query = `
 INSERT INTO 
     prices(id, symbol, exchange, value, created_at) VALUES 
@@ -46,7 +45,6 @@ INSERT INTO
 }
 
 func (p *PriceRepository) Find(ctx context.Context, exchange, symbol string) (*price.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "price_find")()
 	var (
 		query = `
 SELECT id, symbol, exchange, value, created_at
@@ -70,7 +68,6 @@ LIMIT 1
 }
 
 func (p *PriceRepository) ListByExchange(ctx context.Context, exchange string) ([]price.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "price_list_by_exchange")()
 	var (
 		query = `
 SELECT id, symbol, exchange, value, created_at
@@ -90,7 +87,6 @@ ORDER BY created_at DESC
 	return result, nil
 }
 func (p *PriceRepository) ListBySymbol(ctx context.Context, symbol string) ([]price.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "price_list_by_symbol")()
 	var (
 		query = `
 SELECT id, symbol, exchange, value, created_at
@@ -111,7 +107,6 @@ ORDER BY created_at DESC
 }
 
 func (p *PriceRepository) Delete(ctx context.Context, exchange string, to time.Time) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "price_delete")()
 	var query = `
 DELETE FROM prices WHERE exchange=? AND created_at < ?
 `

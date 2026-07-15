@@ -3,10 +3,10 @@ package domain
 import "time"
 
 const (
-	CreatedCandlestickEvent   string = "CreatedCandlestickEvent"
-	CreatedIndicatorEvent     string = "CreatedIndicatorEvent"
-	CreatedAnalyticEvent      string = "CreatedAnalyticEvent"
-	CreateIndicatorEventEvent string = "CreateIndicatorEventEvent"
+	CreatedCandlestickEvent         string = "CreatedCandlestickEvent"    //domain.Candlestick
+	CreatedIndicatorEvent           string = "CreatedIndicatorEvent"      //domain.Indicator
+	CreatedAnalyticEvent            string = "CreatedAnalyticEvent"       //analysis.Analytic
+	CreateCandleIndicatorEventEvent string = "CreateCandleIndicatorEvent" //candle_indicator.Indicator
 
 	LoadedCandlesticksForSymbolAction string = "LoadedCandlesticksForSymbolAction" //Загрузили свечи для символа
 	LoadedPricesByExchangeAction      string = "LoadedPricesByExchangeAction"      //Загрузил послежние цены биржи

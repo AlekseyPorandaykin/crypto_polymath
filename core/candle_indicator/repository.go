@@ -25,6 +25,8 @@ type StorageDTO struct {
 type Repository interface {
 	Save(ctx context.Context, data []StorageDTO) error
 	Find(ctx context.Context, name, exchange, symbol, unit string, interval int, from time.Time) (*StorageDTO, error)
+	// FindMany - Пакетный поиск по конкретным startTime, чтобы не ходить в БД по одной свече за раз.
+	FindMany(ctx context.Context, name, exchange, symbol, unit string, interval int, startTimes []time.Time) ([]StorageDTO, error)
 	FetchLast(ctx context.Context, name, exchange, symbol, unit string, interval int) ([]StorageDTO, error)
 	LastAddedFromDate(ctx context.Context, name, exchange, unit string, interval int, from time.Time) ([]StorageDTO, error)
 }

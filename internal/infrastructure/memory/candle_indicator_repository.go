@@ -49,22 +49,39 @@ func (repo *CandleIndicatorRepository) Find(
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	key := createCandleIndicatorKey(name, exchange, symbol, unit, interval)
-	if _, has := repo.caches[key]; !has {
-		cache, err := lru.New[time.Time, candle_indicator.StorageDTO](repo.size)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create cache")
-		}
-		repo.caches[key] = cache
+	cache, has := repo.caches[key]
+	if !has {
 		return nil, nil
 	}
-	res, ok := repo.caches[key].Get(startTime)
+	res, ok := cache.Get(startTime)
 	if !ok {
 		return nil, nil
 	}
 	return &res, nil
 }
 
+func (repo *CandleIndicatorRepository) FindMany(
+	ctx context.Context, name, exchange, symbol, unit string, interval int, startTimes []time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	key := createCandleIndicatorKey(name, exchange, symbol, unit, interval)
+	cache, has := repo.caches[key]
+	if !has {
+		return nil, nil
+	}
+	result := make([]candle_indicator.StorageDTO, 0, len(startTimes))
+	for _, startTime := range startTimes {
+		if v, ok := cache.Get(startTime); ok {
+			result = append(result, v)
+		}
+	}
+	return result, nil
+}
+
 func (repo *CandleIndicatorRepository) FetchLast(ctx context.Context, name, exchange, symbol, unit string, interval int) ([]candle_indicator.StorageDTO, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	data := make([]candle_indicator.StorageDTO, 0, 100)
 	for _, cache := range repo.caches {
 		for _, v := range cache.Values() {

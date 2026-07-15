@@ -2,10 +2,11 @@ package analysis
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // Service - сервисный слой (приложением), реализует логику работы с аналитикой
@@ -36,59 +37,105 @@ func (s *Service) AddCalculatorByAnalytic(calc CalculatorByAnalytic) {
 }
 
 func (s *Service) CalculateByIndicator(ctx context.Context, indicator domain.Indicator) ([]Analytic, error) {
-	calculatedAnalytics := make([]Analytic, 0, len(s.calculatorsByIndicator))
-	for analyticName := range s.calculatorsByIndicator {
+	if len(s.calculatorsByIndicator) == 0 || len(s.depths) == 0 {
+		return nil, nil
+	}
+	names := make([]string, 0, len(s.calculatorsByIndicator))
+	for name := range s.calculatorsByIndicator {
+		names = append(names, name)
+	}
+	existing, err := s.repo.FindManyByIndicator(
+		ctx, indicator.Exchange, indicator.Symbol, indicator.Unit, indicator.Interval, indicator.Datetime, indicator.Depth, names, s.depths,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from storage")
+	}
+	existingByNameDepth := make(map[string]map[int]Analytic, len(names))
+	for _, item := range existing {
+		if existingByNameDepth[item.Name] == nil {
+			existingByNameDepth[item.Name] = make(map[int]Analytic, len(s.depths))
+		}
+		existingByNameDepth[item.Name][item.Depth] = item
+	}
+
+	calculatedAnalytics := make([]Analytic, 0, len(names)*len(s.depths))
+	toSave := make([]Analytic, 0, len(names)*len(s.depths))
+	for analyticName, calc := range s.calculatorsByIndicator {
 		for _, depth := range s.depths {
-			analytic, err := s.analyticByIndicator(ctx, indicator, analyticName, depth)
-			if err != nil {
-				return nil, err
+			if data, ok := existingByNameDepth[analyticName][depth]; ok {
+				calculatedAnalytics = append(calculatedAnalytics, data)
+				continue
+			}
+			analytic, errCalc := s.computeAnalyticByIndicator(ctx, calc, indicator, depth)
+			if errCalc != nil {
+				return nil, errCalc
 			}
 			if analytic == nil {
 				continue
 			}
 			calculatedAnalytics = append(calculatedAnalytics, *analytic)
+			toSave = append(toSave, *analytic)
+		}
+	}
+	if len(toSave) > 0 {
+		if err := s.repo.Save(ctx, toSave...); err != nil {
+			return nil, errors.Wrap(err, "save analytic")
 		}
 	}
 	return calculatedAnalytics, nil
 }
 
 func (s *Service) AnalyticByIndicators(ctx context.Context, indicators []domain.Indicator, analyticName string, depth int) ([]Analytic, error) {
-	result := make([]Analytic, 0, len(indicators))
-	for _, indicatorItem := range indicators {
-		data, err := s.analyticByIndicator(ctx, indicatorItem, analyticName, depth)
-		if err != nil {
-			return nil, err
-		}
-		if data == nil {
-			continue
-		}
-		result = append(result, *data)
+	if len(indicators) == 0 {
+		return nil, nil
 	}
-	return result, nil
-}
-
-func (s *Service) analyticByIndicator(ctx context.Context, indicator domain.Indicator, analyticName string, depth int) (*Analytic, error) {
 	calc, has := s.calculatorsByIndicator[analyticName]
 	if !has {
 		return nil, nil
 	}
-	storageData, errStorage := s.repo.Find(
-		ctx,
-		analyticName,
-		indicator.Exchange,
-		indicator.Symbol,
-		indicator.Unit,
-		indicator.Datetime,
-		indicator.Interval,
-		indicator.Depth,
-		depth,
+	first := indicators[0]
+	datetimes := make([]time.Time, len(indicators))
+	for i, item := range indicators {
+		datetimes[i] = item.Datetime
+	}
+	existing, err := s.repo.FindMany(
+		ctx, analyticName, first.Exchange, first.Symbol, first.Unit, first.Interval, first.Depth, depth, datetimes,
 	)
-	if errStorage != nil {
-		return nil, errors.Wrap(errStorage, "fetch from storage")
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from storage")
 	}
-	if storageData != nil {
-		return storageData, nil
+	existingByTime := make(map[time.Time]Analytic, len(existing))
+	for _, item := range existing {
+		existingByTime[item.Datetime] = item
 	}
+
+	result := make([]Analytic, 0, len(indicators))
+	toSave := make([]Analytic, 0, len(indicators))
+	for _, indicatorItem := range indicators {
+		if data, ok := existingByTime[indicatorItem.Datetime]; ok {
+			result = append(result, data)
+			continue
+		}
+		analytic, errCalc := s.computeAnalyticByIndicator(ctx, calc, indicatorItem, depth)
+		if errCalc != nil {
+			return nil, errCalc
+		}
+		if analytic == nil {
+			continue
+		}
+		result = append(result, *analytic)
+		toSave = append(toSave, *analytic)
+	}
+	if len(toSave) > 0 {
+		if err := s.repo.Save(ctx, toSave...); err != nil {
+			return nil, errors.Wrap(err, "save analytic")
+		}
+	}
+	return result, nil
+}
+
+// computeAnalyticByIndicator - Считает значение аналитики по индикатору, без обращения к storage за поиском/сохранением.
+func (s *Service) computeAnalyticByIndicator(ctx context.Context, calc CalculatorByIndicator, indicator domain.Indicator, depth int) (*Analytic, error) {
 	if indicator.Name != calc.ByIndicator() {
 		return nil, nil
 	}
@@ -98,64 +145,95 @@ func (s *Service) analyticByIndicator(ctx context.Context, indicator domain.Indi
 	if !calc.SupportDepth(depth) {
 		return nil, nil
 	}
-	analytic, err := calc.Calculate(ctx, indicator, depth)
-	if err != nil {
-		return nil, err
-	}
-	if analytic == nil {
-		return nil, nil
-	}
-	if errSave := s.repo.Save(ctx, *analytic); errSave != nil {
-		return nil, errors.Wrap(errSave, "save analytic")
-	}
-	return analytic, nil
+	return calc.Calculate(ctx, indicator, depth)
 }
 
 func (s *Service) CalculateByAnalytic(ctx context.Context, data Analytic) ([]Analytic, error) {
-	calculatedAnalytics := make([]Analytic, 0, len(s.calculatorsByIndicator))
+	return s.CalculateByAnalytics(ctx, []Analytic{data})
+}
+
+// CalculateByAnalytics — пакетный расчёт производных аналитик (MACD Signal Line, Histogram и т.д.).
+// Один FindMany на пачку datetime вместо отдельного запроса на каждое сообщение.
+func (s *Service) CalculateByAnalytics(ctx context.Context, data []Analytic) ([]Analytic, error) {
+	if len(data) == 0 || len(s.calculatorsByAnalytic) == 0 || len(s.depths) == 0 {
+		return nil, nil
+	}
+	bySourceName := make(map[string][]Analytic, len(data))
+	for _, item := range data {
+		bySourceName[item.Name] = append(bySourceName[item.Name], item)
+	}
+
+	calculatedAnalytics := make([]Analytic, 0, len(data)*len(s.calculatorsByAnalytic))
 	for _, calc := range s.calculatorsByAnalytic {
+		sourceAnalytics := bySourceName[calc.ByAnalytic()]
+		if len(sourceAnalytics) == 0 {
+			continue
+		}
 		for _, depth := range s.depths {
-			oscillator, err := s.oscillatorByAnalytic(ctx, data, calc.Name(), depth)
+			if !calc.SupportDepth(depth) {
+				continue
+			}
+			analytics, err := s.OscillatorByAnalytics(ctx, sourceAnalytics, calc.Name(), depth)
 			if err != nil {
 				return nil, err
 			}
-			if oscillator == nil {
-				continue
-			}
-			calculatedAnalytics = append(calculatedAnalytics, *oscillator)
+			calculatedAnalytics = append(calculatedAnalytics, analytics...)
 		}
 	}
 	return calculatedAnalytics, nil
 }
 
 func (s *Service) OscillatorByAnalytics(ctx context.Context, data []Analytic, oscillatorName string, depth int) ([]Analytic, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+	calc, has := s.calculatorsByAnalytic[oscillatorName]
+	if !has {
+		return nil, nil
+	}
+	first := data[0]
+	datetimes := make([]time.Time, len(data))
+	for i, item := range data {
+		datetimes[i] = item.Datetime
+	}
+	existing, err := s.repo.FindMany(
+		ctx, oscillatorName, first.Exchange, first.Symbol, first.Unit, first.Interval, first.Depth, depth, datetimes,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from storage")
+	}
+	existingByTime := make(map[time.Time]Analytic, len(existing))
+	for _, item := range existing {
+		existingByTime[item.Datetime] = item
+	}
+
 	result := make([]Analytic, 0, len(data))
+	toSave := make([]Analytic, 0, len(data))
 	for _, analyticItem := range data {
-		oscillator, err := s.oscillatorByAnalytic(ctx, analyticItem, oscillatorName, depth)
-		if err != nil {
-			return nil, err
+		if found, ok := existingByTime[analyticItem.Datetime]; ok {
+			result = append(result, found)
+			continue
+		}
+		oscillator, errCalc := s.computeOscillatorByAnalytic(ctx, calc, analyticItem, oscillatorName, depth)
+		if errCalc != nil {
+			return nil, errCalc
 		}
 		if oscillator == nil {
 			continue
 		}
 		result = append(result, *oscillator)
+		toSave = append(toSave, *oscillator)
+	}
+	if len(toSave) > 0 {
+		if err := s.repo.Save(ctx, toSave...); err != nil {
+			return nil, errors.Wrap(err, "save oscillatorByAnalytic")
+		}
 	}
 	return result, nil
 }
 
-// analyticByAnalytic - рассчитываем сложную аналитику на основе другой аналитики
-func (s *Service) oscillatorByAnalytic(ctx context.Context, data Analytic, oscillatorName string, depth int) (*Analytic, error) {
-	calc, has := s.calculatorsByAnalytic[oscillatorName]
-	if !has {
-		return nil, nil
-	}
-	storageData, err := s.repo.Find(ctx, oscillatorName, data.Exchange, data.Symbol, data.Unit, data.Datetime, data.Interval, data.Depth, depth)
-	if err != nil {
-		return nil, errors.Wrap(err, "fetch from storage")
-	}
-	if storageData != nil {
-		return storageData, nil
-	}
+// computeOscillatorByAnalytic - Считает значение осциллятора по аналитике, без обращения к storage за поиском/сохранением.
+func (s *Service) computeOscillatorByAnalytic(ctx context.Context, calc CalculatorByAnalytic, data Analytic, oscillatorName string, depth int) (*Analytic, error) {
 	if data.Name != calc.ByAnalytic() {
 		return nil, nil
 	}
@@ -168,17 +246,7 @@ func (s *Service) oscillatorByAnalytic(ctx context.Context, data Analytic, oscil
 	if !calc.SupportDepth(depth) {
 		return nil, nil
 	}
-	analyticData, err := calc.Calculate(ctx, data, depth)
-	if err != nil {
-		return nil, errors.Wrap(err, "calculate oscillatorByAnalytic")
-	}
-	if analyticData == nil {
-		return nil, nil
-	}
-	if errSave := s.repo.Save(ctx, *analyticData); errSave != nil {
-		return nil, errors.Wrap(errSave, "save oscillatorByAnalytic")
-	}
-	return analyticData, nil
+	return calc.Calculate(ctx, data, depth)
 }
 
 func (s *Service) LastAnalytics(

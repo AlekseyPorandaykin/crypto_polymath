@@ -3,13 +3,14 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/duke-git/lancet/v2/slice"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"sync"
-	"time"
 )
 
 type AnalysisRepository struct {
@@ -25,21 +26,64 @@ func NewAnalysisRepository(size int) analysis.Repository {
 	}
 }
 
-func (a *AnalysisRepository) Save(ctx context.Context, data analysis.Analytic) error {
+func (a *AnalysisRepository) Save(ctx context.Context, data ...analysis.Analytic) error {
 	defer metrics.CacheQueryHelper("memory", "analysis_save")()
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	key := createKey(data.Exchange, data.Symbol, data.Unit, data.Interval, data.Name, data.IndicatorDepth, data.Depth)
-	if a.caches[key] == nil {
-		cache, err := lru.New[time.Time, analysis.Analytic](a.size)
-		if err != nil {
-			return err
+	for _, item := range data {
+		key := createKey(item.Exchange, item.Symbol, item.Unit, item.Interval, item.Name, item.IndicatorDepth, item.Depth)
+		if a.caches[key] == nil {
+			cache, err := lru.New[time.Time, analysis.Analytic](a.size)
+			if err != nil {
+				return err
+			}
+			a.caches[key] = cache
 		}
-		a.caches[key] = cache
+		a.caches[key].Add(item.Datetime, item)
 	}
-	a.caches[key].Add(data.Datetime, data)
 
 	return nil
+}
+
+func (a *AnalysisRepository) FindMany(
+	ctx context.Context, name, exchangeName, symbol string, unit domain.Unit, interval, indicatorDepth, depth int, datetimes []time.Time,
+) ([]analysis.Analytic, error) {
+	defer metrics.CacheQueryHelper("memory", "analysis_find_many")()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	key := createKey(exchangeName, symbol, unit, interval, name, indicatorDepth, depth)
+	cache, has := a.caches[key]
+	if !has {
+		return nil, nil
+	}
+	result := make([]analysis.Analytic, 0, len(datetimes))
+	for _, datetime := range datetimes {
+		if data, ok := cache.Get(datetime); ok {
+			result = append(result, data)
+		}
+	}
+	return result, nil
+}
+
+func (a *AnalysisRepository) FindManyByIndicator(
+	ctx context.Context, exchangeName, symbol string, unit domain.Unit, interval int, datetime time.Time, indicatorDepth int, names []string, depths []int,
+) ([]analysis.Analytic, error) {
+	defer metrics.CacheQueryHelper("memory", "analysis_find_many_by_indicator")()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	result := make([]analysis.Analytic, 0, len(names)*len(depths))
+	for _, name := range names {
+		for _, depth := range depths {
+			cache, has := a.caches[createKey(exchangeName, symbol, unit, interval, name, indicatorDepth, depth)]
+			if !has {
+				continue
+			}
+			if data, ok := cache.Get(datetime); ok {
+				result = append(result, data)
+			}
+		}
+	}
+	return result, nil
 }
 
 func (a *AnalysisRepository) Find(
@@ -53,18 +97,8 @@ func (a *AnalysisRepository) Find(
 	if !has {
 		return nil, nil
 	}
-	data := cache.Values()
-	for _, item := range data {
-		if item.Name == name &&
-			item.Exchange == exchangeName &&
-			item.Symbol == symbol &&
-			item.Unit == unit &&
-			item.Datetime == datetime &&
-			item.Interval == interval &&
-			item.IndicatorDepth == indicatorDepth &&
-			item.Depth == depth {
-			return &item, nil
-		}
+	if data, ok := cache.Get(datetime); ok {
+		return &data, nil
 	}
 	return nil, nil
 }
@@ -120,6 +154,10 @@ func (a *AnalysisRepository) LastInGroup(ctx context.Context, g analysis.UniqGro
 }
 func (a *AnalysisRepository) DeleteByGroup(ctx context.Context, g analysis.UniqGroup, datetime time.Time) error {
 	return nil
+}
+
+func (a *AnalysisRepository) AllAnalyticInfo(ctx context.Context) (map[string][]analysis.AnalyticInfo, error) {
+	return map[string][]analysis.AnalyticInfo{}, nil
 }
 
 func createKey(exchangeName, symbol string, unit domain.Unit, interval int, name string, indicatorDepth, depth int) string {

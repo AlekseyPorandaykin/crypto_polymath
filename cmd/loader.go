@@ -3,16 +3,16 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/cmd/container"
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
-	"github.com/AlekseyPorandaykin/go-template/pkg/profiling"
 	"github.com/AlekseyPorandaykin/go-template/pkg/system"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"os/signal"
-	"runtime/debug"
-	"syscall"
 )
 
 var loaderCmd = &cobra.Command{
@@ -34,7 +34,7 @@ var loaderCmd = &cobra.Command{
 		defer func() { _ = logger.Sync() }()
 		c := container.NewContainer()
 		if err := c.Init(); err != nil {
-			fmt.Println("error init container", errLogger.Error())
+			fmt.Println("error init container", err.Error())
 			return
 		}
 		defer c.Close()
@@ -67,6 +67,7 @@ var loaderCmd = &cobra.Command{
 
 		//Run applications
 		system.Go(func() {
+			defer cancel()
 			if err := loader.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				logger.Error("error start loader", zap.Error(err))
 				return
@@ -79,12 +80,12 @@ var loaderCmd = &cobra.Command{
 				return
 			}
 		})
-		system.Go(func() {
-			if err := profiling.StartPprofServer("0.0.0.0:6060"); err != nil {
-				logger.Error("error start pprof server", zap.Error(err))
-				return
-			}
-		})
+		//system.Go(func() {
+		//	if err := profiling.StartPprofServer("0.0.0.0:6060"); err != nil {
+		//		logger.Error("error start pprof server", zap.Error(err))
+		//		return
+		//	}
+		//})
 		system.Go(func() {
 			loadedCandlesticksDispatcher.Listen()
 		})

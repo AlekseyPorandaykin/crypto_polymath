@@ -2,11 +2,12 @@ package candlestick
 
 import (
 	"context"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/pkg/errors"
-	"time"
 )
 
 var ErrNotSupportInterval = errors.New("not support interval")
@@ -31,6 +32,9 @@ func (s *service) LoadCandlesticks(ctx context.Context, exchange, symbol string,
 	data, err := s.loadCandlesticks(ctx, exchange, symbol, unit, interval)
 	if err != nil {
 		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, nil
 	}
 	result, err := s.handleCandlesticks(ctx, data, unit, exchange, symbol, interval)
 	if err != nil {

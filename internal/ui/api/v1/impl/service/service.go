@@ -4,33 +4,32 @@ import (
 	"context"
 	"sync"
 
+	v5 "github.com/AlekseyPorandaykin/crypto-exchanges/exchange/bybit/v5"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	adapter_exchange "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
 	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/spf13/viper"
 )
 
+type DictionaryRepositories struct {
+	Analysis   analysis.Repository
+	Indicators indicator.Repository
+	Symbols    candlestick.Repository
+}
+
 type Service struct {
-	analyticRepository  view.AnalyticInfoRepository
-	indicatorRepository view.IndicatorInfoRepository
-	symbolRepository    view.SymbolRepository
+	repositories DictionaryRepositories
 
 	dictionaryCache *view.DictionaryModel
 	mu              sync.Mutex
 }
 
-func NewService(
-	analyticRepository view.AnalyticInfoRepository,
-	indicatorRepository view.IndicatorInfoRepository,
-	symbolRepository view.SymbolRepository,
-) *Service {
-	return &Service{
-		analyticRepository:  analyticRepository,
-		indicatorRepository: indicatorRepository,
-		symbolRepository:    symbolRepository,
-	}
+func NewService(repositories DictionaryRepositories) *Service {
+	return &Service{repositories: repositories}
 }
 
 func (s *Service) Collect(ctx context.Context) error {
@@ -65,12 +64,12 @@ func (s *Service) collectDictionary(ctx context.Context) (view.DictionaryModel, 
 	symbols := viper.GetStringSlice("load.symbols")
 	allDepths := viper.GetIntSlice("candlestick.depths")
 	allIndicatorDepths := viper.GetIntSlice("candlestick.depths")
-	symbolsData, err := s.symbolRepository.AllSymbols(ctx)
+	symbolsData, err := s.repositories.Symbols.AllSymbols(ctx)
 	if err != nil {
 		return view.DictionaryModel{}, err
 	}
 	symbols = append(symbols, symbolsData...)
-	analyticInfoData, err := s.analyticRepository.AllAnalyticInfo(ctx)
+	analyticInfoData, err := s.repositories.Analysis.AllAnalyticInfo(ctx)
 	if err != nil {
 		return view.DictionaryModel{}, err
 	}
@@ -90,7 +89,7 @@ func (s *Service) collectDictionary(ctx context.Context) (view.DictionaryModel, 
 		allDepths = append(allDepths, util.UniqSlice(depths)...)
 		allIndicatorDepths = append(allIndicatorDepths, util.UniqSlice(indicatorDepths)...)
 	}
-	indicatorInfoData, err := s.indicatorRepository.AllIndicatorInfoModel(ctx)
+	indicatorInfoData, err := s.repositories.Indicators.AllIndicatorInfo(ctx)
 	if err != nil {
 		return view.DictionaryModel{}, err
 	}
@@ -132,7 +131,7 @@ func (s *Service) collectDictionary(ctx context.Context) (view.DictionaryModel, 
 	return view.DictionaryModel{
 		Analysis:       analysisData,
 		Depths:         util.UniqSlice(allDepths),
-		Exchanges:      []string{adapter_exchange.BybitExchange},
+		Exchanges:      []string{v5.ExchangeName},
 		IndicatorDepth: util.UniqSlice(allIndicatorDepths),
 		Indicators:     indicatorData,
 		Intervals:      unitIntervals,

@@ -1,10 +1,10 @@
 up:
-	docker-compose --file="./docker-compose.yaml" up -d --build postgres
+	docker compose --file="./docker-compose.yaml" up --build postgres
 	docker-compose --file="./docker-compose.yaml" up -d --build  cadvisor
 	docker-compose --file="./docker-compose.yaml" up -d --build postgres_exporter
 	docker-compose --file="./docker-compose.yaml" up -d --build app-external-v1 app-loader app-calculator
 down:
-	docker-compose --file="./docker-compose.yaml" down
+	docker compose --file="./docker-compose.yaml" down
 
 ps:
 	docker-compose --file="./docker-compose.yaml"  ps
@@ -35,4 +35,13 @@ prepare:
 	@go generate $(shell go list ./... | grep -v ./.go/)
 	go mod tidy
 
-.PHONY: up down ps  recreate go-fix go-linters prepare
+test:
+	go test ./...
+
+test-core:
+	go test ./core/...
+
+bench-core:
+	go test ./core/... -bench=. -benchmem -run=^$
+
+.PHONY: up down ps recreate go-fix go-linters prepare test test-core bench-core

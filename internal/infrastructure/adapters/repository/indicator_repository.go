@@ -48,6 +48,72 @@ func (i *IndicatorRepository) Find(
 	return storageData, nil
 }
 
+func (i *IndicatorRepository) FindMany(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int, datetimes []time.Time,
+) ([]indicator.StorageDTO, error) {
+	if len(datetimes) == 0 {
+		return nil, nil
+	}
+	cacheData, err := i.cache.FindMany(ctx, exchange, symbol, unit, interval, name, depth, datetimes)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from cache")
+	}
+	found := make(map[time.Time]struct{}, len(cacheData))
+	for _, item := range cacheData {
+		found[item.Datetime] = struct{}{}
+	}
+	missing := make([]time.Time, 0, len(datetimes)-len(cacheData))
+	for _, datetime := range datetimes {
+		if _, ok := found[datetime]; !ok {
+			missing = append(missing, datetime)
+		}
+	}
+	if len(missing) == 0 {
+		return cacheData, nil
+	}
+	storageData, err := i.storage.FindMany(ctx, exchange, symbol, unit, interval, name, depth, missing)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from storage")
+	}
+	if len(storageData) > 0 {
+		_ = i.cache.Save(ctx, storageData...)
+	}
+	return append(cacheData, storageData...), nil
+}
+
+func (i *IndicatorRepository) FindManyByName(
+	ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, depth int, names []string,
+) ([]indicator.StorageDTO, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+	cacheData, err := i.cache.FindManyByName(ctx, exchange, symbol, unit, interval, datetime, depth, names)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from cache")
+	}
+	found := make(map[string]struct{}, len(cacheData))
+	for _, item := range cacheData {
+		found[item.Name] = struct{}{}
+	}
+	missing := make([]string, 0, len(names)-len(cacheData))
+	for _, name := range names {
+		if _, ok := found[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) == 0 {
+		return cacheData, nil
+	}
+	storageData, err := i.storage.FindManyByName(ctx, exchange, symbol, unit, interval, datetime, depth, missing)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch from storage")
+	}
+	if len(storageData) > 0 {
+		_ = i.cache.Save(ctx, storageData...)
+	}
+	return append(cacheData, storageData...), nil
+}
+
 func (i *IndicatorRepository) List(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit, offset int,
 ) ([]indicator.StorageDTO, error) {
@@ -121,9 +187,13 @@ func (i *IndicatorRepository) LastToDate(
 func (i *IndicatorRepository) updateCache(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int,
 ) {
-	data, err := i.storage.List(ctx, exchange, symbol, unit, interval, name, depth, 500, 0)
+	data, err := i.storage.List(ctx, exchange, symbol, unit, interval, name, depth, 100, 0)
 	if err != nil {
 		return
 	}
 	_ = i.cache.Save(ctx, data...)
+}
+
+func (i *IndicatorRepository) AllIndicatorInfo(ctx context.Context) (map[string][]indicator.IndicatorInfo, error) {
+	return i.storage.AllIndicatorInfo(ctx)
 }

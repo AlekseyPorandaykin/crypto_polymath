@@ -29,7 +29,7 @@ func (m *macdSignalLine) ByAnalytic() string {
 }
 
 func (m *macdSignalLine) SupportDepth(depth int) bool {
-	return depth > 0
+	return depth == 1
 }
 
 func (m *macdSignalLine) SupportInterval(interval int) bool {

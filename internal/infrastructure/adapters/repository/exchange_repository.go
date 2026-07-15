@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var _ exchange.Repository = (*ExchangeRepository)(nil)
+
 type ExchangeRepository struct {
 	storage exchange.Repository
 	cache   exchange.Repository

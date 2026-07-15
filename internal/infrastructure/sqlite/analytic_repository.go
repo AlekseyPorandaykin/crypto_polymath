@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -37,56 +38,60 @@ func NewAnalyticRepository(db *sqlx.DB) *AnalyticRepository {
 	return &AnalyticRepository{db: db}
 }
 
-func (repo *AnalyticRepository) Save(ctx context.Context, data analysis.Analytic) error {
-	if math.IsNaN(data.Value) {
+func (repo *AnalyticRepository) Save(ctx context.Context, data ...analysis.Analytic) error {
+	if len(data) == 0 {
 		return nil
 	}
 	defer metrics.DBQueryHelper("crypto_polymath", "analysis_save")()
 	var query = `
 INSERT INTO analytics(
-                      id, 
-                      name, 
-                      exchange, 
-                      symbol, 
-                      unit, 
-                      interval, 
-                      datetime, 
-                      depth, 
-                      by_indicator, 
-                      indicator_depth, 
+                      id,
+                      name,
+                      exchange,
+                      symbol,
+                      unit,
+                      interval,
+                      datetime,
+                      depth,
+                      by_indicator,
+                      indicator_depth,
                       value,
-                      created_at
-)
-VALUES (
-           :id,
-           :name,
-           :exchange,
-           :symbol,
-           :unit,
-           :interval,
-           :datetime,
-           :depth,
-           :by_indicator,
-           :indicator_depth,
-           :value,
-           :created_at
-       )
+                      created_at)
+VALUES
 `
-	_, err := repo.db.NamedExecContext(ctx, query, AnalyticDTO{
-		ID:             data.ID,
-		Name:           data.Name,
-		Exchange:       data.Exchange,
-		Symbol:         data.Symbol,
-		Unit:           string(data.Unit),
-		Interval:       data.Interval,
-		Datetime:       data.Datetime.In(time.UTC),
-		Depth:          data.Depth,
-		ByIndicator:    data.ByIndicator,
-		IndicatorDepth: data.IndicatorDepth,
-		Value:          data.Value,
-		CreatedAt:      time.Now().In(time.UTC),
-	})
-	if err != nil {
+	valueQuery := `(:id,:name,:exchange,:symbol,:unit,:interval,:datetime,:depth,:by_indicator,:indicator_depth,:value,:created_at)`
+	now := time.Now().In(time.UTC)
+	values := make([]string, 0, len(data))
+	args := make([]interface{}, 0, len(data)*12)
+	for _, item := range data {
+		if math.IsNaN(item.Value) {
+			continue
+		}
+		preparedValueQuery, argVals, err := repo.db.BindNamed(valueQuery, AnalyticDTO{
+			ID:             item.ID,
+			Name:           item.Name,
+			Exchange:       item.Exchange,
+			Symbol:         item.Symbol,
+			Unit:           string(item.Unit),
+			Interval:       item.Interval,
+			Datetime:       item.Datetime.In(time.UTC),
+			Depth:          item.Depth,
+			ByIndicator:    item.ByIndicator,
+			IndicatorDepth: item.IndicatorDepth,
+			Value:          item.Value,
+			CreatedAt:      now,
+		})
+		if err != nil {
+			return err
+		}
+		values = append(values, preparedValueQuery)
+		args = append(args, argVals...)
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	preparedQuery := fmt.Sprintf("%s %s", query, strings.Join(values, ", "))
+	if _, err := repo.db.ExecContext(ctx, preparedQuery, args...); err != nil {
 		return err
 	}
 	return nil
@@ -156,6 +161,127 @@ WHERE exchange = ?
 		IndicatorDepth: storageData.IndicatorDepth,
 		Value:          storageData.Value,
 	}, nil
+}
+
+func (repo *AnalyticRepository) FindMany(
+	ctx context.Context,
+	name, exchangeName, symbol string,
+	unit domain.Unit,
+	interval, indicatorDepth, depth int,
+	datetimes []time.Time,
+) ([]analysis.Analytic, error) {
+	if len(datetimes) == 0 {
+		return nil, nil
+	}
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_find_many")()
+	query, args, err := sqlx.In(`
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       datetime,
+       depth,
+       by_indicator,
+       indicator_depth,
+       value,
+       created_at
+FROM analytics
+WHERE exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND name = ?
+  AND indicator_depth = ?
+  AND depth = ?
+  AND datetime IN (?)`, exchangeName, symbol, string(unit), interval, name, indicatorDepth, depth, datetimes)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]AnalyticDTO, 0, len(datetimes))
+	if err := repo.db.SelectContext(ctx, &data, query, args...); err != nil {
+		return nil, err
+	}
+	analytics := make([]analysis.Analytic, 0, len(data))
+	for _, item := range data {
+		analytics = append(analytics, analysis.Analytic{
+			ID:             item.ID,
+			Name:           item.Name,
+			Exchange:       item.Exchange,
+			Symbol:         item.Symbol,
+			Unit:           domain.Unit(item.Unit),
+			Interval:       item.Interval,
+			Datetime:       item.Datetime,
+			Depth:          item.Depth,
+			ByIndicator:    item.ByIndicator,
+			IndicatorDepth: item.IndicatorDepth,
+			Value:          item.Value,
+		})
+	}
+	return analytics, nil
+}
+
+func (repo *AnalyticRepository) FindManyByIndicator(
+	ctx context.Context,
+	exchangeName, symbol string,
+	unit domain.Unit,
+	interval int,
+	datetime time.Time,
+	indicatorDepth int,
+	names []string,
+	depths []int,
+) ([]analysis.Analytic, error) {
+	if len(names) == 0 || len(depths) == 0 {
+		return nil, nil
+	}
+	defer metrics.DBQueryHelper("crypto_polymath", "analysis_find_many_by_indicator")()
+	query, args, err := sqlx.In(`
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       datetime,
+       depth,
+       by_indicator,
+       indicator_depth,
+       value,
+       created_at
+FROM analytics
+WHERE exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND datetime = ?
+  AND indicator_depth = ?
+  AND name IN (?)
+  AND depth IN (?)`, exchangeName, symbol, string(unit), interval, datetime, indicatorDepth, names, depths)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]AnalyticDTO, 0, len(names)*len(depths))
+	if err := repo.db.SelectContext(ctx, &data, query, args...); err != nil {
+		return nil, err
+	}
+	analytics := make([]analysis.Analytic, 0, len(data))
+	for _, item := range data {
+		analytics = append(analytics, analysis.Analytic{
+			ID:             item.ID,
+			Name:           item.Name,
+			Exchange:       item.Exchange,
+			Symbol:         item.Symbol,
+			Unit:           domain.Unit(item.Unit),
+			Interval:       item.Interval,
+			Datetime:       item.Datetime,
+			Depth:          item.Depth,
+			ByIndicator:    item.ByIndicator,
+			IndicatorDepth: item.IndicatorDepth,
+			Value:          item.Value,
+		})
+	}
+	return analytics, nil
 }
 
 func (repo *AnalyticRepository) Last(
@@ -331,9 +457,9 @@ WHERE name = ?
 	return err
 }
 
-func (repo *AnalyticRepository) AllAnalyticInfo(ctx context.Context) (map[string][]view.AnalyticInfoModel, error) {
+func (repo *AnalyticRepository) AllAnalyticInfo(ctx context.Context) (map[string][]analysis.AnalyticInfo, error) {
 	defer metrics.DBQueryHelper("crypto_polymath", "analysis_all_analytic_info")()
-	result := make(map[string][]view.AnalyticInfoModel)
+	result := make(map[string][]analysis.AnalyticInfo)
 	var query = `SELECT 
     DISTINCT unit, interval, name, depth, indicator_depth
 FROM analytics`
@@ -350,7 +476,7 @@ FROM analytics`
 		if err := rows.Scan(&unit, &interval, &name, &depth, &indicatorDepth); err != nil {
 			return nil, err
 		}
-		model := view.AnalyticInfoModel{
+		model := analysis.AnalyticInfo{
 			Unit:           unit,
 			Interval:       interval,
 			Name:           name,
@@ -358,7 +484,7 @@ FROM analytics`
 			IndicatorDepth: indicatorDepth,
 		}
 		if _, has := result[model.Name]; !has {
-			result[model.Name] = make([]view.AnalyticInfoModel, 0)
+			result[model.Name] = make([]analysis.AnalyticInfo, 0)
 		}
 		result[model.Name] = append(result[model.Name], model)
 	}

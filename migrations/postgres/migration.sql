@@ -54,6 +54,11 @@ CREATE INDEX IF NOT EXISTS indicators_interval_idx ON crypto_polymath.indicators
 CREATE INDEX IF NOT EXISTS indicators_datetime_idx ON crypto_polymath.indicators (datetime);
 CREATE INDEX IF NOT EXISTS indicators_name_idx ON crypto_polymath.indicators (name);
 CREATE INDEX IF NOT EXISTS indicators_depth_idx ON crypto_polymath.indicators (depth);
+-- Покрывает Find/FindMany/List/Last/LastToDate/DeleteOldRows одним индексом
+-- (datetime - последней колонкой, т.к. по ней идёт равенство/диапазон/сортировка).
+-- Не уникальный: в таблице встречаются дубли по этому набору колонок (пересчёт индикатора).
+CREATE INDEX IF NOT EXISTS indicators_lookup_idx
+    ON crypto_polymath.indicators (exchange, symbol, unit, interval, name, depth, datetime);
 
 CREATE TABLE IF NOT EXISTS crypto_polymath.symbol_infos
 (
@@ -90,6 +95,13 @@ CREATE TABLE IF NOT EXISTS crypto_polymath.analytics
     created_at      TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Покрывает Find/FindMany/Last (datetime - последней колонкой: равенство/IN/сортировка).
+CREATE INDEX IF NOT EXISTS analytics_lookup_idx
+    ON crypto_polymath.analytics (exchange, symbol, unit, interval, name, indicator_depth, depth, datetime);
+-- Покрывает UniqGroups/LastInGroup/DeleteByGroup (обслуживание, чистка старых строк).
+CREATE INDEX IF NOT EXISTS analytics_group_idx
+    ON crypto_polymath.analytics (name, exchange, symbol, unit, interval, depth, by_indicator, indicator_depth, datetime);
+
 
 CREATE TABLE IF NOT EXISTS crypto_polymath.candlestick_indicators
 (
@@ -107,6 +119,9 @@ CREATE TABLE IF NOT EXISTS crypto_polymath.candlestick_indicators
     created_at  TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS candlestick_indicators_uniq_idx
+    ON crypto_polymath.candlestick_indicators (name, exchange, symbol, unit, interval, start_time);
+
 CREATE INDEX candlestick_indicators_name_idx ON crypto_polymath.candlestick_indicators (name);
 CREATE INDEX candlestick_indicators_exchange_idx ON crypto_polymath.candlestick_indicators (exchange);
 CREATE INDEX candlestick_indicators_symbol_idx ON crypto_polymath.candlestick_indicators (symbol);
@@ -118,12 +133,21 @@ CREATE INDEX candlestick_indicators_start_time_idx ON crypto_polymath.candlestic
 CREATE TABLE IF NOT EXISTS crypto_polymath.queues
 (
     id         VARCHAR(50) PRIMARY KEY NOT NULL,
+    key_event  VARCHAR(250)            NOT NULL DEFAULT '',
     name       VARCHAR(250)            NOT NULL,
     body       json                    NOT NULL,
     created_at TIMESTAMP               NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE crypto_polymath.queues
+    ADD COLUMN IF NOT EXISTS key_event VARCHAR(250) NOT NULL DEFAULT '';
+
 CREATE INDEX queues_name ON crypto_polymath.queues (name);
+-- Покрывает выборку очереди в receive() (WHERE name = ? ORDER BY created_at LIMIT ?)
+-- без полной сортировки бэклога на каждый poll-цикл.
+CREATE INDEX IF NOT EXISTS queues_name_created_at_idx ON crypto_polymath.queues (name, created_at);
+CREATE INDEX IF NOT EXISTS queues_key_event_idx ON crypto_polymath.queues (key_event);
+CREATE INDEX IF NOT EXISTS queues_name_key_event_idx ON crypto_polymath.queues (name, key_event);
 
 CREATE ROLE root WITH LOGIN PASSWORD 'crypto_developer';
 -- При желании предоставьте права суперпользователя, если это необходимо:

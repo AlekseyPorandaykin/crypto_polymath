@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
-	"github.com/jmoiron/sqlx"
 	"strings"
 	"time"
+
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
+	"github.com/jmoiron/sqlx"
 )
 
 var _ candlestick.Repository = (*CandlestickRepository)(nil)
@@ -23,7 +23,6 @@ func NewCandlestickRepository(db *sqlx.DB) *CandlestickRepository {
 }
 
 func (repo *CandlestickRepository) Save(ctx context.Context, data ...candlestick.StorageDTO) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_save")()
 	query := `
 INSERT INTO candlestick(id,
                         symbol,
@@ -83,7 +82,6 @@ VALUES
 }
 
 func (repo *CandlestickRepository) Last(ctx context.Context, exchange, symbol, unit string, interval, limit, offset int) ([]candlestick.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_last")()
 	var (
 		query = `
 SELECT id,
@@ -115,7 +113,6 @@ LIMIT ? OFFSET ?
 	return data, nil
 }
 func (repo *CandlestickRepository) LastToDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]candlestick.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_last_to_date")()
 	var (
 		query = `
 SELECT id,
@@ -148,7 +145,6 @@ LIMIT ?
 }
 
 func (repo *CandlestickRepository) FromDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]candlestick.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_find_from")()
 	var (
 		query = `
 SELECT id,
@@ -181,7 +177,6 @@ LIMIT ?
 }
 
 func (repo *CandlestickRepository) DeleteOldRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_delete_old_rows")()
 	var query = `DELETE FROM candlestick WHERE exchange = ? AND symbol = ? AND unit=? AND interval= ? AND  start_time < ?`
 	if _, err := repo.db.ExecContext(ctx, repo.db.Rebind(query), exchange, symbol, unit, interval, to); err != nil {
 		return err
@@ -189,7 +184,6 @@ func (repo *CandlestickRepository) DeleteOldRows(ctx context.Context, exchange, 
 	return nil
 }
 func (repo *CandlestickRepository) DeletePrevRows(ctx context.Context, exchange, symbol, unit string, interval int, to time.Time) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "candlestick_delete_prev_rows")()
 	var query = `DELETE FROM candlestick WHERE exchange = ? AND symbol = ? AND unit=? AND interval= ? AND  created_at < ?`
 	if _, err := repo.db.ExecContext(ctx, repo.db.Rebind(query), exchange, symbol, unit, interval, to); err != nil {
 		return err

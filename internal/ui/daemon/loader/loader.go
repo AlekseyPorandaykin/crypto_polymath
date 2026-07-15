@@ -10,7 +10,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
@@ -88,6 +87,7 @@ func (l *Loader) Run(ctx context.Context) error {
 		go func(exchangeName string) {
 			defer system.HandlePanic()
 			l.loadExchangePrices(ctx, exchangeName)
+			logger := l.logger.With(zap.String("exchange ", exchangeName))
 			ticker := time.NewTicker(priceDurationLoader)
 			defer ticker.Stop()
 			for {
@@ -96,25 +96,35 @@ func (l *Loader) Run(ctx context.Context) error {
 					return
 				case <-ticker.C:
 					ticker.Stop()
+					start := time.Now()
 					l.loadExchangePrices(ctx, exchangeName)
+					logger.Info("loaded prices", zap.String("duration", time.Since(start).String()))
 					ticker.Reset(priceDurationLoader)
 				}
 			}
 		}(exchangeName)
-	}
-	//Загружаем данные по крипто парам
-	for _, exchangeName := range []string{exchange.BybitExchange} {
+
+		//Удаляем старые записи
+		go func() {
+			defer system.HandlePanic()
+			start := time.Now()
+			l.runDeleteOldRows(ctx, exchangeName, viper.GetInt("candlestick.storage.limit"))
+			l.logger.Info("Delete old rows", zap.String("duration", time.Since(start).String()))
+		}()
+		//Загружаем свечи
 		l.runLoadCandles(ctx, exchangeName)
+		//Загружаем данные по крипто парам
 		go func(exchangeName string) {
 			_ = scheduler.ExecuteCustomMinute(ctx, 5, 1, func() error {
 				defer system.HandlePanic()
 				defer ExchangeSymbolLoadedHelper(exchangeName)()
+				logger := l.logger.With(zap.String("exchange ", exchangeName))
 				start := time.Now()
 				data, errSy := l.exchangeService.LoadSymbolInfo(ctx, exchangeName)
 				if errSy != nil {
-					l.logger.Error("load symbol info", zap.Error(errSy))
+					logger.Error("load symbol info", zap.Error(errSy))
 				}
-				l.logger.Debug(
+				logger.Info(
 					"load symbol infos",
 					zap.String("duration", time.Since(start).String()),
 					zap.Int("count", len(data)),
@@ -122,14 +132,15 @@ func (l *Loader) Run(ctx context.Context) error {
 				return nil
 			})
 		}(exchangeName)
-	}
-	//Загружаем часовые свечи для всех крипто пар
-	for _, exchangeName := range []string{exchange.BybitExchange} {
+
+		//Загружаем часовые свечи для всех крипто пар
 		go func(exchangeName string) {
 			defer system.HandlePanic()
 			//Загружаем свечи по всем future, можем подождать 30 секунд, чтобы все данные существовали.
 			_ = scheduler.ExecuteEveryHour(ctx, 1, 30, func() error {
+				start := time.Now()
 				l.loadSymbolFutureCandlesticks(ctx, exchangeName)
+				l.logger.Info("Load symbol future candlesticks", zap.String("duration", time.Since(start).String()))
 				return nil
 			})
 		}(exchangeName)
@@ -139,9 +150,11 @@ func (l *Loader) Run(ctx context.Context) error {
 	go func() {
 		_ = scheduler.ExecuteEveryHour(ctx, 1, slippageSecond, func() error {
 			defer system.HandlePanic()
+			start := time.Now()
 			if err := l.service.Collect(ctx); err != nil {
 				l.logger.Error("collect", zap.Error(err))
 			}
+			l.logger.Info("Collect dictionary", zap.String("duration", time.Since(start).String()))
 			return nil
 		})
 	}()
@@ -205,7 +218,11 @@ func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName 
 	for _, s := range symbols {
 		l.loadFutureCandlesticks(ctx, exchangeName, s)
 	}
-	l.logger.Debug("load future candlesticks", zap.String("duration", time.Since(start).String()))
+	l.logger.Debug(
+		"load future candlesticks",
+		zap.String("exchange", exchangeName),
+		zap.String("duration", time.Since(start).String()),
+	)
 	futureCandlestickLoadedTotalDuration.WithLabelValues(exchangeName).Add(time.Since(start).Seconds())
 	return
 }
@@ -213,7 +230,15 @@ func (l *Loader) loadSymbolFutureCandlesticks(ctx context.Context, exchangeName 
 func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 	for _, s := range l.symbols {
 		symbol := s
-		l.loadHourCandlesticks(ctx, exchangeName, symbol)
+		for _, interval := range viper.GetIntSlice("candlestick.hours") {
+			hours := interval
+			system.Go(func() {
+				_ = scheduler.ExecuteEveryHour(ctx, hours, slippageSecond, func() error {
+					l.loadCandlesticks(ctx, exchangeName, symbol, domain.HourUnit, hours)
+					return nil
+				})
+			})
+		}
 		system.Go(func() {
 			_ = scheduler.ExecuteEveryDay(ctx, func() error {
 				l.loadCandlesticks(ctx, exchangeName, symbol, domain.DayUnit, 1)
@@ -235,12 +260,21 @@ func (l *Loader) runLoadCandles(ctx context.Context, exchangeName string) {
 	}
 	for _, hs := range l.hotSymbols {
 		symbol := hs
-		l.loadMinuteCandlesticks(ctx, exchangeName, symbol)
+		for _, interval := range viper.GetIntSlice("candlestick.minutes") {
+			minutes := interval
+			//TODO для каждого интервала свое повторение
+			maxIteration := 2
+			if interval == 1 {
+				maxIteration = 5
+			}
+			system.Go(func() {
+				_ = scheduler.ExecuteCustomMinuteWithReply(ctx, minutes, slippageSecond/3, 1, maxIteration, func() (bool, error) {
+					candles := l.loadCandlesticks(ctx, exchangeName, symbol, domain.MinuteUnit, minutes)
+					return len(candles) > 0, nil
+				})
+			})
+		}
 	}
-	go func() {
-		defer system.HandlePanic()
-		l.deleteOldRows(ctx, exchangeName, viper.GetInt("candlestick.storage.limit"))
-	}()
 }
 
 func (l *Loader) loadExchangePrices(ctx context.Context, exchangeName string) {
@@ -334,13 +368,14 @@ func (l *Loader) loadCandlesticks(ctx context.Context, exchangeName, symbol stri
 	)
 	startLoadSymbol := time.Now()
 	data, err := l.candlestickService.LoadCandlesticks(ctx, exchangeName, symbol, unit, interval)
-	log = log.With(zap.String("duration", time.Since(time.Now()).String()))
+	log = log.With(zap.String("duration", time.Since(startLoadSymbol).String()))
 	candlestickLoadedTotal.WithLabelValues(exchangeName, string(unit)).Add(float64(len(data)))
 	if err != nil {
 		errorTotal.WithLabelValues(exchangeName, "load_candlesticks").Inc()
 		log.Error("load candlestick", zap.Error(err))
 		return nil
 	}
+	log.Debug("load candlesticks")
 	l.loadedCandleDispatcher.Dispatch(dispatcher.Event[domain.LoadedCandlesticksActionBody]{
 		Name: domain.LoadedCandlesticksForSymbolAction,
 		Body: domain.LoadedCandlesticksActionBody{
@@ -380,9 +415,9 @@ func (l *Loader) updateFutureCandlesticks(
 	return data
 }
 
-func (l *Loader) deleteOldRows(ctx context.Context, exchangeName string, oldValueLimit int) {
-	defer deleteIndicatorHelper()()
+func (l *Loader) runDeleteOldRows(ctx context.Context, exchangeName string, oldValueLimit int) {
 	_ = scheduler.ExecuteEveryDay(ctx, func() error {
+		defer deleteIndicatorHelper()()
 		if err := l.priceService.DeleteOldRaws(ctx, exchangeName, time.Now().In(time.UTC).Add(-24*time.Hour)); err != nil {
 			l.logger.Error("delete old price", zap.Error(err))
 		}

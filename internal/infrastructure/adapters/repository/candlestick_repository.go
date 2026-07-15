@@ -128,3 +128,7 @@ func (c *CandlestickRepository) updateCache(ctx context.Context, exchange, symbo
 	}
 	return c.cache.Save(ctx, data...)
 }
+
+func (c *CandlestickRepository) AllSymbols(ctx context.Context) ([]string, error) {
+	return c.storage.AllSymbols(ctx)
+}

@@ -16,6 +16,14 @@
 ## Техническое описание
 - Вся логика описана в директории `core/`. Там описана только логика без привязки к реализации.
 - В `internal/` находятся логика запуска разных доменов и при каких условиях
+- Подробный обзор архитектуры: [docs/overview.md](./docs/overview.md)
+
+## Тесты и benchmarks
+
+```bash
+make test-core      # unit-тесты core/
+make bench-core     # performance-тесты core/
+```
 
 ## Экземпляры запуска
 - loader  `sh ./bin/crypto_polemath daemon loader` - запуск загрузки данных из разных исчтоников в бд. 

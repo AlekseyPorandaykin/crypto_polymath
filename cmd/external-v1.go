@@ -3,6 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/cmd/container"
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
 	"github.com/AlekseyPorandaykin/go-template/pkg/profiling"
@@ -11,9 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"os/signal"
-	"runtime/debug"
-	"syscall"
 )
 
 var externalV1Cmd = &cobra.Command{
@@ -35,28 +36,13 @@ var externalV1Cmd = &cobra.Command{
 		defer func() { _ = logger.Sync() }()
 		c := container.NewContainer()
 		if err := c.Init(); err != nil {
-			fmt.Println("error init container", errLogger.Error())
+			fmt.Println("error init container", err.Error())
 			return
 		}
 		defer c.Close()
 		serverHttp, errCreateServer := c.CreateApiServer()
 		if errCreateServer != nil {
 			logger.Error("error create http server", zap.Error(errCreateServer))
-			return
-		}
-		loadedCandlesticksDispatcher, errLoadedCandlesticksDispatcher := c.CreateLoadedCandlesticksForSymbolBodyDispatcher()
-		if errLoadedCandlesticksDispatcher != nil {
-			logger.Error("error create loaded candlesticks dispatcher", zap.Error(errLoadedCandlesticksDispatcher))
-			return
-		}
-		candleDispatcher, errCandleDispatcher := c.CreateCandleDispatcher()
-		if errCandleDispatcher != nil {
-			logger.Error("error create candle dispatcher", zap.Error(errCandleDispatcher))
-			return
-		}
-		loadedPricesDispatcher, errLoadedPricesDispatcher := c.CreateLoadedPricesDispatcher()
-		if errLoadedPricesDispatcher != nil {
-			logger.Error("error create loaded prices dispatcher", zap.Error(errLoadedPricesDispatcher))
 			return
 		}
 
@@ -74,15 +60,6 @@ var externalV1Cmd = &cobra.Command{
 				logger.Error("error start pprof server", zap.Error(err))
 				return
 			}
-		})
-		system.Go(func() {
-			loadedCandlesticksDispatcher.Listen()
-		})
-		system.Go(func() {
-			candleDispatcher.Listen()
-		})
-		system.Go(func() {
-			loadedPricesDispatcher.Listen()
 		})
 
 		<-ctx.Done()

@@ -11,7 +11,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
-	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"time"
@@ -133,51 +132,56 @@ func (c *Container) initEventImplementations() error {
 		return err
 	}
 
-	if err := c.di.Provide(func(conn *sqlx.DB) (*postgresql.QueueRepository[queue_contract.CandleIndicator], error) {
+	if err := c.di.Provide(func(store postgresql.QueueStore) (*postgresql.QueueRepository[queue_contract.CandleIndicator], error) {
 		producer := postgresql.NewQueueRepository[queue_contract.CandleIndicator](
-			conn,
+			store,
 			viper.GetString("events.queue_candle_indicator"),
 			2*time.Hour,
+			viper.GetInt("events.queue_batch_size"),
 		)
 		return producer, nil
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(conn *sqlx.DB) (*postgresql.QueueRepository[queue_contract.Analytic], error) {
+	if err := c.di.Provide(func(store postgresql.QueueStore) (*postgresql.QueueRepository[queue_contract.Analytic], error) {
 		producer := postgresql.NewQueueRepository[queue_contract.Analytic](
-			conn,
+			store,
 			viper.GetString("events.queue_analytic"),
 			2*time.Hour,
+			viper.GetInt("events.queue_batch_size"),
 		)
 		return producer, nil
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(conn *sqlx.DB) (*postgresql.QueueRepository[queue_contract.Indicator], error) {
+	if err := c.di.Provide(func(store postgresql.QueueStore) (*postgresql.QueueRepository[queue_contract.Indicator], error) {
 		producer := postgresql.NewQueueRepository[queue_contract.Indicator](
-			conn,
+			store,
 			viper.GetString("events.queue_indicator"),
 			2*time.Hour,
+			viper.GetInt("events.queue_batch_size"),
 		)
 		return producer, nil
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(conn *sqlx.DB) (*postgresql.QueueRepository[queue_contract.Action], error) {
+	if err := c.di.Provide(func(store postgresql.QueueStore) (*postgresql.QueueRepository[queue_contract.Action], error) {
 		producer := postgresql.NewQueueRepository[queue_contract.Action](
-			conn,
+			store,
 			viper.GetString("events.queue_action"),
 			2*time.Hour,
+			viper.GetInt("events.queue_batch_size"),
 		)
 		return producer, nil
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(conn *sqlx.DB) (*postgresql.QueueRepository[queue_contract.Candlestick], error) {
+	if err := c.di.Provide(func(store postgresql.QueueStore) (*postgresql.QueueRepository[queue_contract.Candlestick], error) {
 		producer := postgresql.NewQueueRepository[queue_contract.Candlestick](
-			conn,
+			store,
 			viper.GetString("events.queue_candlestick"),
 			2*time.Hour,
+			viper.GetInt("events.queue_batch_size"),
 		)
 		return producer, nil
 	}); err != nil {

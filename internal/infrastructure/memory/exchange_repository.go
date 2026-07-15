@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var _ exchange.Repository = (*ExchangeRepository)(nil)
+
 type ExchangeRepository struct {
 	data *cache.TwoQueue[string, string, exchange.SymbolInfoStorageDTO]
 }

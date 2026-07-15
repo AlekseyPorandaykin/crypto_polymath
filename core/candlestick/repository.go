@@ -77,4 +77,5 @@ type Repository interface {
 	//FromDate - Получаем значения с самого раннего до последнего по дате.
 	FromDate(ctx context.Context, exchange, symbol, unit string, interval, limit int, to time.Time) ([]StorageDTO, error)
 	ListUniq(ctx context.Context) ([]UniqDTO, error)
+	AllSymbols(ctx context.Context) ([]string, error)
 }

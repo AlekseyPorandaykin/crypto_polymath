@@ -1,10 +1,8 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250617051853-4d46de001d15 h1:XGb2QyhfLi7UhrWXQAriFCaRmmM5f9S3ON48FKYusA4=
-github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250617051853-4d46de001d15/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
-github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250619070025-bc71aed88546 h1:vyu97KX5Nvyv6OVlXAmWsRjfXE1cXhFSsCvn6UGDijs=
-github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250619070025-bc71aed88546/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
+github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19f h1:8F3Lx6YYqEwFqlLDznapOVRTUVdUeRpeVnIYFhp7yjA=
+github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19f/go.mod h1:q1FiHgJSOnfJEbWwVYJx+FBlEqq7A9cpEwSvtE5UtDo=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687 h1:uMh9q2Gqj8LbBF2Yi92giPJCM2c6Wye0eYIcbbGEcyI=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
 github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df h1:Q2OtkYpNlD+lIozaKI8X85Xv6a0LKUq8YoEKEUYTYGA=

@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var _ candle_indicator.Repository = (*CandleIndicatorRepository)(nil)
+
 type CandleIndicatorRepository struct {
 	storage candle_indicator.Repository
 	cache   candle_indicator.Repository
@@ -43,6 +45,39 @@ func (repo *CandleIndicatorRepository) Find(ctx context.Context, name, exchange,
 		_ = repo.cache.Save(ctx, []candle_indicator.StorageDTO{*storageData})
 	}
 	return storageData, nil
+}
+
+func (repo *CandleIndicatorRepository) FindMany(
+	ctx context.Context, name, exchange, symbol, unit string, interval int, startTimes []time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	if len(startTimes) == 0 {
+		return nil, nil
+	}
+	cacheData, errCache := repo.cache.FindMany(ctx, name, exchange, symbol, unit, interval, startTimes)
+	if errCache != nil {
+		return nil, errors.Wrap(errCache, "from cache")
+	}
+	found := make(map[time.Time]struct{}, len(cacheData))
+	for _, item := range cacheData {
+		found[item.StartTime] = struct{}{}
+	}
+	missing := make([]time.Time, 0, len(startTimes)-len(cacheData))
+	for _, startTime := range startTimes {
+		if _, ok := found[startTime]; !ok {
+			missing = append(missing, startTime)
+		}
+	}
+	if len(missing) == 0 {
+		return cacheData, nil
+	}
+	storageData, errStorage := repo.storage.FindMany(ctx, name, exchange, symbol, unit, interval, missing)
+	if errStorage != nil {
+		return nil, errors.Wrap(errStorage, "from storage")
+	}
+	if len(storageData) > 0 {
+		_ = repo.cache.Save(ctx, storageData)
+	}
+	return append(cacheData, storageData...), nil
 }
 
 func (repo *CandleIndicatorRepository) FetchLast(ctx context.Context, name, exchange, symbol, unit string, interval int) ([]candle_indicator.StorageDTO, error) {

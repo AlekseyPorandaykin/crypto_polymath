@@ -3,12 +3,13 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/duke-git/lancet/v2/slice"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"sync"
-	"time"
 )
 
 var _ indicator.Repository = (*IndicatorRepository)(nil)
@@ -66,6 +67,45 @@ func (i *IndicatorRepository) Find(
 	return nil, nil
 }
 
+func (i *IndicatorRepository) FindMany(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int, datetimes []time.Time,
+) ([]indicator.StorageDTO, error) {
+	defer metrics.DBQueryHelper("memory", "indicators_find_many")()
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	key := keyIndicator(exchange, symbol, unit, interval, name, depth)
+	cache, has := i.caches[key]
+	if !has {
+		return nil, nil
+	}
+	result := make([]indicator.StorageDTO, 0, len(datetimes))
+	for _, datetime := range datetimes {
+		if v, ok := cache.Get(datetime); ok {
+			result = append(result, v)
+		}
+	}
+	return result, nil
+}
+
+func (i *IndicatorRepository) FindManyByName(
+	ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, depth int, names []string,
+) ([]indicator.StorageDTO, error) {
+	defer metrics.DBQueryHelper("memory", "indicators_find_many")()
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	result := make([]indicator.StorageDTO, 0, len(names))
+	for _, name := range names {
+		cache, has := i.caches[keyIndicator(exchange, symbol, unit, interval, name, depth)]
+		if !has {
+			continue
+		}
+		if v, ok := cache.Get(datetime); ok {
+			result = append(result, v)
+		}
+	}
+	return result, nil
+}
+
 func (i *IndicatorRepository) List(ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit, offset int) ([]indicator.StorageDTO, error) {
 	defer metrics.DBQueryHelper("memory", "indicators_list")()
 	i.mu.Lock()
@@ -84,7 +124,11 @@ func (i *IndicatorRepository) List(ctx context.Context, exchange, symbol, unit s
 	if len(values) < limit+offset {
 		return values[offset:], nil
 	}
-	return values[offset:limit], nil
+	end := offset + limit
+	if end > len(values) {
+		end = len(values)
+	}
+	return values[offset:end], nil
 }
 
 func (i *IndicatorRepository) Last(ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int) (*indicator.StorageDTO, error) {
@@ -149,6 +193,10 @@ func (i *IndicatorRepository) LastToDate(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
 ) ([]indicator.StorageDTO, error) {
 	return nil, nil
+}
+
+func (i *IndicatorRepository) AllIndicatorInfo(ctx context.Context) (map[string][]indicator.IndicatorInfo, error) {
+	return map[string][]indicator.IndicatorInfo{}, nil
 }
 
 func keyIndicator(exchangeName, symbol, unit string, interval int, name string, depth int) string {

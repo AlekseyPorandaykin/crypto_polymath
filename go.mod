@@ -1,10 +1,9 @@
 module github.com/AlekseyPorandaykin/crypto_polymath
 
-go 1.23.0
-
-toolchain go1.23.8
+go 1.24.6
 
 require (
+	github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19f
 	github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687
 	github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df
 	github.com/cenkalti/backoff/v4 v4.3.0

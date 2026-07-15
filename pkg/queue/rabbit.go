@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"sync/atomic"
+
 	"github.com/AlekseyPorandaykin/go-template/pkg/system"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
-	"sync"
-	"sync/atomic"
 )
 
 var rabbitMqConnections = make(map[string]*amqp.Connection)
@@ -248,12 +249,14 @@ func (c *RabbitMQConsumer[T]) Consume(ctx context.Context, handler func(message 
 	}
 }
 
-func (c *RabbitMQConsumer[T]) Receive() (*T, error) {
+func (c *RabbitMQConsumer[T]) Receive(ctx context.Context) ([]*T, error) {
 	for {
 		if c.isClosed.Load() {
 			return nil, ErrClosed
 		}
 		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		case err := <-c.errCh:
 			if err != nil {
 				return nil, err
@@ -262,12 +265,35 @@ func (c *RabbitMQConsumer[T]) Receive() (*T, error) {
 			if !ok {
 				continue
 			}
-			return &m, nil
+			batchSize := c.conf.BatchSize
+			if batchSize < 1 {
+				batchSize = 1
+			}
+			messages := make([]*T, 0, batchSize)
+			messages = append(messages, &m)
+			// Дочерпываем то, что уже накопилось в буфере msgCh, не блокируясь -
+			// иначе Receive всегда отдавал бы ровно одно сообщение за вызов,
+			// и группировка/параллелизм в calculator.go не имели бы смысла.
+			for len(messages) < batchSize {
+				select {
+				case next, ok := <-c.msgCh:
+					if !ok {
+						return messages, nil
+					}
+					messages = append(messages, &next)
+				default:
+					return messages, nil
+				}
+			}
+			return messages, nil
 		}
 	}
 }
 
 func (c *RabbitMQConsumer[T]) Close() {
+	if c.isClosed.Load() {
+		return
+	}
 	c.isClosed.Store(true)
 	close(c.msgCh)
 	close(c.errCh)

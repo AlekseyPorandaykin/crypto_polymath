@@ -1,543 +1,928 @@
-<html lang="en"><head>
+<html lang="ru"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Polymath - Advanced Cryptocurrency Analytics API</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Crypto Polymath — платформа рыночной аналитики</title>
+
+    <!-- PrimeVue (v3) — тема, базовые стили и иконки, всё через CDN, без npm/сборки -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3/resources/themes/lara-light-blue/theme.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3/resources/primevue.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons/primeicons.css">
+
+    <!--
+        Страница состоит из двух независимых Vue-приложений:
+
+        1) "marketing" — приветственный экран (шапка/hero/фичи/шаги), собран на полной сборке
+           Vue (esm-browser, с компилятором шаблонов "на борту"), поэтому здесь можно писать
+           обычные Vue-шаблоны прямо в HTML.
+        2) "console" — мега-меню функций (MegaMenu) и модальное окно с формой/результатом, собран
+           на связке esm.sh(vue) + PrimeVue (MegaMenu/Dropdown/Dialog/Tag/DataTable). Все компоненты
+           PrimeVue внутри себя используют РАНТАЙМ-сборку Vue без компилятора шаблонов, поэтому
+           это приложение написано через render()/h() без строковых шаблонов — чтобы у Vue и
+           PrimeVue был один и тот же экземпляр рантайма и всё корректно работало.
+
+        Оба приложения общаются между собой через обычные DOM CustomEvent — без общего
+        реактивного состояния (это два разных экземпляра Vue).
+    -->
+    <script type="importmap">
+    {
+        "imports": {
+            "vue": "https://esm.sh/vue@3",
+            "primevue/config": "https://esm.sh/primevue@3/config?deps=vue@3",
+            "primevue/dropdown": "https://esm.sh/primevue@3/dropdown?deps=vue@3",
+            "primevue/inputnumber": "https://esm.sh/primevue@3/inputnumber?deps=vue@3",
+            "primevue/megamenu": "https://esm.sh/primevue@3/megamenu?deps=vue@3",
+            "primevue/button": "https://esm.sh/primevue@3/button?deps=vue@3",
+            "primevue/dialog": "https://esm.sh/primevue@3/dialog?deps=vue@3",
+            "primevue/tag": "https://esm.sh/primevue@3/tag?deps=vue@3",
+            "primevue/datatable": "https://esm.sh/primevue@3/datatable?deps=vue@3",
+            "primevue/treetable": "https://esm.sh/primevue@3/treetable?deps=vue@3",
+            "primevue/chart": "https://esm.sh/primevue@3/chart?deps=vue@3",
+            "primevue/column": "https://esm.sh/primevue@3/column?deps=vue@3"
+        }
+    }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+        :root {
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e3e7ee;
+            --text: #131a2a;
+            --muted: #667085;
+            --accent: #2f5bea;
+            --ok: #17915a;
+            --err: #d93636;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', sans-serif;
-            scroll-behavior: smooth;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        a { color: var(--accent); }
+        [v-cloak] { display: none; }
+
+        /* header */
+        header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .header-inner {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; white-space: nowrap; }
+        .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: #cbd2e0; }
+        .brand .dot.online { background: var(--ok); box-shadow: 0 0 0 3px rgba(23,145,90,.15); }
+        .brand .dot.offline { background: var(--err); box-shadow: 0 0 0 3px rgba(217,54,54,.15); }
+        .status-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
+        .picker { margin-left: auto; }
+        .picker .p-megamenu { background: transparent; border: none; padding: 0; }
+
+        /* buttons for the static marketing app (kept as plain CSS, not PrimeVue, since this app
+           never touches PrimeVue's Vue instance) */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 20px;
+            border-radius: 9px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #1d3fb0; }
+        .btn-ghost { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.25); }
+        .btn-ghost:hover { background: rgba(255,255,255,.16); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* hero */
+        .hero {
+            background: radial-gradient(1200px 420px at 15% -10%, #4f7cff 0%, transparent 60%),
+                        linear-gradient(135deg, #101a33, #1a2650 55%, #142042);
+            color: #fff;
+            padding: 72px 24px 56px;
+        }
+        .hero-inner { max-width: 1120px; margin: 0 auto; }
+        .hero h1 { font-size: 38px; margin: 0 0 14px; font-weight: 800; letter-spacing: -0.02em; max-width: 720px; }
+        .hero p.subtitle { font-size: 17px; color: #c7d0ea; max-width: 620px; margin: 0 0 28px; }
+        .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+        .stats { display: flex; gap: 36px; flex-wrap: wrap; }
+        .stat b { display: block; font-size: 24px; }
+        .stat span { font-size: 13px; color: #b7c1e0; }
+
+        /* features */
+        main { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+        .features { padding: 48px 0 8px; }
+        .features h2, .how h2 { font-size: 22px; margin: 0 0 6px; }
+        .section-lead { color: var(--muted); font-size: 14px; margin: 0 0 26px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .feature-card .icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: #eaefff;
+            color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 19px;
+        }
+        .feature-card h3 { margin: 0; font-size: 16px; }
+        .feature-card p { margin: 0; color: var(--muted); font-size: 13.5px; flex-grow: 1; }
+        .feature-card button {
+            align-self: flex-start;
+            margin-top: 4px;
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 13.5px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .feature-card button:hover { text-decoration: underline; }
+        .feature-card button:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* how it works */
+        .how { padding: 48px 0 60px; }
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+        .step { display: flex; gap: 14px; }
+        .step .n {
+            flex: none; width: 30px; height: 30px; border-radius: 50%;
+            background: var(--accent); color: #fff; font-weight: 700; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .step p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+        .step strong { font-size: 14.5px; }
+
+        footer { max-width: 1120px; margin: 0 auto; padding: 20px 24px 44px; color: var(--muted); font-size: 13px; }
+
+        /* console app (PrimeVue) content */
+        .dialog-path {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12px; color: var(--muted); word-break: break-all; margin: -6px 0 14px;
+        }
+        form.params { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 4px; }
+        form.params label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); flex: 1 1 150px; }
+        form.params .p-inputnumber, form.params .p-dropdown { width: 100%; }
+        form.params .p-inputnumber-input { font-size: 13px; width: 100%; }
+
+        .result-panel {
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fbfcfe;
+            overflow: hidden;
+        }
+        .result-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            background: #f1f4f9;
+        }
+        .status-line { font-size: 12.5px; font-weight: 700; }
+        .status-line.ok { color: var(--ok); }
+        .status-line.err { color: var(--err); }
+        .result-body { padding: 14px; max-height: 560px; overflow: auto; }
+        .result-body .loading { color: var(--muted); font-size: 13px; }
+        .result-body pre.raw {
+            margin: 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12.5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text);
         }
 
-        .gradient-text {
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .gradient-bg {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-        }
-
-        .card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .pricing-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .pricing-card:hover {
-            transform: scale(1.03);
-        }
-
-        .pricing-popular {
-            transform: scale(1.05);
-        }
-
-        .pricing-popular:hover {
-            transform: scale(1.08);
-        }
-
-        .feature-icon {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-        }
-
-        .hero-pattern {
-            background-color: #111827;
-            background-image: radial-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        .exchange-logo {
-            filter: grayscale(100%);
-            opacity: 0.7;
-            transition: all 0.3s ease;
-        }
-
-        .exchange-logo:hover {
-            filter: grayscale(0%);
-            opacity: 1;
-        }
-
-        .indicator-card {
-            border-left: 4px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .indicator-card:hover {
-            border-left-color: #3b82f6;
-        }
+        /* presentable data view (non-tabular branches; tabular branch uses PrimeVue DataTable) */
+        .dv-kv { display: grid; grid-template-columns: max-content 1fr; gap: 7px 16px; margin: 0; font-size: 13px; }
+        .dv-kv dt { color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 1px; }
+        .dv-kv dd { margin: 0; font-weight: 500; }
+        .dv-pos { color: var(--ok); font-weight: 600; }
+        .dv-neg { color: var(--err); font-weight: 600; }
+        .dv-bool-true { color: var(--ok); }
+        .dv-bool-false { color: var(--err); }
     </style>
-    <style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.bottom-1\/3{bottom:33.333333%}.left-1\/3{left:33.333333%}.right-1\/4{right:25%}.top-1\/4{top:25%}.z-10{z-index:10}.mx-auto{margin-left:auto;margin-right:auto}.mb-10{margin-bottom:2.5rem}.mb-16{margin-bottom:4rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-1{margin-left:0.25rem}.mr-2{margin-right:0.5rem}.mr-3{margin-right:0.75rem}.mt-12{margin-top:3rem}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-12{height:3rem}.h-14{height:3.5rem}.h-16{height:4rem}.h-4{height:1rem}.h-5{height:1.25rem}.h-6{height:1.5rem}.h-8{height:2rem}.w-12{width:3rem}.w-14{width:3.5rem}.w-16{width:4rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-6{width:1.5rem}.w-8{width:2rem}.w-full{width:100%}.max-w-2xl{max-width:42rem}.max-w-lg{max-width:32rem}@keyframes ping{75%, 100%{transform:scale(2);opacity:0}}.animate-ping{animation:ping 1s cubic-bezier(0, 0, 0.2, 1) infinite}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.space-x-8 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(2rem * var(--tw-space-x-reverse));margin-left:calc(2rem * calc(1 - var(--tw-space-x-reverse)))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-purple-500{--tw-bg-opacity:1;background-color:rgb(168 85 247 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-opacity-10{--tw-bg-opacity:0.1}.p-6{padding:1.5rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-20{padding-top:5rem;padding-bottom:5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.pb-20{padding-bottom:5rem}.pt-32{padding-top:8rem}.text-center{text-align:center}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.leading-tight{line-height:1.25}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:text-blue-600:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.hover\:text-blue-800:hover{--tw-text-opacity:1;color:rgb(30 64 175 / var(--tw-text-opacity, 1))}.hover\:shadow-xl:hover{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}@media (min-width: 640px){.sm\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.sm\:flex-row{flex-direction:row}.sm\:space-x-4 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1rem * var(--tw-space-x-reverse));margin-left:calc(1rem * calc(1 - var(--tw-space-x-reverse)))}.sm\:space-y-0 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0px * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0px * var(--tw-space-y-reverse))}}@media (min-width: 768px){.md\:mb-0{margin-bottom:0px}.md\:inline-block{display:inline-block}.md\:flex{display:flex}.md\:hidden{display:none}.md\:w-1\/2{width:50%}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:text-5xl{font-size:3rem;line-height:1}}@media (min-width: 1024px){.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:grid-cols-6{grid-template-columns:repeat(6, minmax(0, 1fr))}}</style></head>
-<body class="bg-gray-50 text-gray-800">
-<!-- Navigation -->
-<nav class="bg-white shadow-md fixed w-full z-10">
-    <div class="container mx-auto px-4 py-3">
-        <div class="flex justify-between items-center">
-            <div class="flex items-center">
-                <svg class="w-8 h-8 mr-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="url(#gradient)" stroke-width="2"></path>
-                    <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="url(#gradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M12 8V16" stroke="url(#gradient)" stroke-width="2" stroke-linecap="round"></path>
-                    <path d="M8 12H16" stroke="url(#gradient)" stroke-width="2" stroke-linecap="round"></path>
-                    <defs>
-                        <linearGradient id="gradient" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#3b82f6"></stop>
-                            <stop offset="1" stop-color="#8b5cf6"></stop>
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <h1 class="text-xl font-bold">Crypto <span class="gradient-text">Polymath</span></h1>
+</head>
+<body>
+<div id="marketing-app" v-cloak>
+    <header>
+        <div class="header-inner">
+            <div class="brand">
+                <span class="dot" :class="statusClass"></span>
+                Crypto <span style="color:var(--accent)">Polymath</span>
             </div>
-            <div class="hidden md:flex space-x-8">
-                <a href="#features" class="text-gray-600 hover:text-blue-600 transition">Features</a>
-<!--                <a href="#exchanges" class="text-gray-600 hover:text-blue-600 transition">Exchanges</a>-->
-                <a href="#indicators" class="text-gray-600 hover:text-blue-600 transition">Indicators</a>
-                <a href="#pricing" class="text-gray-600 hover:text-blue-600 transition">Pricing</a>
-                <a href="#api" class="text-gray-600 hover:text-blue-600 transition">API</a>
+            <span class="status-text">{{ statusText }}</span>
+            <div class="picker"><div id="picker-mount"></div></div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-inner">
+            <h1>Рыночные данные и аналитика криптовалют в одном API</h1>
+            <p class="subtitle">
+                Цены, исторические свечи, технические индикаторы, аналитика трендов и калькуляторы трейдера
+                с нескольких бирж — через единый REST‑контракт. Выберите функцию в меню сверху и получите
+                результат сразу во всплывающем окне.
+            </p>
+            <div class="hero-cta">
+                <button class="btn btn-primary" :disabled="!serverData" @click="requestOpen('price')">Посмотреть цену</button>
+                <a class="btn btn-ghost" href="https://github.com/AlekseyPorandaykin/crypto_polymath/blob/main/api/rest/v1/openapi.yaml" target="_blank" rel="noopener">Открыть спецификацию API</a>
             </div>
-            <div>
-                <a href="#contact" class="hidden md:inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">Contact Us</a>
-                <button class="md:hidden text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
+            <div class="stats">
+                <div class="stat"><b>{{ exchangeCount }}</b><span>бирж</span></div>
+                <div class="stat"><b>{{ indicatorCount }}</b><span>индикаторов</span></div>
+                <div class="stat"><b>{{ analysisCount }}</b><span>видов анализа</span></div>
+                <div class="stat"><b>{{ calculatorCount }}</b><span>калькуляторов трейдера</span></div>
             </div>
         </div>
-    </div>
-</nav>
+    </section>
 
-<!-- Hero Section -->
-<section class="hero-pattern pt-32 pb-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col md:flex-row items-center">
-            <div class="md:w-1/2 mb-10 md:mb-0">
-                <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight mb-6">Advanced Crypto Analytics <span class="gradient-text">API Platform</span></h1>
-                <p class="text-gray-300 text-lg mb-8">Get real-time cryptocurrency data, advanced technical indicators, and market analytics from multiple exchanges through a single powerful API.</p>
-                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                    <a href="#pricing" class="gradient-bg text-white font-medium px-6 py-3 rounded-lg text-center shadow-lg hover:shadow-xl transition">Get Started</a>
-                    <a href="#api" class="bg-white text-gray-800 font-medium px-6 py-3 rounded-lg text-center shadow-lg hover:shadow-xl transition">API Documentation</a>
+    <main>
+        <section class="features">
+            <h2>Возможности платформы</h2>
+            <p class="section-lead">Ключевые группы функций — каждую можно опробовать прямо сейчас.</p>
+            <div class="card-grid">
+                <div class="feature-card">
+                    <div class="icon">₿</div>
+                    <h3>Цены в реальном времени</h3>
+                    <p>Последняя цена по бирже, по символу или по конкретной паре биржа + символ.</p>
+                    <button :disabled="!serverData" @click="requestOpen('price')">Попробовать →</button>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">▤</div>
+                    <h3>Исторические свечи</h3>
+                    <p>OHLCV‑свечи по любому таймфрейму — от минут до месяцев, включая Heiken Ashi.</p>
+                    <button :disabled="!serverData" @click="requestOpen('candlestick')">Попробовать →</button>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">∿</div>
+                    <h3>Индикаторы и аналитика</h3>
+                    <p>Тренды, скользящие средние, RSI, MACD, стохастик и другие расчётные показатели.</p>
+                    <button :disabled="!serverData" @click="requestOpen('analysis')">Попробовать →</button>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">%</div>
+                    <h3>Калькуляторы трейдера</h3>
+                    <p>Средняя цена входа, объём из залога, цена ликвидации, PnL и риск позиции.</p>
+                    <button :disabled="!serverData" @click="requestOpen('risk-at-price')">Попробовать →</button>
                 </div>
             </div>
-            <div class="md:w-1/2 flex justify-center">
-                <div class="relative">
-                    <svg class="w-full max-w-lg" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="50" y="50" width="300" height="200" rx="10" fill="#1F2937"></rect>
-                        <rect x="70" y="70" width="260" height="160" rx="5" fill="#111827"></rect>
+        </section>
 
-                        <!-- Chart elements -->
-                        <path d="M90 180 L110 150 L130 170 L150 130 L170 160 L190 120 L210 140 L230 100 L250 130 L270 90 L290 110 L310 80" stroke="#3B82F6" stroke-width="2" fill="none"></path>
-
-                        <!-- Candlesticks -->
-                        <rect x="100" y="140" width="6" height="20" fill="#10B981"></rect>
-                        <line x1="103" y1="135" x2="103" y2="165" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="120" y="160" width="6" height="15" fill="#EF4444"></rect>
-                        <line x1="123" y1="155" x2="123" y2="180" stroke="#EF4444" stroke-width="1"></line>
-
-                        <rect x="140" y="125" width="6" height="15" fill="#10B981"></rect>
-                        <line x1="143" y1="120" x2="143" y2="145" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="160" y="150" width="6" height="20" fill="#10B981"></rect>
-                        <line x1="163" y1="145" x2="163" y2="175" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="180" y="115" width="6" height="15" fill="#10B981"></rect>
-                        <line x1="183" y1="110" x2="183" y2="135" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="200" y="130" width="6" height="20" fill="#EF4444"></rect>
-                        <line x1="203" y1="125" x2="203" y2="155" stroke="#EF4444" stroke-width="1"></line>
-
-                        <rect x="220" y="95" width="6" height="15" fill="#10B981"></rect>
-                        <line x1="223" y1="90" x2="223" y2="115" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="240" y="120" width="6" height="20" fill="#10B981"></rect>
-                        <line x1="243" y1="115" x2="243" y2="145" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="260" y="85" width="6" height="15" fill="#10B981"></rect>
-                        <line x1="263" y1="80" x2="263" y2="105" stroke="#10B981" stroke-width="1"></line>
-
-                        <rect x="280" y="100" width="6" height="20" fill="#EF4444"></rect>
-                        <line x1="283" y1="95" x2="283" y2="125" stroke="#EF4444" stroke-width="1"></line>
-
-                        <rect x="300" y="75" width="6" height="15" fill="#10B981"></rect>
-                        <line x1="303" y1="70" x2="303" y2="95" stroke="#10B981" stroke-width="1"></line>
-
-                        <!-- Indicators -->
-                        <path d="M90 200 L310 200" stroke="#4B5563" stroke-width="1" stroke-dasharray="4"></path>
-                        <path d="M90 190 L310 190" stroke="#4B5563" stroke-width="1" stroke-dasharray="4"></path>
-                        <path d="M90 210 L310 210" stroke="#4B5563" stroke-width="1" stroke-dasharray="4"></path>
-
-                        <path d="M90 200 L110 195 L130 205 L150 190 L170 200 L190 185 L210 195 L230 180 L250 190 L270 175 L290 185 L310 170" stroke="#8B5CF6" stroke-width="2" fill="none"></path>
-
-                        <!-- Data labels -->
-                        <text x="90" y="230" fill="#9CA3AF" font-size="8">00:00</text>
-                        <text x="150" y="230" fill="#9CA3AF" font-size="8">06:00</text>
-                        <text x="210" y="230" fill="#9CA3AF" font-size="8">12:00</text>
-                        <text x="270" y="230" fill="#9CA3AF" font-size="8">18:00</text>
-
-                        <!-- Price labels -->
-                        <text x="70" y="80" fill="#9CA3AF" font-size="8">$45,000</text>
-                        <text x="70" y="120" fill="#9CA3AF" font-size="8">$44,000</text>
-                        <text x="70" y="160" fill="#9CA3AF" font-size="8">$43,000</text>
-                        <text x="70" y="200" fill="#9CA3AF" font-size="8">$42,000</text>
-
-                        <!-- Indicator labels -->
-                        <text x="320" y="170" fill="#8B5CF6" font-size="8">RSI</text>
-                        <text x="320" y="200" fill="#3B82F6" font-size="8">MACD</text>
-                    </svg>
-
-                    <!-- Animated elements -->
-                    <div class="absolute top-1/4 right-1/4 w-16 h-16 bg-blue-500 bg-opacity-10 rounded-full animate-ping" style="animation-duration: 3s;"></div>
-                    <div class="absolute bottom-1/3 left-1/3 w-12 h-12 bg-purple-500 bg-opacity-10 rounded-full animate-ping" style="animation-duration: 2.5s;"></div>
+        <section class="how">
+            <h2>Как это работает</h2>
+            <p class="section-lead">Без интеграции — чтобы оценить данные, достаточно браузера.</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="n">1</div>
+                    <div><strong>Выберите функцию</strong><p>В меню сверху — по бирже, символу, индикатору или калькулятору.</p></div>
+                </div>
+                <div class="step">
+                    <div class="n">2</div>
+                    <div><strong>Заполните параметры</strong><p>Списки бирж, монет, индикаторов и их параметров подгружаются из API.</p></div>
+                </div>
+                <div class="step">
+                    <div class="n">3</div>
+                    <div><strong>Получите результат</strong><p>Ответ API отображается сразу во всплывающем окне.</p></div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
+        </section>
+    </main>
 
-<!-- Features Section -->
-<section id="features" class="py-20 bg-white">
-    <div class="container mx-auto px-4">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold mb-4">Why Choose <span class="gradient-text">Crypto Polymath</span>?</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">Our platform provides comprehensive cryptocurrency data and analytics through a simple, powerful API designed for traders, developers, and analysts.</p>
-        </div>
+    <footer>
+        <a href="https://github.com/AlekseyPorandaykin/crypto_polymath" target="_blank" rel="noopener">GitHub</a>
+        ·
+        <a href="https://test-p43.sentry.io/projects/crypto-polymath/" target="_blank" rel="noopener">Sentry</a>
+        ·
+        <a href="https://github.com/AlekseyPorandaykin/crypto_polymath/blob/main/api/rest/v1/openapi.yaml" target="_blank" rel="noopener">OpenAPI‑контракт</a>
+    </footer>
+</div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Real-Time Data</h3>
-                <p class="text-gray-600">Access real-time cryptocurrency data from multiple exchanges with minimal latency. Stay ahead of the market with up-to-the-second price updates.</p>
-            </div>
+<script type="module">
+    // "marketing" — использует полную сборку Vue (с компилятором шаблонов), поэтому шаблоны
+    // прямо в HTML выше компилируются в браузере без проблем. Никогда не импортирует PrimeVue.
+    import { createApp, ref, computed, onMounted } from 'https://esm.sh/vue@3.5.39/es2022/dist/vue.esm-browser.prod.mjs';
 
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Advanced Indicators</h3>
-                <p class="text-gray-600">Get access to over 50+ technical indicators calculated in real-time. From basic moving averages to complex oscillators and volume profiles.</p>
-            </div>
+    createApp({
+        setup() {
+            const online = ref(null);
+            const serverData = ref(null);
+            const exchangeCount = computed(() => serverData.value ? serverData.value.exchanges.length : '—');
+            const indicatorCount = computed(() => serverData.value ? serverData.value.indicators.length : '—');
+            const analysisCount = computed(() => serverData.value ? serverData.value.analysis.length : '—');
+            const calculatorCount = ref(9);
+            const statusClass = computed(() => online.value === null ? '' : online.value ? 'online' : 'offline');
+            const statusText = computed(() => online.value === null ? 'Проверка API…' : online.value ? 'API онлайн' : 'API недоступен');
 
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Historical Data</h3>
-                <p class="text-gray-600">Access historical candlestick data across multiple timeframes, from 1-minute to monthly candles, with complete OHLCV information.</p>
-            </div>
+            function requestOpen(key) {
+                window.dispatchEvent(new CustomEvent('open-endpoint', { detail: key }));
+            }
 
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Multi-Exchange Support</h3>
-                <p class="text-gray-600">Connect to multiple cryptocurrency exchanges through a single API. Compare prices and liquidity across different platforms.</p>
-            </div>
+            onMounted(async () => {
+                try {
+                    const resp = await fetch('/api/v1/server');
+                    online.value = resp.ok;
+                    if (resp.ok) serverData.value = await resp.json();
+                } catch (e) {
+                    online.value = false;
+                }
+            });
 
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Secure &amp; Reliable</h3>
-                <p class="text-gray-600">Built with enterprise-grade security and 99.9% uptime guarantee. Your data and API keys are always protected with industry-standard encryption.</p>
-            </div>
+            return { serverData, statusClass, statusText, exchangeCount, indicatorCount, analysisCount, calculatorCount, requestOpen };
+        },
+    }).mount('#marketing-app');
+</script>
 
-            <div class="card bg-white p-6 rounded-xl shadow-md">
-                <div class="feature-icon w-14 h-14 rounded-full flex items-center justify-center mb-5">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Developer Friendly</h3>
-                <p class="text-gray-600">Comprehensive documentation, code examples in multiple languages, and SDKs make integration quick and painless for developers.</p>
-            </div>
-        </div>
-    </div>
-</section>
+<script type="module">
+    // "console" — мега-меню функций (в шапке, #picker-mount) и модальное окно.
+    // Использует рантайм-сборку Vue из esm.sh (та же, что и внутри PrimeVue) и написано через
+    // render()/h(), без строковых шаблонов, чтобы не требовать отдельного компилятора шаблонов.
+    import { createApp, reactive, ref, computed, onMounted, h, Fragment } from 'vue';
+    import PrimeVue from 'primevue/config';
+    import Dropdown from 'primevue/dropdown';
+    import InputNumber from 'primevue/inputnumber';
+    import MegaMenu from 'primevue/megamenu';
+    import Button from 'primevue/button';
+    import Dialog from 'primevue/dialog';
+    import Tag from 'primevue/tag';
+    import DataTable from 'primevue/datatable';
+    import TreeTable from 'primevue/treetable';
+    import Chart from 'primevue/chart';
+    import Column from 'primevue/column';
 
-<!--&lt;!&ndash; Exchanges Section &ndash;&gt;-->
-<!--<section id="exchanges" class="py-20 bg-gray-50">-->
-<!--    <div class="container mx-auto px-4">-->
-<!--        <div class="text-center mb-16">-->
-<!--            <h2 class="text-3xl font-bold mb-4">Supported <span class="gradient-text">Exchanges</span></h2>-->
-<!--            <p class="text-gray-600 max-w-2xl mx-auto">We integrate with all major cryptocurrency exchanges to provide comprehensive market coverage and data consistency.</p>-->
-<!--        </div>-->
+    function field(name, opts) {
+        return Object.assign({ name, default: '' }, opts);
+    }
+    function withValues(fields) {
+        const values = {};
+        for (const f of fields) values[f.name] = f.default;
+        return values;
+    }
+    function endpoint(e) {
+        return Object.assign({ values: withValues(e.fields) }, e);
+    }
 
-<!--        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">-->
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 128 32" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M16 0L29.8564 8V24L16 32L2.14359 24V8L16 0Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M16 11.6L20.4 14L16 16.4L11.6 14L16 11.6Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M16 4.8L24.8 9.6L29.2 7.2L16 0L2.8 7.2L7.2 9.6L16 4.8Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M7.2 14.4L2.8 12V7.2L7.2 9.6V14.4Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M7.2 19.2L2.8 16.8V12L7.2 14.4V19.2Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M7.2 24L2.8 21.6V16.8L7.2 19.2V24Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M16 27.2L7.2 22.4V17.6L16 22.4V27.2Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M24.8 22.4L16 27.2V22.4L24.8 17.6V22.4Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M29.2 19.2L24.8 21.6V16.8L29.2 14.4V19.2Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M29.2 14.4L24.8 16.8V12L29.2 9.6V14.4Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M16 18.8L11.6 16.4V11.6L16 14V18.8Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M20.4 16.4L16 18.8V14L20.4 11.6V16.4Z" fill="#F0B90B"></path>-->
-<!--                    <path d="M48 20.8H44.8V11.2H48V20.8Z" fill="#1E2026"></path>-->
-<!--                    <path d="M56 20.8H52.8V11.2H56V20.8Z" fill="#1E2026"></path>-->
-<!--                    <path d="M60 11.2H56.8V20.8H60V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M68 11.2H64.8V20.8H68V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M64.8 11.2H61.6V14.4H64.8V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M64.8 17.6H61.6V20.8H64.8V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M76 11.2H72.8V20.8H76V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M80 11.2H76.8V14.4H80V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M80 17.6H76.8V20.8H80V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M88 11.2H84.8V20.8H88V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M92 11.2H88.8V14.4H92V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M92 17.6H88.8V20.8H92V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M100 11.2H96.8V20.8H100V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M104 11.2H100.8V14.4H104V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M104 17.6H100.8V20.8H104V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M112 11.2H108.8V20.8H112V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M116 11.2H112.8V14.4H116V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M116 17.6H112.8V20.8H116V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M124 11.2H120.8V20.8H124V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M128 11.2H124.8V14.4H128V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M128 17.6H124.8V20.8H128V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M52 11.2H48.8V14.4H52V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M52 17.6H48.8V20.8H52V17.6Z" fill="#1E2026"></path>-->
-<!--                    <path d="M44 11.2H40.8V14.4H44V11.2Z" fill="#1E2026"></path>-->
-<!--                    <path d="M44 17.6H40.8V20.8H44V17.6Z" fill="#1E2026"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    // Источники значений для выпадающих списков — всё берётся из ответа /api/v1/server.
+    const optExchanges = (values, srv) => srv ? srv.exchanges : [];
+    const optSymbols = (values, srv) => srv ? srv.symbols : [];
+    const optUnits = (values, srv) => srv ? srv.units : [];
+    const optIntervalsForUnit = (values, srv) => {
+        if (!srv) return [];
+        const entry = srv.intervals.find(iv => iv.unit === values.unit);
+        return entry ? entry.values : [];
+    };
+    const optIndicatorNames = (values, srv) => srv ? srv.indicators.map(i => i.name) : [];
+    const optIndicatorDepth = (values, srv) => {
+        if (!srv) return [];
+        const info = srv.indicators.find(i => i.name === values.name);
+        return info ? info.depth : srv.depths;
+    };
+    const optAnalysisNames = (values, srv) => srv ? srv.analysis.map(a => a.name) : [];
+    const optAnalysisDepth = (values, srv) => {
+        if (!srv) return [];
+        const info = srv.analysis.find(a => a.name === values.name);
+        return info ? info.depth : srv.depths;
+    };
+    const optAnalysisIndicatorDepth = (values, srv) => {
+        if (!srv) return [];
+        const info = srv.analysis.find(a => a.name === values.name);
+        return info ? info.indicator_depth : srv.indicator_depth;
+    };
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 122 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M18.5 5.5C17.0333 5.5 15.7917 5.95833 14.775 6.875C13.7583 7.79167 13.25 8.95833 13.25 10.375C13.25 11.7917 13.7583 12.9583 14.775 13.875C15.7917 14.7917 17.0333 15.25 18.5 15.25C19.9667 15.25 21.2083 14.7917 22.225 13.875C23.2417 12.9583 23.75 11.7917 23.75 10.375C23.75 8.95833 23.2417 7.79167 22.225 6.875C21.2083 5.95833 19.9667 5.5 18.5 5.5Z" fill="#0052FF"></path>-->
-<!--                    <path d="M36.5 0C32.0333 0 28.2083 1.59167 25.025 4.775C21.8417 7.95833 20.25 11.7833 20.25 16.25C20.25 20.7167 21.8417 24.5417 25.025 27.725C28.2083 30.9083 32.0333 32.5 36.5 32.5C40.9667 32.5 44.7917 30.9083 47.975 27.725C51.1583 24.5417 52.75 20.7167 52.75 16.25C52.75 11.7833 51.1583 7.95833 47.975 4.775C44.7917 1.59167 40.9667 0 36.5 0ZM36.5 24C34.1 24 32.0833 23.1583 30.45 21.475C28.8167 19.7917 28 17.7167 28 15.25C28 12.7833 28.8167 10.7083 30.45 9.025C32.0833 7.34167 34.1 6.5 36.5 6.5C38.9 6.5 40.9167 7.34167 42.55 9.025C44.1833 10.7083 45 12.7833 45 15.25C45 17.7167 44.1833 19.7917 42.55 21.475C40.9167 23.1583 38.9 24 36.5 24Z" fill="#0052FF"></path>-->
-<!--                    <path d="M67.5 6.5C65.1 6.5 63.0833 7.34167 61.45 9.025C59.8167 10.7083 59 12.7833 59 15.25C59 17.7167 59.8167 19.7917 61.45 21.475C63.0833 23.1583 65.1 24 67.5 24C69.9 24 71.9167 23.1583 73.55 21.475C75.1833 19.7917 76 17.7167 76 15.25C76 12.7833 75.1833 10.7083 73.55 9.025C71.9167 7.34167 69.9 6.5 67.5 6.5Z" fill="#0052FF"></path>-->
-<!--                    <path d="M85.5 6.5C83.1 6.5 81.0833 7.34167 79.45 9.025C77.8167 10.7083 77 12.7833 77 15.25C77 17.7167 77.8167 19.7917 79.45 21.475C81.0833 23.1583 83.1 24 85.5 24C87.9 24 89.9167 23.1583 91.55 21.475C93.1833 19.7917 94 17.7167 94 15.25C94 12.7833 93.1833 10.7083 91.55 9.025C89.9167 7.34167 87.9 6.5 85.5 6.5Z" fill="#0052FF"></path>-->
-<!--                    <path d="M103.5 6.5C101.1 6.5 99.0833 7.34167 97.45 9.025C95.8167 10.7083 95 12.7833 95 15.25C95 17.7167 95.8167 19.7917 97.45 21.475C99.0833 23.1583 101.1 24 103.5 24C105.9 24 107.917 23.1583 109.55 21.475C111.183 19.7917 112 17.7167 112 15.25C112 12.7833 111.183 10.7083 109.55 9.025C107.917 7.34167 105.9 6.5 103.5 6.5Z" fill="#0052FF"></path>-->
-<!--                    <path d="M121.5 6.5C119.1 6.5 117.083 7.34167 115.45 9.025C113.817 10.7083 113 12.7833 113 15.25C113 17.7167 113.817 19.7917 115.45 21.475C117.083 23.1583 119.1 24 121.5 24C123.9 24 125.917 23.1583 127.55 21.475C129.183 19.7917 130 17.7167 130 15.25C130 12.7833 129.183 10.7083 127.55 9.025C125.917 7.34167 123.9 6.5 121.5 6.5Z" fill="#0052FF"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    function isIsoDate(v) {
+        return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v);
+    }
+    function formatNumber(n) {
+        const opts = Number.isInteger(n) ? {} : { maximumFractionDigits: 8 };
+        return n.toLocaleString('ru-RU', opts);
+    }
+    function formatScalar(v) {
+        if (v === null || v === undefined || v === '') return '—';
+        if (typeof v === 'boolean') return v ? 'Да' : 'Нет';
+        if (typeof v === 'number') return formatNumber(v);
+        if (isIsoDate(v)) {
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? v : d.toLocaleString('ru-RU');
+        }
+        return String(v);
+    }
+    function prettyKey(k) {
+        return String(k).replace(/_/g, ' ');
+    }
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 22.4C9.352 22.4 5.6 18.648 5.6 14C5.6 9.352 9.352 5.6 14 5.6C18.648 5.6 22.4 9.352 22.4 14C22.4 18.648 18.648 22.4 14 22.4Z" fill="#5741D9"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    // Строит узлы для PrimeVue TreeTable из произвольного JSON-значения (используется для
+    // результата /server — там естественно вложенная структура: биржи/символы/индикаторы/
+    // анализы, у каждого индикатора и анализа — свой список глубин и т.д.).
+    function buildTreeNodes(value, keyPrefix) {
+        if (Array.isArray(value)) {
+            return value.map((item, i) => {
+                const key = keyPrefix + '-' + i;
+                if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+                    const label = item.name ?? item.unit ?? ('#' + (i + 1));
+                    return { key, data: { field: String(label), value: '' }, children: buildTreeNodes(item, key) };
+                }
+                return { key, data: { field: '#' + (i + 1), value: formatScalar(item) } };
+            });
+        }
+        if (value !== null && typeof value === 'object') {
+            return Object.keys(value).map(k => {
+                const key = keyPrefix + '-' + k;
+                const v = value[k];
+                if (v !== null && typeof v === 'object') {
+                    const count = Array.isArray(v) ? v.length : Object.keys(v).length;
+                    return { key, data: { field: prettyKey(k), value: '[' + count + ']' }, children: buildTreeNodes(v, key) };
+                }
+                return { key, data: { field: prettyKey(k), value: formatScalar(v) } };
+            });
+        }
+        return [];
+    }
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM19.6 19.6H8.4V8.4H19.6V19.6Z" fill="#29B388"></path>-->
-<!--                    <path d="M35.6 7H41.2V21H35.6V19.6C34.6 20.6 33.2 21 31.8 21C28.2 21 25.8 18.4 25.8 14C25.8 9.6 28.2 7 31.8 7C33.2 7 34.6 7.4 35.6 8.4V7ZM35.6 14C35.6 12.2 34.6 11 33.4 11C32.2 11 31.2 12.2 31.2 14C31.2 15.8 32.2 17 33.4 17C34.6 17 35.6 15.8 35.6 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M43 14C43 9.6 46.4 7 50.8 7C55.2 7 58.6 9.6 58.6 14C58.6 18.4 55.2 21 50.8 21C46.4 21 43 18.4 43 14ZM53 14C53 12.2 52 11 50.8 11C49.6 11 48.6 12.2 48.6 14C48.6 15.8 49.6 17 50.8 17C52 17 53 15.8 53 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M60 7H65.6V8.4C66.6 7.4 68 7 69.4 7C73 7 75.4 9.6 75.4 13.8V21H69.8V14.6C69.8 13 69 12 67.8 12C66.6 12 65.8 13 65.8 14.6V21H60.2V7H60Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M77 14C77 9.6 80.4 7 84.8 7C89.2 7 92.6 9.6 92.6 14C92.6 18.4 89.2 21 84.8 21C80.4 21 77 18.4 77 14ZM87 14C87 12.2 86 11 84.8 11C83.6 11 82.6 12.2 82.6 14C82.6 15.8 83.6 17 84.8 17C86 17 87 15.8 87 14Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    // График исторических свечей (PrimeVue Chart / Chart.js): ось X — start_time, значение — close_price.
+    function buildChartData(rows) {
+        return {
+            labels: rows.map(r => new Date(r.start_time).toLocaleString('ru-RU')),
+            datasets: [{
+                label: 'Цена закрытия',
+                data: rows.map(r => r.close_price),
+                borderColor: '#2f5bea',
+                backgroundColor: 'rgba(47,91,234,0.1)',
+                fill: true,
+                tension: 0.25,
+                pointRadius: 0,
+            }],
+        };
+    }
+    const CHART_OPTIONS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 22.4C9.352 22.4 5.6 18.648 5.6 14C5.6 9.352 9.352 5.6 14 5.6C18.648 5.6 22.4 9.352 22.4 14C22.4 18.648 18.648 22.4 14 22.4Z" fill="#FF7700"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    // Порог, начиная с которого включаем постраничный вывод DataTable — для больших
+    // результатов (например, 100 свечей) удобнее листать страницы, чем скроллить один блок.
+    const TABLE_PAGE_THRESHOLD = 10;
+    function tableProps(rows) {
+        const base = { value: rows, size: 'small', stripedRows: true };
+        return rows.length > TABLE_PAGE_THRESHOLD
+            ? Object.assign(base, { paginator: true, rows: 10, rowsPerPageOptions: [10, 25, 50], scrollable: true, scrollHeight: '360px' })
+            : Object.assign(base, { scrollable: true, scrollHeight: '280px' });
+    }
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM20.3 14L14 20.3L7.7 14L14 7.7L20.3 14Z" fill="#13B5EC"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    // Презентабельный рекурсивный вывод произвольного JSON-значения. Без шаблона —
+    // render()/h(), любой массив (объектов или простых значений) рендерится через
+    // PrimeVue DataTable/Column, чтобы большие результаты были листаемыми, а не одним
+    // длинным скроллом.
+    const DataView = {
+        props: ['value'],
+        render() {
+            const v = this.value;
+            const isArray = Array.isArray(v);
+            const isArrayOfObjects = isArray && v.length > 0 && v.every(x => x && typeof x === 'object' && !Array.isArray(x));
+            if (isArrayOfObjects) {
+                const columns = [];
+                v.forEach(row => Object.keys(row).forEach(k => { if (!columns.includes(k)) columns.push(k); }));
+                return h(DataTable, tableProps(v), {
+                    default: () => columns.map(k => h(Column, { key: k, field: k, header: prettyKey(k) }, {
+                        body: (slotProps) => h(DataView, { value: slotProps.data[k] }),
+                    })),
+                });
+            }
+            if (isArray) {
+                const wrapped = v.map(item => ({ value: item }));
+                return h(DataTable, tableProps(wrapped), {
+                    default: () => h(Column, { field: 'value', header: 'Значение' }, {
+                        body: (slotProps) => h(DataView, { value: slotProps.data.value }),
+                    }),
+                });
+            }
+            if (v !== null && typeof v === 'object') {
+                const rows = [];
+                Object.keys(v).forEach(k => {
+                    rows.push(h('dt', { key: 'dt-' + k }, prettyKey(k)));
+                    rows.push(h('dd', { key: 'dd-' + k }, [h(DataView, { value: v[k] })]));
+                });
+                return h('dl', { class: 'dv-kv' }, rows);
+            }
+            let cls = '';
+            if (typeof v === 'number') cls = v > 0 ? 'dv-pos' : v < 0 ? 'dv-neg' : '';
+            if (typeof v === 'boolean') cls = v ? 'dv-bool-true' : 'dv-bool-false';
+            return h('span', { class: cls }, formatScalar(v));
+        },
+    };
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 5.6L22.4 14L14 22.4L5.6 14L14 5.6Z" fill="#1199FA"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    const rawEndpoints = [
+        endpoint({
+            key: 'server', tag: 'Server', method: 'GET', path: '/api/v1/server',
+            desc: 'Информация о сервере: поддерживаемые биржи, символы, индикаторы, анализы.',
+            fields: [],
+        }),
+        endpoint({
+            key: 'prices-exchange', tag: 'Цена', method: 'GET', path: '/api/v1/prices/exchange/{exchange}',
+            desc: 'Все последние цены по бирже.',
+            fields: [field('exchange', { optionsFn: optExchanges })],
+        }),
+        endpoint({
+            key: 'prices-symbol', tag: 'Цена', method: 'GET', path: '/api/v1/prices/symbol/{symbol}',
+            desc: 'Последние цены по символу со всех бирж.',
+            fields: [field('symbol', { optionsFn: optSymbols })],
+        }),
+        endpoint({
+            key: 'price', tag: 'Цена', method: 'GET', path: '/api/v1/price/{exchange}/{symbol}',
+            desc: 'Последняя цена по бирже и символу.',
+            fields: [field('exchange', { optionsFn: optExchanges }), field('symbol', { optionsFn: optSymbols })],
+        }),
+        endpoint({
+            key: 'candlestick', tag: 'Свечи', method: 'GET', path: '/api/v1/candlestick/{exchange}/{symbol}/{unit}/{interval}',
+            desc: 'Исторические свечи (OHLCV) по бирже/символу/таймфрейму.',
+            fields: [
+                field('exchange', { optionsFn: optExchanges }),
+                field('symbol', { optionsFn: optSymbols }),
+                field('unit', { optionsFn: optUnits }),
+                field('interval', { optionsFn: optIntervalsForUnit }),
+            ],
+        }),
+        endpoint({
+            key: 'candlestick-chart', tag: 'Свечи', method: 'GET', path: '/api/v1/candlestick/{exchange}/{symbol}/{unit}/{interval}',
+            desc: 'Исторические свечи — график цены закрытия.',
+            chart: true,
+            fields: [
+                field('exchange', { optionsFn: optExchanges }),
+                field('symbol', { optionsFn: optSymbols }),
+                field('unit', { optionsFn: optUnits }),
+                field('interval', { optionsFn: optIntervalsForUnit }),
+            ],
+        }),
+        endpoint({
+            key: 'indicator', tag: 'Индикаторы', method: 'GET', path: '/api/v1/indicator/{exchange}/{symbol}/{unit}/{interval}/{name}/{depth}',
+            desc: 'Значение технического индикатора по свечам.',
+            fields: [
+                field('exchange', { optionsFn: optExchanges }),
+                field('symbol', { optionsFn: optSymbols }),
+                field('unit', { optionsFn: optUnits }),
+                field('interval', { optionsFn: optIntervalsForUnit }),
+                field('name', { optionsFn: optIndicatorNames }),
+                field('depth', { optionsFn: optIndicatorDepth }),
+            ],
+        }),
+        endpoint({
+            key: 'candle-indicator', tag: 'Candle Indicator', method: 'GET', path: '/api/v1/candle-indicator/{exchange}/{symbol}/{unit}/{interval}/{name}',
+            desc: 'Индикатор, преобразующий саму свечу (например, Heiken Ashi).',
+            fields: [
+                field('exchange', { optionsFn: optExchanges }),
+                field('symbol', { optionsFn: optSymbols }),
+                field('unit', { optionsFn: optUnits }),
+                field('interval', { optionsFn: optIntervalsForUnit }),
+                field('name', { default: 'HeikenAshi', options: ['HeikenAshi'] }),
+            ],
+        }),
+        endpoint({
+            key: 'exchange', tag: 'Биржа', method: 'GET', path: '/api/v1/exchange/{exchange}/{symbol}',
+            desc: 'Информация о символе на бирже (funding rate и т.д.).',
+            fields: [field('exchange', { optionsFn: optExchanges }), field('symbol', { optionsFn: optSymbols })],
+        }),
+        endpoint({
+            key: 'analysis', tag: 'Анализ', method: 'GET', path: '/api/v1/analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth}',
+            desc: 'Расчётные аналитические показатели (тренд, RSI, MACD, стохастик и т.д.).',
+            fields: [
+                field('exchange', { optionsFn: optExchanges }),
+                field('symbol', { optionsFn: optSymbols }),
+                field('unit', { optionsFn: optUnits }),
+                field('interval', { optionsFn: optIntervalsForUnit }),
+                field('name', { optionsFn: optAnalysisNames }),
+                field('indicator_depth', { optionsFn: optAnalysisIndicatorDepth }),
+                field('depth', { optionsFn: optAnalysisDepth }),
+            ],
+        }),
+        endpoint({
+            key: 'symbols', tag: 'Символы', method: 'GET', path: '/api/v1/symbols/{exchange}/{category}',
+            desc: 'Список символов биржи по категории.',
+            fields: [field('exchange', { optionsFn: optExchanges }), field('category', { default: 'spot', options: ['spot', 'future'] })],
+        }),
+        endpoint({
+            key: 'avg-entry-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/avg-entry-price',
+            desc: 'Средняя цена входа после докупки по объёму.',
+            fields: [
+                field('entry_volume', { default: 1, input: 'number' }),
+                field('entry_price', { default: 50000, input: 'number' }),
+                field('new_volume', { default: 1, input: 'number' }),
+                field('new_price', { default: 45000, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'avg-entry-price-by-sum', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/avg-entry-price-by-sum',
+            desc: 'Средняя цена входа после докупки на сумму залога.',
+            fields: [
+                field('entry_volume', { default: 1, input: 'number' }),
+                field('entry_price', { default: 50000, input: 'number' }),
+                field('sum', { default: 1000, input: 'number' }),
+                field('leverage', { default: 10, input: 'number' }),
+                field('new_price', { default: 45000, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'volume-from-margin', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/volume-from-margin',
+            desc: 'Объём позиции из залога и плеча.',
+            fields: [
+                field('margin', { default: 1000, input: 'number' }),
+                field('leverage', { default: 10, input: 'number' }),
+                field('price', { default: 50000, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'liquidation-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/liquidation-price',
+            desc: 'Цена ликвидации изолированной позиции.',
+            fields: [
+                field('side', { default: 'long', options: ['long', 'short'] }),
+                field('volume', { default: 1, input: 'number' }),
+                field('entry_price', { default: 50000, input: 'number' }),
+                field('margin', { default: 1000, input: 'number' }),
+                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'unrealized-pnl', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/unrealized-pnl',
+            desc: 'Нереализованный PnL.',
+            fields: [
+                field('side', { default: 'long', options: ['long', 'short'] }),
+                field('volume', { default: 1, input: 'number' }),
+                field('entry_price', { default: 50000, input: 'number' }),
+                field('mark_price', { default: 52000, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'distance-to-liquidation', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/distance-to-liquidation',
+            desc: 'Запас до ликвидации в процентах.',
+            fields: [
+                field('side', { default: 'long', options: ['long', 'short'] }),
+                field('mark_price', { default: 52000, input: 'number' }),
+                field('liquidation_price', { default: 45000, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'simulate-add-on', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/simulate-add-on',
+            desc: 'Симуляция докупки (вход, ликвидация, риски).',
+            fields: [
+                field('position.side', { default: 'long', options: ['long', 'short'] }),
+                field('position.volume', { default: 1, input: 'number' }),
+                field('position.entry_price', { default: 50000, input: 'number' }),
+                field('position.margin', { default: 1000, input: 'number' }),
+                field('position.leverage', { default: 10, input: 'number' }),
+                field('add_on.price', { default: 45000, input: 'number' }),
+                field('add_on.volume', { default: 0, input: 'number' }),
+                field('add_on.margin', { default: 500, input: 'number' }),
+                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'risk-at-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/risk-at-price',
+            desc: 'Снимок риска позиции при рыночной цене.',
+            fields: [
+                field('position.side', { default: 'long', options: ['long', 'short'] }),
+                field('position.volume', { default: 1, input: 'number' }),
+                field('position.entry_price', { default: 50000, input: 'number' }),
+                field('position.margin', { default: 1000, input: 'number' }),
+                field('position.leverage', { default: 10, input: 'number' }),
+                field('mark_price', { default: 52000, input: 'number' }),
+                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
+            ],
+        }),
+        endpoint({
+            key: 'spot-pnl', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/spot-pnl',
+            desc: 'PnL спотовой позиции в значении и в процентах.',
+            fields: [
+                field('volume', { default: 1, input: 'number' }),
+                field('entry_price', { default: 50000, input: 'number' }),
+                field('mark_price', { default: 55000, input: 'number' }),
+            ],
+        }),
+    ];
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 22.4C9.352 22.4 5.6 18.648 5.6 14C5.6 9.352 9.352 5.6 14 5.6C18.648 5.6 22.4 9.352 22.4 14C22.4 18.648 18.648 22.4 14 22.4Z" fill="#24AE8F"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    const tags = ['Server', 'Цена', 'Свечи', 'Индикаторы', 'Candle Indicator', 'Биржа', 'Анализ', 'Символы', 'Калькулятор'];
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 5.6L22.4 14L14 22.4L5.6 14L14 5.6Z" fill="#627EEA"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+    const ConsoleRoot = {
+        setup() {
+            const endpoints = reactive(rawEndpoints);
+            const activeKey = ref(null);
+            const dialogVisible = ref(false);
+            const serverData = ref(null);
+            const result = reactive({ loading: false, error: false, status: '', data: null, raw: '', showRaw: false });
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 22.4C9.352 22.4 5.6 18.648 5.6 14C5.6 9.352 9.352 5.6 14 5.6C18.648 5.6 22.4 9.352 22.4 14C22.4 18.648 18.648 22.4 14 22.4Z" fill="#EB0F65"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+            const active = computed(() => endpoints.find(e => e.key === activeKey.value) || null);
+            // Модель PrimeVue MegaMenu, ровно два уровня:
+            // 1) пункт верхнего уровня — tag эндпоинта из openapi (категория);
+            // 2) кликабельные пункты внутри — summary эндпоинта из openapi.
+            // PrimeVue требует, чтобы кликабельные items лежали внутри группы (иначе они
+            // рендерятся некликабельными заголовками) — группа здесь безымянная (без label),
+            // чтобы не появлялся лишний третий уровень/заголовок.
+            const megaMenuModel = computed(() => tags.map(tag => ({
+                label: tag,
+                items: [
+                    [
+                        { items: byTag(tag).map(ep => ({ label: ep.desc, command: () => open(ep.key) })) },
+                    ],
+                ],
+            })));
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 5.6L22.4 14L14 22.4L5.6 14L14 5.6Z" fill="#26A17B"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+            function byTag(tag) {
+                return endpoints.filter(e => e.tag === tag);
+            }
+            function resolveOptions(ep, f) {
+                if (f.optionsFn) return f.optionsFn(ep.values, serverData.value) || [];
+                return f.options || [];
+            }
+            // Приводит значения зависимых полей (interval/depth/indicator_depth) к валидным
+            // для текущих unit/name, используя справочник из /api/v1/server.
+            function refreshEndpoint(ep) {
+                for (const f of ep.fields) {
+                    if (!f.optionsFn) continue;
+                    const opts = resolveOptions(ep, f);
+                    if (!opts.includes(ep.values[f.name])) {
+                        ep.values[f.name] = opts.length ? opts[0] : '';
+                    }
+                }
+            }
+            function open(key) {
+                const ep = endpoints.find(e => e.key === key);
+                if (!ep) return;
+                activeKey.value = key;
+                dialogVisible.value = true;
+                result.loading = false;
+                result.error = false;
+                result.status = '';
+                result.data = null;
+                result.raw = '';
+                result.showRaw = false;
+                refreshEndpoint(ep);
+            }
+            function buildUrl(ep) {
+                let url = ep.path;
+                for (const f of ep.fields) {
+                    url = url.split('{' + f.name + '}').join(encodeURIComponent(ep.values[f.name] ?? ''));
+                }
+                return url;
+            }
+            function buildBody(ep) {
+                const obj = {};
+                for (const f of ep.fields) {
+                    const raw = ep.values[f.name];
+                    if (raw === '' || raw === null || raw === undefined) continue;
+                    const val = f.input === 'number' ? Number(raw) : raw;
+                    const parts = f.name.split('.');
+                    let cur = obj;
+                    parts.forEach((p, i) => {
+                        if (i === parts.length - 1) cur[p] = val;
+                        else cur = (cur[p] = cur[p] || {});
+                    });
+                }
+                return obj;
+            }
+            async function run() {
+                const ep = active.value;
+                if (!ep) return;
+                result.loading = true;
+                result.error = false;
+                result.data = null;
+                result.raw = '';
+                result.showRaw = false;
+                try {
+                    const resp = ep.method === 'POST'
+                        ? await fetch(ep.path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildBody(ep)) })
+                        : await fetch(buildUrl(ep));
+                    const text = await resp.text();
+                    let data = null;
+                    try { data = JSON.parse(text); } catch (e) {}
+                    result.status = resp.status + ' ' + resp.statusText;
+                    result.error = !resp.ok;
+                    result.data = data;
+                    result.raw = data !== null ? JSON.stringify(data, null, 2) : text;
+                } catch (e) {
+                    result.status = 'Ошибка сети';
+                    result.error = true;
+                    result.raw = String(e);
+                } finally {
+                    result.loading = false;
+                }
+            }
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 22.4C9.352 22.4 5.6 18.648 5.6 14C5.6 9.352 9.352 5.6 14 5.6C18.648 5.6 22.4 9.352 22.4 14C22.4 18.648 18.648 22.4 14 22.4Z" fill="#F7931A"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
+            window.addEventListener('open-endpoint', (e) => open(e.detail));
 
-<!--            <div class="exchange-logo bg-white p-6 rounded-xl shadow-sm flex items-center justify-center">-->
-<!--                <svg class="w-full h-8" viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 6.268 28 14 28C21.732 28 28 21.732 28 14C28 6.268 21.732 0 14 0ZM14 5.6L22.4 14L14 22.4L5.6 14L14 5.6Z" fill="#345D9D"></path>-->
-<!--                    <path d="M35 7H40.6V21H35V7Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M42 7H47.6V8.4C48.6 7.4 50 7 51.4 7C55 7 57.4 9.6 57.4 13.8V21H51.8V14.6C51.8 13 51 12 49.8 12C48.6 12 47.8 13 47.8 14.6V21H42.2V7H42Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M59 7H64.6V8.4C65.6 7.4 67 7 68.4 7C72 7 74.4 9.6 74.4 13.8V21H68.8V14.6C68.8 13 68 12 66.8 12C65.6 12 64.8 13 64.8 14.6V21H59.2V7H59Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M76 14C76 9.6 79.4 7 83.8 7C88.2 7 91.6 9.6 91.6 14C91.6 18.4 88.2 21 83.8 21C79.4 21 76 18.4 76 14ZM86 14C86 12.2 85 11 83.8 11C82.6 11 81.6 12.2 81.6 14C81.6 15.8 82.6 17 83.8 17C85 17 86 15.8 86 14Z" fill="#1E1E1E"></path>-->
-<!--                    <path d="M93 7H98.6V8.4C99.6 7.4 101 7 102.4 7C106 7 108.4 9.6 108.4 13.8V21H102.8V14.6C102.8 13 102 12 100.8 12C99.6 12 98.8 13 98.8 14.6V21H93.2V7H93Z" fill="#1E1E1E"></path>-->
-<!--                </svg>-->
-<!--            </div>-->
-<!--        </div>-->
+            onMounted(async () => {
+                try {
+                    const resp = await fetch('/api/v1/server');
+                    if (resp.ok) {
+                        serverData.value = await resp.json();
+                        endpoints.forEach(refreshEndpoint);
+                    }
+                } catch (e) {}
+            });
 
-<!--        <div class="mt-12 text-center">-->
-<!--            <p class="text-gray-600 mb-6">And many more exchanges are being added regularly</p>-->
-<!--            <a href="#" class="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center">-->
-<!--                View all supported exchanges-->
-<!--                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">-->
-<!--                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>-->
-<!--                </svg>-->
-<!--            </a>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</section>-->
+            function renderDialogBody() {
+                const ep = active.value;
+                if (!ep) return [];
+                const children = [h('div', { class: 'dialog-path' }, ep.path)];
 
-<!-- Indicators Section -->
-<section id="indicators" class="py-20 bg-white">
-    <div class="container mx-auto px-4">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold mb-4">Technical <span class="gradient-text">Indicators</span></h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">Our API provides access to a comprehensive suite of technical indicators and analytics tools to power your trading strategies.</p>
-        </div>
+                if (ep.fields.length) {
+                    children.push(h('form', { class: 'params', onSubmit: e => e.preventDefault() },
+                        ep.fields.map(f => h('label', { key: f.name }, [
+                            f.name,
+                            (f.options || f.optionsFn)
+                                ? h(Dropdown, {
+                                    modelValue: ep.values[f.name],
+                                    'onUpdate:modelValue': v => { ep.values[f.name] = v; },
+                                    options: resolveOptions(ep, f),
+                                    appendTo: 'self',
+                                    onChange: () => refreshEndpoint(ep),
+                                })
+                                : h(InputNumber, {
+                                    modelValue: ep.values[f.name],
+                                    'onUpdate:modelValue': v => { ep.values[f.name] = v; },
+                                    useGrouping: false,
+                                    minFractionDigits: 0,
+                                    maxFractionDigits: 8,
+                                }),
+                        ]))
+                    ));
+                }
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="indicator-card bg-gray-50 p-6 rounded-lg shadow-sm">
-                <h3 class="text-xl font-semibold mb-3">Trend Indicators</h3>
-                <ul class="space-y-3 text-gray-600">
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Moving Averages (SMA, EMA, WMA)
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        MACD (Moving Average Convergence Divergence)
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Parabolic SAR
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Average Directional Index (ADX)
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Ichimoku Cloud
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Supertrend
-                    </li>
-                </ul>
-            </div>
+                if (result.loading || result.status) {
+                    children.push(h('div', { class: 'result-panel' }, [
+                        h('div', { class: 'result-head' }, [
+                            h('span', { class: ['status-line', result.error ? 'err' : 'ok'] }, result.loading ? 'Выполняется…' : result.status),
+                            (!result.loading && result.data !== null)
+                                ? h(Button, {
+                                    class: 'p-button-text p-button-sm',
+                                    label: result.showRaw ? 'Наглядно' : 'Как JSON',
+                                    onClick: () => { result.showRaw = !result.showRaw; },
+                                })
+                                : null,
+                        ]),
+                        h('div', { class: 'result-body' },
+                            result.loading
+                                ? h('div', { class: 'loading' }, 'Загрузка…')
+                                : (result.data === null || result.showRaw)
+                                    ? h('pre', { class: 'raw' }, result.raw)
+                                    : (ep.chart && Array.isArray(result.data) && result.data.length > 0)
+                                        ? h('div', { style: 'height:420px;' }, [
+                                            h(Chart, { type: 'line', data: buildChartData(result.data), options: CHART_OPTIONS }),
+                                        ])
+                                        : (ep.key === 'server'
+                                            ? h(TreeTable, { value: buildTreeNodes(result.data, 'root'), size: 'small' }, {
+                                                default: () => [
+                                                    h(Column, { field: 'field', header: 'Поле', expander: true }),
+                                                    h(Column, { field: 'value', header: 'Значение' }),
+                                                ],
+                                            })
+                                            : h(DataView, { value: result.data }))
+                        ),
+                    ]));
+                }
+                return children;
+            }
 
-            <div class="indicator-card bg-gray-50 p-6 rounded-lg shadow-sm">
-                <h3 class="text-xl font-semibold mb-3">Oscillators</h3>
-                <ul class="space-y-3 text-gray-600">
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Relative Strength Index (RSI)
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Stochastic Oscillator
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-<script="">(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'94ba21f207e2d627',t:'MTc0OTIzNjIxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&amp;&amp;(document.onreadystatechange=e,c())}}}})();</path></svg></li></ul></div></div></div></section></body></html>
+            return () => h(Fragment, [
+                h(MegaMenu, {
+                    model: megaMenuModel.value,
+                }),
+                h(Dialog, {
+                    visible: dialogVisible.value,
+                    'onUpdate:visible': v => { dialogVisible.value = v; },
+                    modal: true,
+                    style: { width: '90vw', minHeight: '30vh', maxHeight: '95vh' },
+                }, {
+                    header: () => h('div', { style: 'display:flex;align-items:center;gap:10px;' }, [
+                        h(Tag, {
+                            value: active.value ? active.value.method : '',
+                            severity: active.value && active.value.method === 'GET' ? 'info' : 'success',
+                        }),
+                        h('span', { style: 'font-weight:700;font-size:15.5px;' }, active.value ? active.value.desc : ''),
+                    ]),
+                    default: renderDialogBody,
+                    footer: () => h(Button, { label: 'Выполнить', onClick: run, loading: result.loading }),
+                }),
+            ]);
+        },
+    };
+
+    const app = createApp(ConsoleRoot);
+    app.use(PrimeVue);
+    app.mount('#picker-mount');
+</script>
+</body></html>

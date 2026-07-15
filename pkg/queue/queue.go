@@ -2,6 +2,10 @@ package queue
 
 import "context"
 
+type KeyEvent interface {
+	KeyEvent() string
+}
+
 type Publisher[T any] interface {
 	Publish(message ...T) error
 }
@@ -13,5 +17,5 @@ type Consumer[T any] interface {
 type Receiver[T any] interface {
 	Listen()
 	Close()
-	Receive() (*T, error)
+	Receive(context.Context) ([]*T, error)
 }

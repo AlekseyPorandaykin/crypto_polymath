@@ -41,16 +41,45 @@ func (s *service) CalcIndicators(ctx context.Context, exchange, symbol string, u
 }
 
 func (s *service) CalcIndicatorsByCandlestick(ctx context.Context, candlestick domain.Candlestick, depth int) ([]domain.Indicator, error) {
+	if len(s.calculators) == 0 || depth < 1 {
+		return nil, nil
+	}
+	names := make([]string, 0, len(s.calculators))
+	for name := range s.calculators {
+		names = append(names, name)
+	}
+	existing, err := s.repo.FindManyByName(
+		ctx, candlestick.Exchange, candlestick.Symbol, string(candlestick.Unit), candlestick.Interval, candlestick.StartTime, depth, names,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "find indicators in storage")
+	}
+	existingByName := make(map[string]StorageDTO, len(existing))
+	for _, item := range existing {
+		existingByName[item.Name] = item
+	}
+
 	indicators := make([]domain.Indicator, 0, len(s.calculators))
-	for key := range s.calculators {
-		primaryIndicator, err := s.calculatePrimaryIndicator(ctx, candlestick, key, depth)
-		if err != nil {
-			return nil, err
-		}
-		if primaryIndicator == nil {
+	toSave := make([]StorageDTO, 0, len(s.calculators))
+	for name := range s.calculators {
+		if storageDTO, ok := existingByName[name]; ok {
+			indicators = append(indicators, storageToDomain(storageDTO))
 			continue
 		}
-		indicators = append(indicators, *primaryIndicator)
+		res, errCalc := s.calculatePrimaryIndicatorValue(ctx, candlestick, name, depth)
+		if errCalc != nil {
+			return nil, errCalc
+		}
+		if res == nil {
+			continue
+		}
+		indicators = append(indicators, *res)
+		toSave = append(toSave, domainToStorage(*res))
+	}
+	if len(toSave) > 0 {
+		if err := s.repo.Save(ctx, toSave...); err != nil {
+			return nil, err
+		}
 	}
 	return indicators, nil
 }
@@ -73,11 +102,10 @@ func (s *service) Indicators(
 func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
 	childCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	calc, has := s.calculators[name]
-	if !has || calc == nil {
+	if depth < 1 {
 		return nil, nil
 	}
-	if depth < 1 {
+	if _, has := s.calculators[name]; !has {
 		return nil, nil
 	}
 	storageDTO, err := s.repo.Find(
@@ -97,9 +125,28 @@ func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick dom
 		res := storageToDomain(*storageDTO)
 		return &res, nil
 	}
+	res, err := s.calculatePrimaryIndicatorValue(childCtx, candlestick, name, depth)
+	if err != nil {
+		return nil, err
+	}
+	if res == nil {
+		return nil, nil
+	}
+	if err := s.repo.Save(childCtx, domainToStorage(*res)); err != nil {
+		return nil, err
+	}
 
+	return res, nil
+}
+
+// calculatePrimaryIndicatorValue - Считает значение индикатора по свечам, без обращения к storage за поиском/сохранением.
+func (s *service) calculatePrimaryIndicatorValue(ctx context.Context, candlestick domain.Candlestick, name string, depth int) (*domain.Indicator, error) {
+	calc, has := s.calculators[name]
+	if !has || calc == nil {
+		return nil, nil
+	}
 	data, err := s.candlestick.LastCandlesticks(
-		childCtx, candlestick.Exchange, candlestick.Symbol, candlestick.Unit, candlestick.Interval, depth, candlestick.StartTime,
+		ctx, candlestick.Exchange, candlestick.Symbol, candlestick.Unit, candlestick.Interval, depth, candlestick.StartTime,
 	)
 	if err != nil {
 		return nil, err
@@ -110,16 +157,7 @@ func (s *service) calculatePrimaryIndicator(ctx context.Context, candlestick dom
 	if !domain.IsCorrectSequenceCandlesticks(data) {
 		return nil, nil
 	}
-	res := calc.Calculate(data)
-
-	if res == nil {
-		return nil, nil
-	}
-	if err := s.repo.Save(childCtx, domainToStorage(*res)); err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return calc.Calculate(data), nil
 }
 
 func (s *service) LastSequenceToDate(
@@ -157,9 +195,39 @@ func (s *service) CalculateLastSequence(
 }
 
 func (s *service) calculateByCandlesticks(ctx context.Context, candlesticks []domain.Candlestick, name string, depth int) ([]domain.Indicator, error) {
+	if len(candlesticks) == 0 {
+		return nil, nil
+	}
+	if _, has := s.calculators[name]; !has {
+		return nil, nil
+	}
+	if depth < 1 {
+		return nil, nil
+	}
+	first := candlesticks[0]
+	datetimes := make([]time.Time, len(candlesticks))
+	for i, item := range candlesticks {
+		datetimes[i] = item.StartTime
+	}
+	existing, err := s.repo.FindMany(
+		ctx, first.Exchange, first.Symbol, string(first.Unit), first.Interval, name, depth, datetimes,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "find indicators in storage")
+	}
+	existingByTime := make(map[time.Time]StorageDTO, len(existing))
+	for _, item := range existing {
+		existingByTime[item.Datetime] = item
+	}
+
 	indicators := make([]domain.Indicator, 0, len(candlesticks))
+	toSave := make([]StorageDTO, 0, len(candlesticks))
 	for _, itemCandlestick := range candlesticks {
-		res, errCalc := s.calculatePrimaryIndicator(ctx, itemCandlestick, name, depth)
+		if storageDTO, ok := existingByTime[itemCandlestick.StartTime]; ok {
+			indicators = append(indicators, storageToDomain(storageDTO))
+			continue
+		}
+		res, errCalc := s.calculatePrimaryIndicatorValue(ctx, itemCandlestick, name, depth)
 		if errCalc != nil {
 			return nil, errCalc
 		}
@@ -167,6 +235,12 @@ func (s *service) calculateByCandlesticks(ctx context.Context, candlesticks []do
 			continue
 		}
 		indicators = append(indicators, *res)
+		toSave = append(toSave, domainToStorage(*res))
+	}
+	if len(toSave) > 0 {
+		if err := s.repo.Save(ctx, toSave...); err != nil {
+			return nil, err
+		}
 	}
 	return indicators, nil
 }

@@ -3,6 +3,7 @@ package container
 import (
 	"net/http"
 
+	v5 "github.com/AlekseyPorandaykin/crypto-exchanges/exchange/bybit/v5"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	infrastracture_http "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/http"
@@ -11,16 +12,15 @@ import (
 	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
 	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
 	"github.com/jmoiron/sqlx"
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"go.uber.org/dig"
-	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 var exchangeNames = []string{
 	exchange.BinanceExchange,
 	exchange.BitgetExchange,
-	exchange.BybitExchange,
+	v5.ExchangeName,
 	exchange.GateIoExchange,
 	exchange.KrakenExchange,
 	exchange.KucoinExchange,
@@ -41,19 +41,23 @@ func (c *Container) Init() error {
 	if err := c.initConnections(); err != nil {
 		return err
 	}
-	//Init default logger
-	if err := c.di.Provide(func() (*zap.Logger, error) {
-		return logger.CreateForNamespace("")
-	}); err != nil {
+	if err := c.initLoggers(); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(logger *zap.Logger) metrics.HTTPSender {
+	if err := c.di.Provide(func(log AppLogger) metrics.HTTPSender {
 		return metrics.NewHTTPSenderWithMetrics(
 			infrastracture_http.NewClient(
 				http.DefaultClient,
-				viper.GetUint64("load.symbols"),
-				logger,
+				10,
+				asZapLogger(log),
 			),
+		)
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(_ AppLogger) http.RoundTripper {
+		return metrics.NewRoundTripperWithMetrics(
+			http.DefaultTransport, nil,
 		)
 	}); err != nil {
 		return err
@@ -83,23 +87,46 @@ func (c *Container) Init() error {
 }
 
 func (c *Container) Close() {
-	_ = c.di.Invoke(func(db *sqlx.DB) {
-		_ = db.Close()
+	g := errgroup.Group{}
+	g.Go(func() error {
+		logger.SyncLoggers()
+		return nil
 	})
-	_ = c.di.Invoke(func(conn *amqp.Connection) {
-		_ = conn.Close()
+	g.Go(func() error {
+		_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Candlestick]) {
+			d.Close()
+		})
+		return nil
 	})
-	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Candlestick]) {
-		d.Close()
+	g.Go(func() error {
+		_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Indicator]) {
+			d.Close()
+		})
+		return nil
 	})
-	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.Indicator]) {
-		d.Close()
+	g.Go(func() error {
+		_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
+			d.Close()
+		})
+		return nil
 	})
-	_ = c.di.Invoke(func(d dispatcher.Dispatcher[domain.CreateIndicatorEventBody]) {
-		d.Close()
+	g.Go(func() error {
+		_ = c.di.Invoke(func(s *http_server.Server) {
+			s.Close()
+		})
+		return nil
 	})
-	_ = c.di.Invoke(func(s *http_server.Server) {
-		s.Close()
+	g.Go(func() error {
+		_ = c.di.Invoke(func(db *sqlx.DB) {
+			_ = db.Close()
+		})
+		return nil
 	})
-
+	g.Go(func() error {
+		_ = c.di.Invoke(func(conn *amqp.Connection) {
+			_ = conn.Close()
+		})
+		return nil
+	})
+	_ = g.Wait()
 }

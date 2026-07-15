@@ -1,10 +1,10 @@
 package container
 
 import (
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/binance"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bitget"
-	v5 "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
-	bybit_sender "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5/sender"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/gateio"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kraken"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin"
@@ -13,13 +13,35 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
 	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 )
+
+func normalizeDBHost(host string) string {
+	if host == "" || host == "0.0.0.0" {
+		return "127.0.0.1"
+	}
+	return host
+}
+
+func connectDB(conf connection.DBConfig) (*sqlx.DB, error) {
+	var db *sqlx.DB
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = time.Second
+	bo.MaxElapsedTime = 30 * time.Second
+	err := backoff.Retry(func() error {
+		conn, err := connection.CreateDBConnection(conf)
+		if err != nil {
+			return err
+		}
+		db = conn
+		return nil
+	}, bo)
+	return db, err
+}
 
 func (c *Container) initConnections() error {
 	if err := c.di.Provide(func() (*sqlx.DB, error) {
@@ -27,16 +49,16 @@ func (c *Container) initConnections() error {
 			Driver:             viper.GetString("db_connection.driver"),
 			Username:           viper.GetString("db_connection.username"),
 			Password:           viper.GetString("db_connection.password"),
-			Host:               viper.GetString("db_connection.host"),
+			Host:               normalizeDBHost(viper.GetString("db_connection.host")),
 			Port:               viper.GetString("db_connection.port"),
 			Database:           viper.GetString("db_connection.database"),
 			PathToDB:           viper.GetString("db_connection.path_to_db"),
 			SchemaName:         viper.GetString("db_connection.schema"),
-			MaxOpenConnections: 5,
-			MaxIdleConnections: 5,
+			MaxOpenConnections: viper.GetInt("db_connection.max_open_connections"),
+			MaxIdleConnections: viper.GetInt("db_connection.max_idle_connections"),
 		}
 		zap.L().Info("Create database connection", zap.Any("driver", conf))
-		return connection.CreateDBConnection(conf)
+		return connectDB(conf)
 	}); err != nil {
 		return err
 	}
@@ -63,23 +85,6 @@ func (c *Container) initClients() error {
 	}
 	if err := c.di.Provide(func() (*bitget.Client, error) {
 		return bitget.NewClient(viper.GetString("bitget.host"))
-	}); err != nil {
-		return err
-	}
-	if err := c.di.Provide(func(httpClient metrics.HTTPSender) (*v5.Client, error) {
-		bybitBasicSender := bybit_sender.NewBasic()
-		bybitBasicSender.WithHttpClient(httpClient)
-		log, err := logger.CreateForNamespace("bybit_sender")
-		if err != nil {
-			return nil, err
-		}
-		bybitSender := bybit_sender.NewWaitAdder(bybit_sender.NewRequestLogger(bybitBasicSender, log))
-		client, err := v5.NewClient(viper.GetString("bybit.host"), bybitSender)
-		if err != nil {
-			return nil, err
-		}
-		client.WithLogger(log)
-		return client, nil
 	}); err != nil {
 		return err
 	}

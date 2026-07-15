@@ -4,12 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
-	"github.com/jmoiron/sqlx"
-	"strings"
 	"time"
+
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
+	"github.com/jmoiron/sqlx"
 )
 
 var _ candle_indicator.Repository = (*CandleIndicatorRepository)(nil)
@@ -24,7 +22,6 @@ func NewCandleIndicatorRepository(db *sqlx.DB) *CandleIndicatorRepository {
 func (repo *CandleIndicatorRepository) Find(
 	ctx context.Context, name, exchange, symbol, unit string, interval int, startTime time.Time,
 ) (*candle_indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_find")()
 	query := `
 SELECT id,
        name,
@@ -58,10 +55,45 @@ LIMIT 1`
 	return &result, nil
 }
 
+func (repo *CandleIndicatorRepository) FindMany(
+	ctx context.Context, name, exchange, symbol, unit string, interval int, startTimes []time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	if len(startTimes) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In(`
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       start_time,
+       open_price,
+       high_price,
+       low_price,
+       close_price,
+       created_at
+FROM candlestick_indicators
+WHERE name = ?
+  AND exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND start_time IN (?)`, name, exchange, symbol, unit, interval, startTimes)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]candle_indicator.StorageDTO, 0, len(startTimes))
+	if err := repo.db.SelectContext(ctx, &result, repo.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *CandleIndicatorRepository) FetchLast(
 	ctx context.Context, name, exchange, symbol, unit string, interval int,
 ) ([]candle_indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_fetch_last")()
 	query := `
 SELECT id,
        name,
@@ -93,7 +125,6 @@ LIMIT 100`
 func (repo *CandleIndicatorRepository) LastAddedFromDate(
 	ctx context.Context, name, exchange, unit string, interval int, from time.Time,
 ) ([]candle_indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_fetch_last")()
 	query := `
 SELECT id,
        name,
@@ -126,7 +157,6 @@ func (repo *CandleIndicatorRepository) Save(ctx context.Context, data []candle_i
 	if len(data) == 0 {
 		return nil
 	}
-	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_save")()
 	query := `
 INSERT INTO candlestick_indicators (id,
                                     name,
@@ -140,10 +170,7 @@ INSERT INTO candlestick_indicators (id,
                                     low_price,
                                     close_price,
                                     created_at)
-VALUES 
-`
-	valueQuery := `
-(:id,
+VALUES (:id,
         :name,
         :exchange,
         :symbol,
@@ -155,19 +182,15 @@ VALUES
         :low_price,
         :close_price,
         :created_at)
-`
-	values := make([]string, 0, len(data))
-	args := make([]interface{}, 0, len(data)*12)
-
-	for _, item := range data {
-		preparedValues, argsItem, err := repo.db.BindNamed(valueQuery, item)
-		if err != nil {
-			return nil
-		}
-		values = append(values, preparedValues)
-		args = append(args, argsItem...)
+ON CONFLICT (name, exchange, symbol, unit, interval, start_time) DO NOTHING`
+	// BindNamed вызывается один раз на весь срез: sqlx сам размножит VALUES(...) на len(data) групп
+	// со сквозной нумерацией плейсхолдеров. При вызове BindNamed по одному элементу на строку
+	// нумерация плейсхолдеров ($1..$N) начиналась заново на каждой строке, из-за чего при
+	// нескольких строках в одном запросе возникала ошибка "mismatched param and argument count".
+	preparedQuery, args, err := repo.db.BindNamed(query, data)
+	if err != nil {
+		return err
 	}
-	preparedQuery := fmt.Sprintf("%s %s", query, strings.Join(values, ", "))
 	if _, err := repo.db.ExecContext(ctx, preparedQuery, args...); err != nil {
 		return err
 	}

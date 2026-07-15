@@ -3,12 +3,13 @@ package candle_indicator
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/go-template/pkg/util"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type CandleIndicator interface {
@@ -54,6 +55,9 @@ func (s *Service) CalculateAllIndicators(ctx context.Context, exchange, symbol s
 		if err != nil {
 			return nil, err
 		}
+		if len(data) == 0 {
+			continue
+		}
 		indicators = append(indicators, data...)
 	}
 	return indicators, nil
@@ -75,15 +79,26 @@ func (s *Service) Indicators(ctx context.Context, name, exchange, symbol string,
 	if !has {
 		return nil, nil
 	}
+	first := data[0]
+	startTimes := make([]time.Time, len(data))
+	for i, candle := range data {
+		startTimes[i] = candle.StartTime
+	}
+	existing, err := s.repo.FindMany(
+		ctx, c.Name(), first.Exchange, first.Symbol, string(first.Unit), first.Interval, startTimes,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", c.Name()))
+	}
+	existingByTime := make(map[time.Time]StorageDTO, len(existing))
+	for _, item := range existing {
+		existingByTime[item.StartTime] = item
+	}
+
+	indicatorsToSave := make([]StorageDTO, 0, len(data))
 	for _, candle := range data {
-		indicatorStorage, err := s.repo.Find(
-			ctx, c.Name(), candle.Exchange, candle.Symbol, string(candle.Unit), candle.Interval, candle.StartTime,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", c.Name()))
-		}
-		if indicatorStorage != nil {
-			result = append(result, StorageToDomain(*indicatorStorage))
+		if indicatorStorage, ok := existingByTime[candle.StartTime]; ok {
+			result = append(result, StorageToDomain(indicatorStorage))
 			continue
 		}
 		indicator, err := c.Calculate(ctx, candle)
@@ -94,9 +109,10 @@ func (s *Service) Indicators(ctx context.Context, name, exchange, symbol string,
 			continue
 		}
 		result = append(result, *indicator)
-		if err := s.repo.Save(ctx, []StorageDTO{DomainToStorage(*indicator)}); err != nil {
-			return nil, errors.Wrap(err, "save indicator")
-		}
+		indicatorsToSave = append(indicatorsToSave, DomainToStorage(*indicator))
+	}
+	if err := s.repo.Save(ctx, indicatorsToSave); err != nil {
+		return nil, errors.Wrap(err, "save indicator")
 	}
 
 	return result, nil
@@ -129,16 +145,27 @@ func (s *Service) CalculateFromCandlesticks(ctx context.Context, data []domain.C
 		slice.SortBy[domain.Candlestick](candles, func(a, b domain.Candlestick) bool {
 			return a.StartTime.Before(b.StartTime)
 		})
-		for _, candle := range candles {
-			for key, c := range s.calculators {
-				indicatorStorage, err := s.repo.Find(
-					ctx, c.Name(), candle.Exchange, candle.Symbol, string(candle.Unit), candle.Interval, candle.StartTime,
-				)
-				if err != nil {
-					return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", key))
-				}
-				if indicatorStorage != nil {
-					result = append(result, StorageToDomain(*indicatorStorage))
+		first := candles[0]
+		startTimes := make([]time.Time, len(candles))
+		for i, candle := range candles {
+			startTimes[i] = candle.StartTime
+		}
+		for key, c := range s.calculators {
+			existing, err := s.repo.FindMany(
+				ctx, c.Name(), first.Exchange, first.Symbol, string(first.Unit), first.Interval, startTimes,
+			)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("find indicator %s", key))
+			}
+			existingByTime := make(map[time.Time]StorageDTO, len(existing))
+			for _, item := range existing {
+				existingByTime[item.StartTime] = item
+			}
+
+			indicatorsToSave := make([]StorageDTO, 0, len(candles))
+			for _, candle := range candles {
+				if indicatorStorage, ok := existingByTime[candle.StartTime]; ok {
+					result = append(result, StorageToDomain(indicatorStorage))
 					continue
 				}
 				indicator, err := c.Calculate(ctx, candle)
@@ -149,9 +176,10 @@ func (s *Service) CalculateFromCandlesticks(ctx context.Context, data []domain.C
 					continue
 				}
 				result = append(result, *indicator)
-				if err := s.repo.Save(ctx, []StorageDTO{DomainToStorage(*indicator)}); err != nil {
-					return nil, errors.Wrap(err, "save indicator")
-				}
+				indicatorsToSave = append(indicatorsToSave, DomainToStorage(*indicator))
+			}
+			if err := s.repo.Save(ctx, indicatorsToSave); err != nil {
+				return nil, errors.Wrap(err, "save indicator")
 			}
 		}
 	}

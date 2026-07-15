@@ -58,6 +58,43 @@ LIMIT 1`
 	return &result, nil
 }
 
+func (repo *CandleIndicatorRepository) FindMany(
+	ctx context.Context, name, exchange, symbol, unit string, interval int, startTimes []time.Time,
+) ([]candle_indicator.StorageDTO, error) {
+	if len(startTimes) == 0 {
+		return nil, nil
+	}
+	defer metrics.DBQueryHelper("crypto_polymath", "candle_indicator_find_many")()
+	query, args, err := sqlx.In(`
+SELECT id,
+       name,
+       exchange,
+       symbol,
+       unit,
+       interval,
+       start_time,
+       open_price,
+       high_price,
+       low_price,
+       close_price,
+       created_at
+FROM candlestick_indicators
+WHERE name = ?
+  AND exchange = ?
+  AND symbol = ?
+  AND unit = ?
+  AND interval = ?
+  AND start_time IN (?)`, name, exchange, symbol, unit, interval, startTimes)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]candle_indicator.StorageDTO, 0, len(startTimes))
+	if err := repo.db.SelectContext(ctx, &result, query, args...); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *CandleIndicatorRepository) FetchLast(
 	ctx context.Context, name, exchange, symbol, unit string, interval int,
 ) ([]candle_indicator.StorageDTO, error) {

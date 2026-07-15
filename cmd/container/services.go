@@ -1,9 +1,13 @@
 package container
 
 import (
+	"net/http"
+
+	"github.com/AlekseyPorandaykin/crypto-exchanges/client"
+	"github.com/AlekseyPorandaykin/crypto-exchanges/config"
+	"github.com/AlekseyPorandaykin/crypto-exchanges/factory"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/binance"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/bitget"
-	v5 "github.com/AlekseyPorandaykin/crypto_loader/pkg/bybit/v5"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/gateio"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kraken"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/kucoin"
@@ -20,7 +24,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
 	grpc2 "github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
 	"github.com/jmoiron/sqlx"
@@ -33,8 +36,18 @@ func (c *Container) initExchanges() error {
 	}); err != nil {
 		return err
 	}
-	if err := c.di.Provide(func(bybitClient *v5.Client) *exchange.Bybit {
-		return exchange.NewByBit(bybitClient)
+	if err := c.di.Provide(func(rt http.RoundTripper, log HTTPClientLogger) (client.ExchangeClient, error) {
+		return factory.NewExchangeClient(config.BybitV5Config{
+			BaseUrl:            viper.GetString("bybit.host"),
+			AllowLogger:        true,
+			AllowRequestLogger: true,
+			AllowWaitAdder:     true,
+		}, factory.WithLogger(asZapLogger(log)), factory.WithHttpRoundTripper(rt))
+	}); err != nil {
+		return err
+	}
+	if err := c.di.Provide(func(bybitClient client.ExchangeClient) *adapters.Exchange {
+		return adapters.NewExchange(bybitClient)
 	}); err != nil {
 		return err
 	}
@@ -77,7 +90,7 @@ func (c *Container) initServices() error {
 		err := c.di.Invoke(func(
 			binanceExchange *exchange.Binance,
 			bitgetExchange *exchange.Bitget,
-			bybitExchange *exchange.Bybit,
+			bybitExchange *adapters.Exchange,
 			gateIoExchange *exchange.GateIo,
 			krakenExchange *exchange.Kraken,
 			kukoinExchange *exchange.Kucoin,
@@ -86,7 +99,7 @@ func (c *Container) initServices() error {
 		) {
 			priceService.AddLoader(exchange.BinanceExchange, binanceExchange)
 			priceService.AddLoader(exchange.BitgetExchange, bitgetExchange)
-			priceService.AddLoader(exchange.BybitExchange, bybitExchange)
+			priceService.AddLoader(bybitExchange.Name(), bybitExchange)
 			priceService.AddLoader(exchange.GateIoExchange, gateIoExchange)
 			priceService.AddLoader(exchange.KrakenExchange, krakenExchange)
 			priceService.AddLoader(exchange.KucoinExchange, kukoinExchange)
@@ -103,10 +116,10 @@ func (c *Container) initServices() error {
 
 	if err := c.di.Provide(func(
 		candlestickRepo candlestick.Repository,
-		bybitExchange *exchange.Bybit,
+		bybitExchange *adapters.Exchange,
 	) candlestick.Candlestick {
 		candlestickService := candlestick.NewService(candlestickRepo)
-		candlestickService.AddLoader(exchange.BybitExchange, bybitExchange)
+		candlestickService.AddLoader(bybitExchange.Name(), bybitExchange)
 		return candlestickService
 	}); err != nil {
 		return err
@@ -130,11 +143,11 @@ func (c *Container) initServices() error {
 
 	if err := c.di.Provide(func(
 		conn *sqlx.DB,
-		bybitExchange *exchange.Bybit,
+		bybitExchange *adapters.Exchange,
 		repo core_exchange.Repository,
 	) core_exchange.Exchange {
 		exchangeService := core_exchange.New(repo)
-		exchangeService.AddLoader(exchange.BybitExchange, bybitExchange)
+		exchangeService.AddLoader(bybitExchange.Name(), bybitExchange)
 		return exchangeService
 	}); err != nil {
 		return err
@@ -159,10 +172,18 @@ func (c *Container) initServices() error {
 		return err
 	}
 
-	if err := c.di.Provide(func(
-		analysisDBRepo *postgresql.AnalyticRepository, indicatorDBRepos *postgresql.IndicatorRepository, symbolDBRepos *postgresql.CandlestickRepository,
-	) *service.Service {
-		return service.NewService(analysisDBRepo, indicatorDBRepos, symbolDBRepos)
+	if err := c.di.Provide(func(conn *sqlx.DB, log RepositoryLogger) service.DictionaryRepositories {
+		return service.DictionaryRepositories{
+			Analysis:   decorateAnalysisRepository(conn, log),
+			Indicators: decorateIndicatorRepository(conn, log),
+			Symbols:    decorateCandlestickRepository(conn, log),
+		}
+	}); err != nil {
+		return err
+	}
+
+	if err := c.di.Provide(func(repos service.DictionaryRepositories) *service.Service {
+		return service.NewService(repos)
 	}); err != nil {
 		return err
 	}

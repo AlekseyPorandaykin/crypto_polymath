@@ -4,14 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
-	"github.com/jmoiron/sqlx"
 	"math"
-	"strings"
 	"time"
+
+	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
+	"github.com/jmoiron/sqlx"
 )
 
 var _ indicator.Repository = (*IndicatorRepository)(nil)
@@ -25,7 +22,15 @@ func NewIndicatorRepository(db *sqlx.DB) *IndicatorRepository {
 }
 
 func (repo *IndicatorRepository) Save(ctx context.Context, data ...indicator.StorageDTO) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_save")()
+	filtered := make([]indicator.StorageDTO, 0, len(data))
+	for _, item := range data {
+		if !math.IsNaN(item.Value) {
+			filtered = append(filtered, item)
+		}
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
 	var query = `
 INSERT INTO indicators(id,
                        symbol,
@@ -37,23 +42,15 @@ INSERT INTO indicators(id,
                        depth,
                        value,
                        created_at)
-VALUES 
-`
-	valueQuery := `(:id,:symbol,:exchange,:unit,:interval,:name,:datetime,:depth,:value,:created_at)`
-	preparedValueQueries := make([]string, 0, len(data))
-	args := make([]interface{}, 0, len(data)*10)
-	for _, item := range data {
-		if math.IsNaN(item.Value) {
-			continue
-		}
-		preparedValueQuery, argVals, err := repo.db.BindNamed(valueQuery, item)
-		if err != nil {
-			return err
-		}
-		preparedValueQueries = append(preparedValueQueries, preparedValueQuery)
-		args = append(args, argVals...)
+VALUES (:id,:symbol,:exchange,:unit,:interval,:name,:datetime,:depth,:value,:created_at)`
+	// BindNamed вызывается один раз на весь срез: sqlx сам размножит VALUES(...) на len(filtered) групп
+	// со сквозной нумерацией плейсхолдеров. Вызов BindNamed по одному элементу на строку начинал
+	// нумерацию ($1..$N) заново на каждой строке, из-за чего при нескольких строках в одном запросе
+	// возникала ошибка "mismatched param and argument count".
+	preparedQuery, args, err := repo.db.BindNamed(query, filtered)
+	if err != nil {
+		return err
 	}
-	preparedQuery := fmt.Sprintf("%s %s", query, strings.Join(preparedValueQueries, ", "))
 	if _, err := repo.db.ExecContext(ctx, preparedQuery, args...); err != nil {
 		return err
 	}
@@ -63,7 +60,6 @@ VALUES
 func (repo *IndicatorRepository) Find(
 	ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, name string, depth int,
 ) (*indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_find")()
 	var (
 		query = `
 SELECT id,
@@ -93,10 +89,69 @@ LIMIT 1
 
 	return &res, nil
 }
+func (repo *IndicatorRepository) FindMany(
+	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int, datetimes []time.Time,
+) ([]indicator.StorageDTO, error) {
+	if len(datetimes) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In(`
+SELECT id,
+       symbol,
+       exchange,
+       unit,
+       interval,
+       name,
+       datetime,
+       depth,
+       value,
+       created_at
+FROM indicators
+WHERE exchange = ? AND symbol = ? AND unit = ? AND interval = ? AND name = ? AND depth = ? AND datetime IN (?)`,
+		exchange, symbol, unit, interval, name, depth, datetimes)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]indicator.StorageDTO, 0, len(datetimes))
+	if err := repo.db.SelectContext(ctx, &res, repo.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (repo *IndicatorRepository) FindManyByName(
+	ctx context.Context, exchange, symbol, unit string, interval int, datetime time.Time, depth int, names []string,
+) ([]indicator.StorageDTO, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In(`
+SELECT id,
+       symbol,
+       exchange,
+       unit,
+       interval,
+       name,
+       datetime,
+       depth,
+       value,
+       created_at
+FROM indicators
+WHERE exchange = ? AND symbol = ? AND unit = ? AND interval = ? AND datetime = ? AND depth = ? AND name IN (?)`,
+		exchange, symbol, unit, interval, datetime, depth, names)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]indicator.StorageDTO, 0, len(names))
+	if err := repo.db.SelectContext(ctx, &res, repo.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (repo *IndicatorRepository) List(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit, offset int,
 ) ([]indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_list")()
 	var (
 		query = `
 SELECT id,
@@ -129,7 +184,6 @@ LIMIT ? OFFSET ?
 func (repo *IndicatorRepository) LastToDate(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth, limit int, to time.Time,
 ) ([]indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_list")()
 	var (
 		query = `
 SELECT id,
@@ -162,7 +216,6 @@ LIMIT ?
 func (repo *IndicatorRepository) Last(
 	ctx context.Context, exchange, symbol, unit string, interval int, name string, depth int,
 ) (*indicator.StorageDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_last")()
 	var (
 		query = `
 SELECT id,
@@ -194,7 +247,6 @@ LIMIT 1
 }
 
 func (repo *IndicatorRepository) ListUniq(ctx context.Context) ([]indicator.UniqDTO, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_list_uniq")()
 	var (
 		query = `
 SELECT symbol,
@@ -223,7 +275,6 @@ ORDER BY symbol, exchange, unit, interval
 func (repo *IndicatorRepository) DeleteOldRows(
 	ctx context.Context, symbol, exchangeName, unit string, interval int, name string, depth int, to time.Time,
 ) error {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_delete_old_rows")()
 	var query = `
 DELETE
 FROM indicators
@@ -241,9 +292,8 @@ WHERE  symbol = ?
 	return nil
 }
 
-func (repo *IndicatorRepository) AllIndicatorInfoModel(ctx context.Context) (map[string][]view.IndicatorInfoModel, error) {
-	defer metrics.DBQueryHelper("crypto_polymath", "indicators_all_indicator_info_model")()
-	result := make(map[string][]view.IndicatorInfoModel)
+func (repo *IndicatorRepository) AllIndicatorInfo(ctx context.Context) (map[string][]indicator.IndicatorInfo, error) {
+	result := make(map[string][]indicator.IndicatorInfo)
 	query := `SELECT DISTINCT unit, interval, name, depth
 FROM indicators`
 	rows, err := repo.db.QueryContext(ctx, query)
@@ -260,9 +310,9 @@ FROM indicators`
 			return nil, err
 		}
 		if _, has := result[name]; !has {
-			result[name] = make([]view.IndicatorInfoModel, 0, 100)
+			result[name] = make([]indicator.IndicatorInfo, 0, 100)
 		}
-		result[name] = append(result[name], view.IndicatorInfoModel{
+		result[name] = append(result[name], indicator.IndicatorInfo{
 			Unit:     unit,
 			Interval: interval,
 			Name:     name,

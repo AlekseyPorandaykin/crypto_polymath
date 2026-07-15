@@ -11,7 +11,6 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/service"
-	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/impl/view"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/v1/spec"
 	"github.com/duke-git/lancet/v2/slice"
 	"github.com/labstack/echo/v4"
@@ -31,15 +30,13 @@ var (
 )
 
 type Handler struct {
-	priceService        price.Price
-	candlestickService  candlestick.Candlestick
-	indicatorService    indicator.Indicator
-	exchangeService     exchange.Exchange
-	analysisService     *analysis.Service
-	analyticRepository  view.AnalyticInfoRepository
-	indicatorRepository view.IndicatorInfoRepository
-	serv                *service.Service
-	candleIndicator     candle_indicator.CandleIndicator
+	priceService       price.Price
+	candlestickService candlestick.Candlestick
+	indicatorService   indicator.Indicator
+	exchangeService    exchange.Exchange
+	analysisService    *analysis.Service
+	serv               *service.Service
+	candleIndicator    candle_indicator.CandleIndicator
 }
 
 func NewHandler(
@@ -48,21 +45,17 @@ func NewHandler(
 	indicatorService indicator.Indicator,
 	exchangeService exchange.Exchange,
 	analysisService *analysis.Service,
-	analyticRepository view.AnalyticInfoRepository,
-	indicatorRepository view.IndicatorInfoRepository,
 	serv *service.Service,
 	candleIndicator candle_indicator.CandleIndicator,
 ) *Handler {
 	return &Handler{
-		priceService:        priceService,
-		candlestickService:  candlestickService,
-		indicatorService:    indicatorService,
-		exchangeService:     exchangeService,
-		analysisService:     analysisService,
-		analyticRepository:  analyticRepository,
-		indicatorRepository: indicatorRepository,
-		serv:                serv,
-		candleIndicator:     candleIndicator,
+		priceService:       priceService,
+		candlestickService: candlestickService,
+		indicatorService:   indicatorService,
+		exchangeService:    exchangeService,
+		analysisService:    analysisService,
+		serv:               serv,
+		candleIndicator:    candleIndicator,
 	}
 }
 

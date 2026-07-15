@@ -20,8 +20,8 @@ func Create() AppConf {
 			Database:           viper.GetString("db_connection.database"),
 			PathToDB:           viper.GetString("db_connection.path_to_db"),
 			SchemaName:         viper.GetString("db_connection.schema"),
-			MaxOpenConnections: 5,
-			MaxIdleConnections: 5,
+			MaxOpenConnections: viper.GetInt("db_connection.max_open_connections"),
+			MaxIdleConnections: viper.GetInt("db_connection.max_idle_connections"),
 		},
 	}
 }
