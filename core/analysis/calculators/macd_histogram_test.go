@@ -1,3 +1,7 @@
+// macd_histogram_test.go — тесты MACD Histogram калькулятора.
+//
+// Зачем: MACD Histogram = Main Line − Signal Line.
+// Показывает «импульс» тренда. Тесты проверяют метаданные калькулятора.
 package calculators_test
 
 import (

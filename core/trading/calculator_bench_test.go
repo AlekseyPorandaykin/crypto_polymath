@@ -1,3 +1,10 @@
+// calculator_bench_test.go — бенчмарки для измерения производительности.
+//
+// Зачем: калькулятор вызывается в hot path (API, real-time UI).
+// Бенчмарки отслеживают: ns/op, allocs/op, bytes/op.
+// Если рефакторинг случайно добавит аллокации — bench покажет регрессию.
+//
+// Запуск: go test ./core/trading/ -bench=. -benchmem -run=^$
 package trading
 
 import "testing"

@@ -1,3 +1,8 @@
+// macd_main_line_test.go — тесты MACD Main Line калькулятора.
+//
+// Зачем: MACD Main Line = EMA(12) − EMA(26). Это базовый компонент MACD.
+// Тесты проверяют: поддержку depth/interval, корректность Name().
+// Ошибка здесь ломает MACD Signal и MACD Histogram.
 package calculators_test
 
 import (

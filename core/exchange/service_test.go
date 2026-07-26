@@ -1,3 +1,12 @@
+// service_test.go — integration-тесты сервиса exchange.
+//
+// Зачем: Exchange-сервис — точка входа для справочника торговых пар.
+// Тесты проверяют:
+// - LoadSymbolInfo: загрузка с биржи → сохранение → возврат
+// - SymbolInfo: поиск по exchange+symbol, fallback по quoteAsset
+// - SymbolInfoByCategory: фильтрация spot/future
+// - Корректность маппинга DTO → domain
+// Используется in-memory repository для изоляции от БД.
 package exchange_test
 
 import (

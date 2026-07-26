@@ -1,3 +1,8 @@
+// macd_signal_line_test.go — тесты MACD Signal Line калькулятора.
+//
+// Зачем: MACD Signal = EMA(9) от MACD Main Line.
+// Пересечение Signal и Main — классический торговый сигнал.
+// Тесты проверяют метаданные и корректность Name.
 package calculators_test
 
 import (

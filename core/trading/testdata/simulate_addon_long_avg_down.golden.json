@@ -1,0 +1,30 @@
+{
+  "Before": {
+    "Side": 1,
+    "Volume": 1,
+    "EntryPrice": 100000,
+    "Margin": 10000,
+    "Leverage": 10
+  },
+  "After": {
+    "Side": 1,
+    "Volume": 2.111111111111111,
+    "EntryPrice": 94736.84210526316,
+    "Margin": 20000,
+    "Leverage": 10
+  },
+  "VolumeAdded": 1.1111111111111112,
+  "EntryDelta": -5263.15789473684,
+  "EntryDeltaPercent": -5.26315789473684,
+  "LiquidationBefore": 90452.26130653266,
+  "LiquidationAfter": 85691.61597460989,
+  "LiquidationDelta": -4760.645331922773,
+  "MarginAdded": 10000,
+  "NotionalAfter": 190000,
+  "EffectiveLeverage": 9.5,
+  "MaintenanceMargin": 950,
+  "UnrealizedPnLAtPrice": -10000.000000000005,
+  "PnLPercentOnMargin": -50.00000000000002,
+  "DistanceToLiquidationPct": 4.787093361544572,
+  "BreakEvenPrice": 94736.84210526316
+}

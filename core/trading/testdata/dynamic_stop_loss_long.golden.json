@@ -1,0 +1,9 @@
+{
+  "VolatilityUsed": 2.5,
+  "SLPricePct": 10,
+  "TrailActivatePricePct": 10,
+  "InitialStopPrice": 90000,
+  "TrailActivatePrice": 110000.00000000001,
+  "InitialSLMarginPct": -100,
+  "TrailActivateMarginPct": 100
+}

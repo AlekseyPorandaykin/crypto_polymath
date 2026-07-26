@@ -1,3 +1,17 @@
+// future_stop_loss_test.go — unit-тесты динамического стоп-лосса.
+//
+// Зачем: SL-логика критична для автоматического risk management.
+// Ошибка в расчёте стопа приводит к преждевременному выходу (потеря прибыли)
+// или слишком позднему (увеличенные убытки).
+//
+// Что покрывают:
+// - VolatilityRangePercent: корректность расчёта волатильности свечи
+// - IsHeikenAshiDoji: детекция доджи (фильтр ложных сигналов)
+// - DynamicStopLoss: масштабирование SL от волатильности, floor/cap
+// - UpdateTrailingStop: ratchet-механизм (стоп только подтягивается)
+// - IsStopHit: определение касания стопа свечой
+// - StopExitPrice: цена выхода с учётом гэпа
+// - MarginPnLPercent / PriceForMarginPnLPercent: PnL в % маржи
 package trading
 
 import (

@@ -1,3 +1,9 @@
+// contract_test.go — unit-тесты типа Indicator (свечной индикатор).
+//
+// Зачем: Indicator — OHLC-данные производной свечи (Heiken Ashi).
+// Методы SizeBody, Size, SizeBodyInPercent, CloseLocation, Direction,
+// PrevStartTime используются в стратегиях для определения паттернов.
+// Ошибка в Size → неверный IsHeikenAshiDoji → ложный торговый сигнал.
 package candle_indicator
 
 import (

@@ -1,0 +1,12 @@
+{
+  "MarkPrice": 95000,
+  "EntryPrice": 100000,
+  "LiquidationPrice": 90452.26130653266,
+  "UnrealizedPnL": -5000,
+  "PnLPercentOnMargin": -50,
+  "Notional": 95000,
+  "EffectiveLeverage": 9.5,
+  "MaintenanceMargin": 475,
+  "MarginUsagePercent": 9.5,
+  "DistanceToLiquidationPct": 4.78709336154457
+}
