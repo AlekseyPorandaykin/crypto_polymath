@@ -1,6 +1,8 @@
 package container
 
 import (
+	"time"
+
 	queue_contract "github.com/AlekseyPorandaykin/crypto_polymath/api/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/analysis"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
@@ -9,11 +11,10 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/postgresql"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/api/grpc"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
-	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/metrics"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
-	"time"
 )
 
 func (c *Container) initEventImplementations() error {

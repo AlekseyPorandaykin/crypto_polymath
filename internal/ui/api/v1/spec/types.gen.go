@@ -435,7 +435,9 @@ type TradingSpotPnLResponse struct {
 // TradingUnrealizedPnLRequest defines model for TradingUnrealizedPnLRequest.
 type TradingUnrealizedPnLRequest struct {
 	EntryPrice float32 `json:"entry_price"`
+	Leverage   float32 `json:"leverage"`
 	MarkPrice  float32 `json:"mark_price"`
+	Margin     float32 `json:"margin"`
 
 	// Side Направление позиции
 	Side   TradingSide `json:"side"`

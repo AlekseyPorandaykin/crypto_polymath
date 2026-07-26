@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/logger"
 	"go.uber.org/zap"
 )
 

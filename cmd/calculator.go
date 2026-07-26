@@ -10,7 +10,7 @@ import (
 
 	"github.com/AlekseyPorandaykin/crypto_polymath/cmd/container"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/logger"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

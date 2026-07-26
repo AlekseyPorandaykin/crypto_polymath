@@ -5,8 +5,8 @@ github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19
 github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19f/go.mod h1:q1FiHgJSOnfJEbWwVYJx+FBlEqq7A9cpEwSvtE5UtDo=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687 h1:uMh9q2Gqj8LbBF2Yi92giPJCM2c6Wye0eYIcbbGEcyI=
 github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687/go.mod h1:ShlCJUjOsfGPVbgPGVSlzfUGajSVENCwtIg6xxw/Zqc=
-github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df h1:Q2OtkYpNlD+lIozaKI8X85Xv6a0LKUq8YoEKEUYTYGA=
-github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df/go.mod h1:5J2KeH8TO6H69tuF7Chbb6cH9MyQz/bjuDis+SeITSo=
+github.com/AlekseyPorandaykin/go-kit v0.0.0-20260724092903-996ed045efd9 h1:4bbZsUAjMKFeV1azuxYWvGiy/9OvM+Bz+T49NfJUDpo=
+github.com/AlekseyPorandaykin/go-kit v0.0.0-20260724092903-996ed045efd9/go.mod h1:HAHe81ivr2sv5P7V/p1RlGSdXDgkNjyHYOoMk6kwsDA=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/TheZeroSlave/zapsentry v1.23.0 h1:TKyzfEL7LRlRr+7AvkukVLZ+jZPC++ebCUv7ZJHl1AU=
 github.com/TheZeroSlave/zapsentry v1.23.0/go.mod h1:3DRFLu4gIpnCTD4V9HMCBSaqYP8gYU7mZickrs2/rIY=
@@ -64,6 +64,8 @@ github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/jmoiron/sqlx v1.4.0 h1:1PLqN7S1UYp5t4SrVVnt4nUVNemrDAtxlulVe+Qgm3o=
 github.com/jmoiron/sqlx v1.4.0/go.mod h1:ZrZ7UsYB/weZdl2Bxg6jCRO9c3YHl8r3ahlKmRT4JLY=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/juju/gnuflag v0.0.0-20171113085948-2ce1bb71843d/go.mod h1:2PavIy+JPciBPrBUjwbNvtwB6RQlve+hkpll6QSNmOE=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=

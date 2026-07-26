@@ -5,12 +5,13 @@ go 1.24.6
 require (
 	github.com/AlekseyPorandaykin/crypto-exchanges v0.0.0-20260707185246-95eae6a4a19f
 	github.com/AlekseyPorandaykin/crypto_loader v0.0.0-20250620072728-a0b8e70a6687
-	github.com/AlekseyPorandaykin/go-template v0.0.0-20250528203128-73b22907b2df
+	github.com/AlekseyPorandaykin/go-kit v0.0.0-20260724092903-996ed045efd9
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/duke-git/lancet/v2 v2.3.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.4
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/oapi-codegen/runtime v1.1.1

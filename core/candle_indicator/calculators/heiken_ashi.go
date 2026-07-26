@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candle_indicator"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
-	"github.com/AlekseyPorandaykin/go-template/pkg/util"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/util"
 	"github.com/pkg/errors"
 	"math"
 )

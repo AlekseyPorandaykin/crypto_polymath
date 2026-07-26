@@ -8,7 +8,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/candlestick"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/exchange"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/go-template/pkg/util"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/util"
 )
 
 var _ candlestick.ExchangeLoader = (*Exchange)(nil)

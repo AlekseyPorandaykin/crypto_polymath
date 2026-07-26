@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/AlekseyPorandaykin/go-template/pkg/system"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/system"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )

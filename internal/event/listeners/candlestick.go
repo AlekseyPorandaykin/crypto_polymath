@@ -4,7 +4,7 @@ import (
 	queue_contract "github.com/AlekseyPorandaykin/crypto_polymath/api/queue"
 	"github.com/AlekseyPorandaykin/crypto_polymath/domain"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
-	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/dispatcher"
 	"go.uber.org/zap"
 )
 

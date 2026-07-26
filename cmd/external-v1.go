@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/AlekseyPorandaykin/crypto_polymath/cmd/container"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
-	"github.com/AlekseyPorandaykin/go-template/pkg/profiling"
-	"github.com/AlekseyPorandaykin/go-template/pkg/system"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/logger"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/profiling"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/system"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -1099,12 +1099,19 @@ components:
           type: number
     TradingUnrealizedPnLRequest:
       type: object
-      required: [ side, volume, entry_price, mark_price ]
+      required: [ side, entry_price, mark_price ]
       properties:
         side:
           $ref: '#/components/schemas/TradingSide'
         volume:
           type: number
+          description: Объём позиции; если не задан — используется margin × leverage / entry_price
+        margin:
+          type: number
+          description: Залог (USDT); используется при volume = 0
+        leverage:
+          type: number
+          description: Плечо для расчёта объёма из margin
         entry_price:
           type: number
         mark_price:

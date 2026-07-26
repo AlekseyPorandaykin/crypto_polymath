@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/metrics"
 )
 
 var _ price.Repository = (*PriceRepository)(nil)

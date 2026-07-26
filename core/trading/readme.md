@@ -40,10 +40,10 @@ Future{Leverage: leverage}.NewAvgEntryPriceBySum(entryVolume, entryPrice, sum, n
 
 ### Нереализованный PnL
 
-| Сторона | Формула |
-|---------|---------|
-| Long | `V × (P_mark − P_entry)` |
-| Short | `V × (P_entry − P_mark)` |
+| Сторона | По объёму | По залогу (плечо L) |
+|---------|-----------|---------------------|
+| Long | `V × (P_mark − P_entry)` | `M × L / P_entry × (P_mark − P_entry)` |
+| Short | `V × (P_entry − P_mark)` | `M × L / P_entry × (P_entry − P_mark)` |
 
 ### Цена ликвидации (изолированная позиция)
 
@@ -171,12 +171,14 @@ L_eff = (V × P_mark) / M
 
 `volume × price` — номинал в USDT.
 
-#### `UnrealizedPnL(side, volume, entry, mark)`
+#### `Future{Leverage}.UnrealizedPnL(side, volume, margin, entry, mark)`
 
 | Аргумент | Смысл |
 |----------|--------|
+| `Leverage` (поле `Future`) | Плечо L для расчёта по залогу |
 | `side` | `Long` / `Short` |
-| `volume` | Объём позиции |
+| `volume` | Объём позиции; если `> 0` — используется напрямую |
+| `margin` | Залог (USDT); при `volume ≤ 0` объём = `margin × L / entry` |
 | `entry` | Средняя цена входа |
 | `mark` | Рыночная цена |
 

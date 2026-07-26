@@ -12,7 +12,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/mexc"
 	"github.com/AlekseyPorandaykin/crypto_loader/pkg/okx"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/queue"
-	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/connection"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/config"
-	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/connection"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"os"

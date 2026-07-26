@@ -36,18 +36,24 @@ func Notional(volume, price float64) float64 {
 	return volume * price
 }
 
-// UnrealizedPnL — нереализованный PnL при цене mark.
-// Long:  volume × (mark - entry)
-// Short: volume × (entry - mark)
-func (f Future) UnrealizedPnL(side Side, volume, entry, mark float64) float64 {
-	switch side {
-	case Long:
-		return volume * (mark - entry)
-	case Short:
-		return volume * (entry - mark)
-	default:
+// UnrealizedPnL — нереализованный PnL при цене mark (USDT).
+// По объёму: Long volume×(mark−entry), Short volume×(entry−mark).
+// По залогу (volume ≤ 0): объём = margin × f.Leverage / entry, далее формула по объёму.
+func (f Future) UnrealizedPnL(side Side, volume, margin, entry, mark float64) float64 {
+	if volume > 0 {
+		switch side {
+		case Long:
+			return volume * (mark - entry)
+		case Short:
+			return volume * (entry - mark)
+		default:
+			return 0
+		}
+	}
+	if margin <= 0 || entry <= 0 || f.Leverage <= 0 {
 		return 0
 	}
+	return f.UnrealizedPnL(side, f.VolumeFromMargin(margin, entry), 0, entry, mark)
 }
 
 // LiquidationPrice — цена ликвидации для изолированной позиции (USDT-M).
@@ -131,7 +137,7 @@ func (f Future) SimulateAddOn(pos Position, add AddOn, maintenanceMarginRate flo
 	liqAfter := f.LiquidationPrice(after.Side, after.Volume, after.EntryPrice, after.Margin, maintenanceMarginRate)
 
 	notional := Notional(after.Volume, add.Price)
-	pnl := f.UnrealizedPnL(after.Side, after.Volume, after.EntryPrice, add.Price)
+	pnl := f.UnrealizedPnL(after.Side, after.Volume, 0, after.EntryPrice, add.Price)
 	maintMargin := notional * maintenanceMarginRate
 
 	entryDelta := after.EntryPrice - before.EntryPrice
@@ -173,7 +179,7 @@ func (f Future) SimulateAddOn(pos Position, add AddOn, maintenanceMarginRate flo
 // RiskAtPrice — снимок риска позиции при рыночной цене mark.
 func (f Future) RiskAtPrice(pos Position, mark, maintenanceMarginRate float64) RiskSnapshot {
 	liq := f.LiquidationPrice(pos.Side, pos.Volume, pos.EntryPrice, pos.Margin, maintenanceMarginRate)
-	pnl := f.UnrealizedPnL(pos.Side, pos.Volume, pos.EntryPrice, mark)
+	pnl := f.UnrealizedPnL(pos.Side, pos.Volume, 0, pos.EntryPrice, mark)
 	notional := Notional(pos.Volume, mark)
 	equity := pos.Margin + pnl
 	maint := notional * maintenanceMarginRate

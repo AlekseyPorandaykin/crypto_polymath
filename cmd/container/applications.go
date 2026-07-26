@@ -18,7 +18,7 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/daemon/loader"
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/ui/web"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
-	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/dispatcher"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/spf13/viper"
 )

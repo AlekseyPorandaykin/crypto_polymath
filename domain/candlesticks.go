@@ -1,10 +1,11 @@
 package domain
 
 import (
-	"github.com/AlekseyPorandaykin/go-template/pkg/util"
-	"github.com/duke-git/lancet/v2/slice"
 	"math"
 	"time"
+
+	"github.com/AlekseyPorandaykin/go-kit/pkg/util"
+	"github.com/duke-git/lancet/v2/slice"
 )
 
 type Unit string

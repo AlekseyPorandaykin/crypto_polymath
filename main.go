@@ -1,18 +1,21 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/AlekseyPorandaykin/crypto_polymath/cmd"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/metrics"
 	"github.com/AlekseyPorandaykin/crypto_polymath/pkg/system"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/logger"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"strings"
 )
 
 var version string
 
 func main() {
+	_ = godotenv.Load() // загружает .env в os environment
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	logger.InitDefaultLogger()

@@ -60,11 +60,17 @@ func TestLiquidationPrice_short(t *testing.T) {
 }
 
 func TestUnrealizedPnL(t *testing.T) {
-	if got := (Future{}).UnrealizedPnL(Long, 1, 100, 110); got != 10 {
+	if got := (Future{}).UnrealizedPnL(Long, 1, 0, 100, 110); got != 10 {
 		t.Fatalf("long pnl: got %v", got)
 	}
-	if got := (Future{}).UnrealizedPnL(Short, 1, 100, 110); got != -10 {
+	if got := (Future{}).UnrealizedPnL(Short, 1, 0, 100, 110); got != -10 {
 		t.Fatalf("short pnl: got %v", got)
+	}
+	if got := (Future{Leverage: 10}).UnrealizedPnL(Long, 0, 1000, 100, 110); math.Abs(got-1000) > 1e-9 {
+		t.Fatalf("long pnl by margin: got %v", got)
+	}
+	if got := (Future{Leverage: 10}).UnrealizedPnL(Short, 0, 1000, 100, 110); math.Abs(got+1000) > 1e-9 {
+		t.Fatalf("short pnl by margin: got %v", got)
 	}
 }
 

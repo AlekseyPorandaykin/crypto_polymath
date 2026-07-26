@@ -8,9 +8,8 @@ import (
 	"github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/adapters/exchange"
 	infrastracture_http "github.com/AlekseyPorandaykin/crypto_polymath/internal/infrastructure/http"
 	http_server "github.com/AlekseyPorandaykin/crypto_polymath/pkg/server/http"
-	"github.com/AlekseyPorandaykin/go-template/pkg/dispatcher"
-	"github.com/AlekseyPorandaykin/go-template/pkg/logger"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/dispatcher"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/metrics"
 	"github.com/jmoiron/sqlx"
 	"github.com/streadway/amqp"
 	"go.uber.org/dig"
@@ -89,7 +88,7 @@ func (c *Container) Init() error {
 func (c *Container) Close() {
 	g := errgroup.Group{}
 	g.Go(func() error {
-		logger.SyncLoggers()
+		//logger.SyncLoggers()
 		return nil
 	})
 	g.Go(func() error {

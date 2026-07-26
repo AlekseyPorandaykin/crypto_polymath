@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/indicator"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/metrics"
 	"github.com/duke-git/lancet/v2/slice"
 	lru "github.com/hashicorp/golang-lru/v2"
 )

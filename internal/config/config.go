@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/AlekseyPorandaykin/go-template/pkg/connection"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/connection"
 	"github.com/spf13/viper"
 )
 

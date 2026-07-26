@@ -118,7 +118,7 @@ func init() {
 	viper.SetDefault("http_server.logger.error_output_paths", []string{"./storage/logs/http_server_error.log", "stdout", "stderr"})
 	viper.SetDefault("http_server.logger.stacktrace", false)
 
-	viper.SetDefault("indicator_handler.logger.Mlevel", "INFO")
+	viper.SetDefault("indicator_handler.logger.level", "INFO")
 	viper.SetDefault("indicator_handler.logger.alert_level", "WARN")
 	viper.SetDefault("indicator_handler.logger.output_paths", []string{"stdout"})
 	viper.SetDefault("indicator_handler.logger.error_output_paths", []string{"./storage/logs/indicator_handler_error.log"})

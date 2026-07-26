@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/AlekseyPorandaykin/crypto_polymath/core/price"
-	"github.com/AlekseyPorandaykin/go-template/pkg/metrics"
+	"github.com/AlekseyPorandaykin/go-kit/pkg/metrics"
 	"github.com/jmoiron/sqlx"
 	"math"
 	"strings"
