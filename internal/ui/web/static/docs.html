@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST API — Crypto Polymath</title>
+    <meta name="description" content="Crypto Polymath REST API documentation: prices, candlesticks, indicators, analytics and trader calculators. Generated from the OpenAPI contract.">
+
+    <link rel="canonical" href="https://cryptopolymath.org/docs/api">
+    <meta name="robots" content="index, follow, max-snippet:-1">
+
+    <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/icon-32.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/docs.css">
+
+    <!--
+        The documentation is rendered by Redoc from the contract the server serves
+        at /docs/api/openapi.yaml — the same api/rest/v1/openapi.yaml file the
+        handlers are generated from. The frontend keeps no separate copy of the
+        specification, so the documentation cannot drift away from the code.
+
+        The version is pinned: a floating CDN tag will eventually break this page
+        without a single commit to the repository.
+
+        Redoc is read-only, and that is deliberate: "send a request" lives on
+        /tools, where every endpoint already has a form that suggests the allowed
+        values.
+    -->
+    <script defer src="https://cdn.jsdelivr.net/npm/redoc@2.5.3/bundles/redoc.standalone.js"></script>
+    <script defer src="/static/js/docs.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a class="brand" href="/">
+            <img src="/static/img/icon.svg" width="28" height="28" alt="">
+            Crypto <span style="color:var(--accent)">Polymath</span>
+        </a>
+        <span class="status-text">REST API</span>
+        <nav class="nav">
+            <a class="nav-link" href="/docs/api/openapi.yaml">openapi.yaml</a>
+            <a class="nav-link" href="/tools">Tools</a>
+            <a class="btn btn-outline" href="/">Home</a>
+        </nav>
+    </div>
+</header>
+
+<!-- Redoc replaces the content below once it loads: while it is loading — and if
+     it never loads — the visitor still has a direct link to the contract. -->
+<div id="redoc">
+    <div class="docs-fallback">
+        <p>Loading the documentation…</p>
+        <p class="muted">
+            If it does not appear, the contract is always available as a file:
+            <a href="/docs/api/openapi.yaml">/docs/api/openapi.yaml</a>
+        </p>
+    </div>
+</div>
+
+<noscript>
+    <div class="docs-fallback">
+        <p>JavaScript is required to render the documentation.</p>
+        <p class="muted">
+            The raw contract: <a href="/docs/api/openapi.yaml">/docs/api/openapi.yaml</a>
+        </p>
+    </div>
+</noscript>
+</body>
+</html>

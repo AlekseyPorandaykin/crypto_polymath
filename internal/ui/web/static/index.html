@@ -1,928 +1,467 @@
-<html lang="ru"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Polymath — платформа рыночной аналитики</title>
 
-    <!-- PrimeVue (v3) — тема, базовые стили и иконки, всё через CDN, без npm/сборки -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3/resources/themes/lara-light-blue/theme.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3/resources/primevue.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons/primeicons.css">
+    <title>Crypto Polymath — Crypto Market Data and Risk Calculators</title>
+    <meta name="description" content="Live prices, candlesticks and technical indicators from 6 major crypto exchanges, plus liquidation price and PnL calculators. Free, no sign-up, in your browser.">
+
+    <link rel="canonical" href="https://cryptopolymath.org/">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="theme-color" content="#2f5bea">
+
+    <!-- The site has a single language and no regional targeting: one version
+         serves every country, so there are no hreflang alternatives and
+         x-default points at the very same page. -->
+    <link rel="alternate" hreflang="x-default" href="https://cryptopolymath.org/">
+    <link rel="alternate" hreflang="en" href="https://cryptopolymath.org/">
+
+    <!-- The vector comes first: it stays sharp in the tab, in bookmarks and at any
+         screen scale. The PNG is a fallback for browsers without SVG support. -->
+    <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/icon-32.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Crypto Polymath">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cryptopolymath.org/">
+    <meta property="og:title" content="Crypto Polymath — Crypto Market Data and Risk Calculators">
+    <meta property="og:description" content="Prices, candlesticks, indicators and risk calculators from 6 major crypto exchanges in one place. Free, no sign-up, runs in your browser.">
+    <meta property="og:image" content="https://cryptopolymath.org/static/img/hero-dashboard.webp">
+    <meta property="og:image:width" content="1600">
+    <meta property="og:image:height" content="1066">
+    <meta property="og:image:alt" content="Crypto market analytics dashboard: candlestick chart and position metrics">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/landing.css">
+
+    <!-- The contact form needs a script: it opens the dialog and sends the message
+         without leaving the page. With scripting off the button would do nothing, so
+         it is swapped for a mail link — noscript in the head is parsed only when
+         scripts are disabled, and the swap happens before the first paint. -->
+    <noscript>
+        <style>
+            [data-contact-open] { display: none; }
+            .contact-fallback { display: inline-flex; }
+        </style>
+    </noscript>
 
     <!--
-        Страница состоит из двух независимых Vue-приложений:
+        Every meaningful piece of this page is static markup: no block is built by
+        a script, and the page carries no scripts at all. That is how both search
+        crawlers and AI crawlers read it — the latter usually do not run
+        JavaScript.
 
-        1) "marketing" — приветственный экран (шапка/hero/фичи/шаги), собран на полной сборке
-           Vue (esm-browser, с компилятором шаблонов "на борту"), поэтому здесь можно писать
-           обычные Vue-шаблоны прямо в HTML.
-        2) "console" — мега-меню функций (MegaMenu) и модальное окно с формой/результатом, собран
-           на связке esm.sh(vue) + PrimeVue (MegaMenu/Dropdown/Dialog/Tag/DataTable). Все компоненты
-           PrimeVue внутри себя используют РАНТАЙМ-сборку Vue без компилятора шаблонов, поэтому
-           это приложение написано через render()/h() без строковых шаблонов — чтобы у Vue и
-           PrimeVue был один и тот же экземпляр рантайма и всё корректно работало.
+        The page language is English: the service targets an international
+        audience, so lang, og:locale and inLanguage all declare en consistently.
 
-        Оба приложения общаются между собой через обычные DOM CustomEvent — без общего
-        реактивного состояния (это два разных экземпляра Vue).
+        The structured data below only repeats what a visitor actually sees:
+        Google and the assistants alike require the markup to match the page.
     -->
-    <script type="importmap">
+    <script type="application/ld+json">
     {
-        "imports": {
-            "vue": "https://esm.sh/vue@3",
-            "primevue/config": "https://esm.sh/primevue@3/config?deps=vue@3",
-            "primevue/dropdown": "https://esm.sh/primevue@3/dropdown?deps=vue@3",
-            "primevue/inputnumber": "https://esm.sh/primevue@3/inputnumber?deps=vue@3",
-            "primevue/megamenu": "https://esm.sh/primevue@3/megamenu?deps=vue@3",
-            "primevue/button": "https://esm.sh/primevue@3/button?deps=vue@3",
-            "primevue/dialog": "https://esm.sh/primevue@3/dialog?deps=vue@3",
-            "primevue/tag": "https://esm.sh/primevue@3/tag?deps=vue@3",
-            "primevue/datatable": "https://esm.sh/primevue@3/datatable?deps=vue@3",
-            "primevue/treetable": "https://esm.sh/primevue@3/treetable?deps=vue@3",
-            "primevue/chart": "https://esm.sh/primevue@3/chart?deps=vue@3",
-            "primevue/column": "https://esm.sh/primevue@3/column?deps=vue@3"
-        }
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                "@id": "https://cryptopolymath.org/#website",
+                "url": "https://cryptopolymath.org/",
+                "name": "Crypto Polymath",
+                "description": "Crypto market analytics: prices, candlesticks, technical indicators and position risk calculators from major exchanges.",
+                "inLanguage": "en"
+            },
+            {
+                "@type": "WebApplication",
+                "@id": "https://cryptopolymath.org/#app",
+                "name": "Crypto Polymath",
+                "url": "https://cryptopolymath.org/tools",
+                "applicationCategory": "FinanceApplication",
+                "operatingSystem": "Any operating system with a web browser",
+                "browserRequirements": "Requires a modern web browser",
+                "inLanguage": "en",
+                "description": "Market data from six major crypto exchanges plus trader calculators: average entry price, liquidation price, PnL and distance to liquidation.",
+                "isPartOf": { "@id": "https://cryptopolymath.org/#website" },
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                },
+                "featureList": [
+                    "Crypto prices from six exchanges side by side",
+                    "Historical candlesticks on timeframes from minutes to months",
+                    "Technical indicators: RSI, MACD, moving averages, stochastic",
+                    "Heiken Ashi smoothed candlesticks",
+                    "Average entry price and position averaging calculator",
+                    "Liquidation price and distance to liquidation calculator",
+                    "Unrealized PnL calculation for an open position"
+                ]
+            },
+            {
+                "@type": "FAQPage",
+                "@id": "https://cryptopolymath.org/#faq",
+                "isPartOf": { "@id": "https://cryptopolymath.org/#website" },
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "What is Crypto Polymath?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "It is a crypto market analytics platform. It collects prices, historical candlesticks and technical indicators from six major exchanges and normalises them into a single format, alongside trader calculators — from average entry price to liquidation price."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Which exchanges are supported?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Binance, Bybit, OKX, Kraken, KuCoin and Gate.io. Data from every exchange is normalised to the same shape, so prices and candlesticks from different venues can be compared directly."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Do I need to sign up?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No. No account, no exchange API keys and no installation: just open the tools page in your browser and pick an exchange and a coin."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Which technical indicators can I calculate?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Moving averages, RSI, MACD, stochastic and trend metrics, plus Heiken Ashi smoothed candlesticks. The lookback depth is chosen from the values each indicator supports."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "What do the trader calculators compute?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Average entry price when averaging by volume or by margin amount, position size from margin and leverage, liquidation price of an isolated position, distance to liquidation in percent, unrealized PnL and spot PnL, and a full risk snapshot at a given market price."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Can I get this data programmatically?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes, everything is available through a REST API with a single contract: the same request works for any supported exchange. All methods are described in the API documentation."
+                        }
+                    }
+                ]
+            }
+        ]
     }
     </script>
-
-    <style>
-        :root {
-            --bg: #f5f7fa;
-            --card: #ffffff;
-            --border: #e3e7ee;
-            --text: #131a2a;
-            --muted: #667085;
-            --accent: #2f5bea;
-            --ok: #17915a;
-            --err: #d93636;
-        }
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-        }
-        a { color: var(--accent); }
-        [v-cloak] { display: none; }
-
-        /* header */
-        header {
-            background: var(--card);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 20;
-        }
-        .header-inner {
-            max-width: 1120px;
-            margin: 0 auto;
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; white-space: nowrap; }
-        .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: #cbd2e0; }
-        .brand .dot.online { background: var(--ok); box-shadow: 0 0 0 3px rgba(23,145,90,.15); }
-        .brand .dot.offline { background: var(--err); box-shadow: 0 0 0 3px rgba(217,54,54,.15); }
-        .status-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
-        .picker { margin-left: auto; }
-        .picker .p-megamenu { background: transparent; border: none; padding: 0; }
-
-        /* buttons for the static marketing app (kept as plain CSS, not PrimeVue, since this app
-           never touches PrimeVue's Vue instance) */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 11px 20px;
-            border-radius: 9px;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .btn-primary { background: var(--accent); color: #fff; }
-        .btn-primary:hover { background: #1d3fb0; }
-        .btn-ghost { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.25); }
-        .btn-ghost:hover { background: rgba(255,255,255,.16); }
-        .btn:disabled { opacity: .5; cursor: not-allowed; }
-
-        /* hero */
-        .hero {
-            background: radial-gradient(1200px 420px at 15% -10%, #4f7cff 0%, transparent 60%),
-                        linear-gradient(135deg, #101a33, #1a2650 55%, #142042);
-            color: #fff;
-            padding: 72px 24px 56px;
-        }
-        .hero-inner { max-width: 1120px; margin: 0 auto; }
-        .hero h1 { font-size: 38px; margin: 0 0 14px; font-weight: 800; letter-spacing: -0.02em; max-width: 720px; }
-        .hero p.subtitle { font-size: 17px; color: #c7d0ea; max-width: 620px; margin: 0 0 28px; }
-        .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
-        .stats { display: flex; gap: 36px; flex-wrap: wrap; }
-        .stat b { display: block; font-size: 24px; }
-        .stat span { font-size: 13px; color: #b7c1e0; }
-
-        /* features */
-        main { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-        .features { padding: 48px 0 8px; }
-        .features h2, .how h2 { font-size: 22px; margin: 0 0 6px; }
-        .section-lead { color: var(--muted); font-size: 14px; margin: 0 0 26px; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
-        .feature-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 22px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .feature-card .icon {
-            width: 40px; height: 40px;
-            border-radius: 10px;
-            background: #eaefff;
-            color: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 19px;
-        }
-        .feature-card h3 { margin: 0; font-size: 16px; }
-        .feature-card p { margin: 0; color: var(--muted); font-size: 13.5px; flex-grow: 1; }
-        .feature-card button {
-            align-self: flex-start;
-            margin-top: 4px;
-            background: none;
-            border: none;
-            color: var(--accent);
-            font-weight: 600;
-            font-size: 13.5px;
-            cursor: pointer;
-            padding: 0;
-        }
-        .feature-card button:hover { text-decoration: underline; }
-        .feature-card button:disabled { opacity: .5; cursor: not-allowed; }
-
-        /* how it works */
-        .how { padding: 48px 0 60px; }
-        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
-        .step { display: flex; gap: 14px; }
-        .step .n {
-            flex: none; width: 30px; height: 30px; border-radius: 50%;
-            background: var(--accent); color: #fff; font-weight: 700; font-size: 13px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .step p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
-        .step strong { font-size: 14.5px; }
-
-        footer { max-width: 1120px; margin: 0 auto; padding: 20px 24px 44px; color: var(--muted); font-size: 13px; }
-
-        /* console app (PrimeVue) content */
-        .dialog-path {
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 12px; color: var(--muted); word-break: break-all; margin: -6px 0 14px;
-        }
-        form.params { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 4px; }
-        form.params label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); flex: 1 1 150px; }
-        form.params .p-inputnumber, form.params .p-dropdown { width: 100%; }
-        form.params .p-inputnumber-input { font-size: 13px; width: 100%; }
-
-        .result-panel {
-            margin-top: 16px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: #fbfcfe;
-            overflow: hidden;
-        }
-        .result-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 9px 14px;
-            border-bottom: 1px solid var(--border);
-            background: #f1f4f9;
-        }
-        .status-line { font-size: 12.5px; font-weight: 700; }
-        .status-line.ok { color: var(--ok); }
-        .status-line.err { color: var(--err); }
-        .result-body { padding: 14px; max-height: 560px; overflow: auto; }
-        .result-body .loading { color: var(--muted); font-size: 13px; }
-        .result-body pre.raw {
-            margin: 0;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 12.5px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            color: var(--text);
-        }
-
-        /* presentable data view (non-tabular branches; tabular branch uses PrimeVue DataTable) */
-        .dv-kv { display: grid; grid-template-columns: max-content 1fr; gap: 7px 16px; margin: 0; font-size: 13px; }
-        .dv-kv dt { color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 1px; }
-        .dv-kv dd { margin: 0; font-weight: 500; }
-        .dv-pos { color: var(--ok); font-weight: 600; }
-        .dv-neg { color: var(--err); font-weight: 600; }
-        .dv-bool-true { color: var(--ok); }
-        .dv-bool-false { color: var(--err); }
-    </style>
 </head>
 <body>
-<div id="marketing-app" v-cloak>
-    <header>
-        <div class="header-inner">
-            <div class="brand">
-                <span class="dot" :class="statusClass"></span>
-                Crypto <span style="color:var(--accent)">Polymath</span>
-            </div>
-            <span class="status-text">{{ statusText }}</span>
-            <div class="picker"><div id="picker-mount"></div></div>
-        </div>
-    </header>
+<header>
+    <div class="header-inner">
+        <a class="brand" href="/">
+            <img src="/static/img/icon.svg" width="28" height="28" alt="">
+            Crypto <span style="color:var(--accent)">Polymath</span>
+        </a>
+        <nav class="nav" aria-label="Main navigation">
+            <a class="nav-link" href="#features">Features</a>
+            <a class="nav-link" href="#how">How it works</a>
+            <a class="nav-link" href="#faq">FAQ</a>
+            <button class="btn btn-outline" type="button" data-contact-open>Contact us</button>
+            <a class="btn btn-outline contact-fallback" href="mailto:porandaikinaleksei@gmail.com">Contact us</a>
+            <a class="btn btn-primary" href="/tools">Try it free</a>
+        </nav>
+    </div>
+</header>
 
-    <section class="hero">
+<main>
+    <section class="hero" aria-labelledby="hero-title">
         <div class="hero-inner">
-            <h1>Рыночные данные и аналитика криптовалют в одном API</h1>
-            <p class="subtitle">
-                Цены, исторические свечи, технические индикаторы, аналитика трендов и калькуляторы трейдера
-                с нескольких бирж — через единый REST‑контракт. Выберите функцию в меню сверху и получите
-                результат сразу во всплывающем окне.
-            </p>
-            <div class="hero-cta">
-                <button class="btn btn-primary" :disabled="!serverData" @click="requestOpen('price')">Посмотреть цену</button>
-                <a class="btn btn-ghost" href="https://github.com/AlekseyPorandaykin/crypto_polymath/blob/main/api/rest/v1/openapi.yaml" target="_blank" rel="noopener">Открыть спецификацию API</a>
+            <div class="hero-copy">
+                <span class="eyebrow">No sign-up, no install</span>
+                <h1 id="hero-title">The crypto market and your position risk on one screen</h1>
+                <p class="subtitle">
+                    Prices, candlesticks and technical indicators from six major exchanges, normalised
+                    into a single view. Next to them — calculators that show your liquidation price and
+                    safety margin <strong>before</strong> you enter a trade, not after.
+                </p>
+                <div class="hero-cta">
+                    <a class="btn btn-primary btn-lg" href="/tools">
+                        Open the tools
+                        <span aria-hidden="true">→</span>
+                    </a>
+                    <a class="btn btn-ghost btn-lg" href="#how">How it works</a>
+                </div>
+                <p class="hero-note">Nothing to connect — your first result appears in the browser within seconds.</p>
+
+                <div class="trust">
+                    <span class="trust-label"><b>6</b> major exchanges</span>
+                    <ul class="chips" aria-label="Supported exchanges">
+                        <li>Binance</li>
+                        <li>Bybit</li>
+                        <li>OKX</li>
+                        <li>Kraken</li>
+                        <li>KuCoin</li>
+                        <li>Gate.io</li>
+                    </ul>
+                </div>
             </div>
-            <div class="stats">
-                <div class="stat"><b>{{ exchangeCount }}</b><span>бирж</span></div>
-                <div class="stat"><b>{{ indicatorCount }}</b><span>индикаторов</span></div>
-                <div class="stat"><b>{{ analysisCount }}</b><span>видов анализа</span></div>
-                <div class="stat"><b>{{ calculatorCount }}</b><span>калькуляторов трейдера</span></div>
+            <div class="hero-media">
+                <img src="/static/img/hero-dashboard.webp" width="1600" height="1066" fetchpriority="high"
+                     alt="Crypto market analytics dashboard: candlestick chart with a moving average and metric widgets">
             </div>
         </div>
     </section>
 
-    <main>
-        <section class="features">
-            <h2>Возможности платформы</h2>
-            <p class="section-lead">Ключевые группы функций — каждую можно опробовать прямо сейчас.</p>
+    <div class="value-bar">
+        <div class="value-inner">
+            <div class="value">
+                <span class="value-icon" aria-hidden="true">◷</span>
+                <div>
+                    <strong>First result in a minute</strong>
+                    <span>Pick an exchange and a coin — the data is already on screen</span>
+                </div>
+            </div>
+            <div class="value">
+                <span class="value-icon" aria-hidden="true">⇄</span>
+                <div>
+                    <strong>Every exchange, one format</strong>
+                    <span>Prices and candlesticks from different venues compare directly</span>
+                </div>
+            </div>
+            <div class="value">
+                <span class="value-icon" aria-hidden="true">⛨</span>
+                <div>
+                    <strong>Risk visible up front</strong>
+                    <span>Liquidation and safety margin are computed before you enter</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="shell">
+        <section class="section" id="features" aria-labelledby="features-title">
+            <h2 id="features-title">What you can do in a couple of minutes</h2>
+            <p class="section-lead">
+                Four groups of tools. Each one opens with a single click and comes pre-filled, so there
+                are no parameters to figure out first.
+            </p>
             <div class="card-grid">
-                <div class="feature-card">
-                    <div class="icon">₿</div>
-                    <h3>Цены в реальном времени</h3>
-                    <p>Последняя цена по бирже, по символу или по конкретной паре биржа + символ.</p>
-                    <button :disabled="!serverData" @click="requestOpen('price')">Попробовать →</button>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">▤</div>
-                    <h3>Исторические свечи</h3>
-                    <p>OHLCV‑свечи по любому таймфрейму — от минут до месяцев, включая Heiken Ashi.</p>
-                    <button :disabled="!serverData" @click="requestOpen('candlestick')">Попробовать →</button>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">∿</div>
-                    <h3>Индикаторы и аналитика</h3>
-                    <p>Тренды, скользящие средние, RSI, MACD, стохастик и другие расчётные показатели.</p>
-                    <button :disabled="!serverData" @click="requestOpen('analysis')">Попробовать →</button>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">%</div>
-                    <h3>Калькуляторы трейдера</h3>
-                    <p>Средняя цена входа, объём из залога, цена ликвидации, PnL и риск позиции.</p>
-                    <button :disabled="!serverData" @click="requestOpen('risk-at-price')">Попробовать →</button>
+                <article class="feature-card">
+                    <div class="thumb">
+                        <img src="/static/img/feature-prices.webp" width="800" height="533" loading="lazy"
+                             alt="List of crypto prices by exchange with gain and loss markers">
+                    </div>
+                    <div class="body">
+                        <h3>Compare prices across exchanges</h3>
+                        <p>One coin on every venue at once — see where it trades higher and how wide the spread has grown.</p>
+                        <a class="card-link" href="/tools?fn=prices-symbol">Compare prices <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+                <article class="feature-card">
+                    <div class="thumb">
+                        <img src="/static/img/feature-candles.webp" width="800" height="533" loading="lazy"
+                             alt="Crypto candlestick chart with volume bars">
+                    </div>
+                    <div class="body">
+                        <h3>Review the price history</h3>
+                        <p>Candlesticks from minutes to months: a table of values with a chart below it. Heiken Ashi is there when you need to strip out market noise.</p>
+                        <a class="card-link" href="/tools?fn=candlestick">Build a chart <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+                <article class="feature-card">
+                    <div class="thumb">
+                        <img src="/static/img/feature-indicators.webp" width="800" height="533" loading="lazy"
+                             alt="Moving average crossover and an oscillator with overbought bands">
+                    </div>
+                    <div class="body">
+                        <h3>Check the trend with indicators</h3>
+                        <p>RSI, MACD, moving averages, stochastic and trend scoring — all computed from candlesticks on the timeframe you choose.</p>
+                        <a class="card-link" href="/tools?fn=analysis">Assess the trend <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+                <article class="feature-card">
+                    <div class="thumb">
+                        <img src="/static/img/feature-calculators.webp" width="800" height="533" loading="lazy"
+                             alt="Position calculator with input fields and a risk scale from green to red">
+                    </div>
+                    <div class="body">
+                        <h3>Calculate your position risk</h3>
+                        <p>Liquidation price, distance to it in percent, PnL and the outcome of averaging down — all before the trade is open.</p>
+                        <a class="card-link" href="/tools?fn=risk-at-price">Calculate risk <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section" id="how" aria-labelledby="how-title">
+            <h2 id="how-title">How it works</h2>
+            <p class="section-lead">Three steps from question to answer. Nothing to install.</p>
+            <div class="showcase">
+                <ol class="steps">
+                    <li class="step">
+                        <div class="n" aria-hidden="true">1</div>
+                        <div>
+                            <strong>Pick what you need</strong>
+                            <p>The list on the left holds market data and calculators. Everything is named in plain words, without codes or abbreviations.</p>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="n" aria-hidden="true">2</div>
+                        <div>
+                            <strong>Check the parameters</strong>
+                            <p>Exchange, coin, timeframe and depth are pre-filled, and every list offers only valid values — there is nothing to get wrong.</p>
+                        </div>
+                    </li>
+                    <li class="step">
+                        <div class="n" aria-hidden="true">3</div>
+                        <div>
+                            <strong>Read the answer</strong>
+                            <p>A table, a chart or a tree — whichever fits the request. Numbers and dates arrive already formatted.</p>
+                        </div>
+                    </li>
+                </ol>
+                <div class="showcase-media">
+                    <img src="/static/img/tools-preview.webp" width="1600" height="1066" loading="lazy"
+                         alt="Crypto Polymath tools page: parameter panel on the left, result chart and table on the right">
                 </div>
             </div>
         </section>
 
-        <section class="how">
-            <h2>Как это работает</h2>
-            <p class="section-lead">Без интеграции — чтобы оценить данные, достаточно браузера.</p>
-            <div class="steps">
-                <div class="step">
-                    <div class="n">1</div>
-                    <div><strong>Выберите функцию</strong><p>В меню сверху — по бирже, символу, индикатору или калькулятору.</p></div>
-                </div>
-                <div class="step">
-                    <div class="n">2</div>
-                    <div><strong>Заполните параметры</strong><p>Списки бирж, монет, индикаторов и их параметров подгружаются из API.</p></div>
-                </div>
-                <div class="step">
-                    <div class="n">3</div>
-                    <div><strong>Получите результат</strong><p>Ответ API отображается сразу во всплывающем окне.</p></div>
-                </div>
+        <section class="section" id="faq" aria-labelledby="faq-title">
+            <h2 id="faq-title">Frequently asked questions</h2>
+            <p class="section-lead">Short answers to what people ask most often.</p>
+            <div class="faq">
+                <details>
+                    <summary>What is Crypto Polymath?</summary>
+                    <p>
+                        It is a crypto market analytics platform. It collects prices, historical candlesticks
+                        and technical indicators from six major exchanges and normalises them into a single
+                        format, alongside trader calculators — from average entry price to liquidation price.
+                    </p>
+                </details>
+                <details>
+                    <summary>Which exchanges are supported?</summary>
+                    <p>
+                        Binance, Bybit, OKX, Kraken, KuCoin and Gate.io. Data from every exchange is
+                        normalised to the same shape, so prices and candlesticks from different venues can be
+                        compared directly.
+                    </p>
+                </details>
+                <details>
+                    <summary>Do I need to sign up?</summary>
+                    <p>
+                        No. No account, no exchange API keys and no installation: just open the tools page in
+                        your browser and pick an exchange and a coin.
+                    </p>
+                </details>
+                <details>
+                    <summary>Which technical indicators can I calculate?</summary>
+                    <p>
+                        Moving averages, RSI, MACD, stochastic and trend metrics, plus Heiken Ashi smoothed
+                        candlesticks. The lookback depth is chosen from the values each indicator supports.
+                    </p>
+                </details>
+                <details>
+                    <summary>What do the trader calculators compute?</summary>
+                    <p>
+                        Average entry price when averaging by volume or by margin amount, position size from
+                        margin and leverage, liquidation price of an isolated position, distance to liquidation
+                        in percent, unrealized PnL and spot PnL, and a full risk snapshot at a given market
+                        price.
+                    </p>
+                </details>
+                <details>
+                    <summary>Can I get this data programmatically?</summary>
+                    <p>
+                        Yes, everything is available through a REST API with a single contract: the same
+                        request works for any supported exchange. All methods are described in the
+                        <a href="/docs/api">API documentation</a>.
+                    </p>
+                </details>
             </div>
         </section>
-    </main>
 
-    <footer>
-        <a href="https://github.com/AlekseyPorandaykin/crypto_polymath" target="_blank" rel="noopener">GitHub</a>
-        ·
-        <a href="https://test-p43.sentry.io/projects/crypto-polymath/" target="_blank" rel="noopener">Sentry</a>
-        ·
-        <a href="https://github.com/AlekseyPorandaykin/crypto_polymath/blob/main/api/rest/v1/openapi.yaml" target="_blank" rel="noopener">OpenAPI‑контракт</a>
-    </footer>
-</div>
+        <section class="cta-band" aria-labelledby="cta-title">
+            <div>
+                <h2 id="cta-title">Look at the market right now</h2>
+                <p>Pick an exchange and a coin — your first result appears in seconds. No sign-up required.</p>
+            </div>
+            <a class="btn btn-primary btn-lg" href="/tools">
+                Open the tools
+                <span aria-hidden="true">→</span>
+            </a>
+        </section>
+    </div>
+</main>
 
-<script type="module">
-    // "marketing" — использует полную сборку Vue (с компилятором шаблонов), поэтому шаблоны
-    // прямо в HTML выше компилируются в браузере без проблем. Никогда не импортирует PrimeVue.
-    import { createApp, ref, computed, onMounted } from 'https://esm.sh/vue@3.5.39/es2022/dist/vue.esm-browser.prod.mjs';
+<footer>
+    <div class="footer-nav">
+        <span class="footer-brand">
+            <img src="/static/img/icon.svg" width="20" height="20" alt="">
+            Crypto Polymath — crypto market analytics
+        </span>
+        <span class="spacer"></span>
+        <a href="/tools">Tools</a>
+        <span class="sep">·</span>
+        <a href="/docs/api">API</a>
+        <span class="sep">·</span>
+        <button class="link-button" type="button" data-contact-open>Contact us</button>
+        <a class="contact-fallback" href="mailto:porandaikinaleksei@gmail.com">Contact us</a>
+    </div>
+    <div class="credit">
+        <img src="/static/img/almamaro.svg" width="36" height="36" alt="">
+        <div class="credit-text">
+            <span class="credit-title">Built by <strong>AlmaMaro</strong><span class="credit-tech">tech</span></span>
+            <span class="credit-desc">The company builds automated fintech and crypto solutions for API bots and AI bots</span>
+        </div>
+    </div>
+</footer>
 
-    createApp({
-        setup() {
-            const online = ref(null);
-            const serverData = ref(null);
-            const exchangeCount = computed(() => serverData.value ? serverData.value.exchanges.length : '—');
-            const indicatorCount = computed(() => serverData.value ? serverData.value.indicators.length : '—');
-            const analysisCount = computed(() => serverData.value ? serverData.value.analysis.length : '—');
-            const calculatorCount = ref(9);
-            const statusClass = computed(() => online.value === null ? '' : online.value ? 'online' : 'offline');
-            const statusText = computed(() => online.value === null ? 'Проверка API…' : online.value ? 'API онлайн' : 'API недоступен');
+<!--
+    The contact form lives in a native dialog: the browser gives it the backdrop,
+    the Escape key and the focus trap for free, so the script only has to open it
+    and send the message.
 
-            function requestOpen(key) {
-                window.dispatchEvent(new CustomEvent('open-endpoint', { detail: key }));
-            }
+    The field limits repeat the ones in the contract (api/rest/v1/openapi.yaml): the
+    browser rejects a message the server would reject anyway, and the visitor learns
+    about it before the request instead of after it.
+-->
+<dialog id="contact-dialog" class="modal" aria-labelledby="contact-title">
+    <form class="contact-form" method="post" action="/api/v1/contact">
+        <h2 id="contact-title">Contact us</h2>
+        <p class="modal-lead">
+            Ask about the data, the API or a feature you are missing. We reply to the address you
+            leave here.
+        </p>
 
-            onMounted(async () => {
-                try {
-                    const resp = await fetch('/api/v1/server');
-                    online.value = resp.ok;
-                    if (resp.ok) serverData.value = await resp.json();
-                } catch (e) {
-                    online.value = false;
-                }
-            });
+        <label for="contact-email">
+            Your email
+            <input id="contact-email" name="email" type="email" required maxlength="254"
+                   autocomplete="email" placeholder="you@example.com">
+        </label>
+        <label for="contact-subject">
+            Subject
+            <input id="contact-subject" name="subject" type="text" required minlength="3" maxlength="150"
+                   placeholder="What is this about?">
+        </label>
+        <label for="contact-message">
+            Message
+            <textarea id="contact-message" name="message" rows="6" required minlength="10" maxlength="5000"
+                      placeholder="Tell us what you need"></textarea>
+        </label>
 
-            return { serverData, statusClass, statusText, exchangeCount, indicatorCount, analysisCount, calculatorCount, requestOpen };
-        },
-    }).mount('#marketing-app');
-</script>
+        <p class="modal-status" data-contact-status role="status" aria-live="polite" hidden></p>
 
-<script type="module">
-    // "console" — мега-меню функций (в шапке, #picker-mount) и модальное окно.
-    // Использует рантайм-сборку Vue из esm.sh (та же, что и внутри PrimeVue) и написано через
-    // render()/h(), без строковых шаблонов, чтобы не требовать отдельного компилятора шаблонов.
-    import { createApp, reactive, ref, computed, onMounted, h, Fragment } from 'vue';
-    import PrimeVue from 'primevue/config';
-    import Dropdown from 'primevue/dropdown';
-    import InputNumber from 'primevue/inputnumber';
-    import MegaMenu from 'primevue/megamenu';
-    import Button from 'primevue/button';
-    import Dialog from 'primevue/dialog';
-    import Tag from 'primevue/tag';
-    import DataTable from 'primevue/datatable';
-    import TreeTable from 'primevue/treetable';
-    import Chart from 'primevue/chart';
-    import Column from 'primevue/column';
+        <div class="modal-actions">
+            <button class="btn btn-outline" type="button" data-contact-close>Cancel</button>
+            <button class="btn btn-primary" type="submit" data-contact-submit>Send</button>
+        </div>
+    </form>
+</dialog>
 
-    function field(name, opts) {
-        return Object.assign({ name, default: '' }, opts);
-    }
-    function withValues(fields) {
-        const values = {};
-        for (const f of fields) values[f.name] = f.default;
-        return values;
-    }
-    function endpoint(e) {
-        return Object.assign({ values: withValues(e.fields) }, e);
-    }
-
-    // Источники значений для выпадающих списков — всё берётся из ответа /api/v1/server.
-    const optExchanges = (values, srv) => srv ? srv.exchanges : [];
-    const optSymbols = (values, srv) => srv ? srv.symbols : [];
-    const optUnits = (values, srv) => srv ? srv.units : [];
-    const optIntervalsForUnit = (values, srv) => {
-        if (!srv) return [];
-        const entry = srv.intervals.find(iv => iv.unit === values.unit);
-        return entry ? entry.values : [];
-    };
-    const optIndicatorNames = (values, srv) => srv ? srv.indicators.map(i => i.name) : [];
-    const optIndicatorDepth = (values, srv) => {
-        if (!srv) return [];
-        const info = srv.indicators.find(i => i.name === values.name);
-        return info ? info.depth : srv.depths;
-    };
-    const optAnalysisNames = (values, srv) => srv ? srv.analysis.map(a => a.name) : [];
-    const optAnalysisDepth = (values, srv) => {
-        if (!srv) return [];
-        const info = srv.analysis.find(a => a.name === values.name);
-        return info ? info.depth : srv.depths;
-    };
-    const optAnalysisIndicatorDepth = (values, srv) => {
-        if (!srv) return [];
-        const info = srv.analysis.find(a => a.name === values.name);
-        return info ? info.indicator_depth : srv.indicator_depth;
-    };
-
-    function isIsoDate(v) {
-        return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v);
-    }
-    function formatNumber(n) {
-        const opts = Number.isInteger(n) ? {} : { maximumFractionDigits: 8 };
-        return n.toLocaleString('ru-RU', opts);
-    }
-    function formatScalar(v) {
-        if (v === null || v === undefined || v === '') return '—';
-        if (typeof v === 'boolean') return v ? 'Да' : 'Нет';
-        if (typeof v === 'number') return formatNumber(v);
-        if (isIsoDate(v)) {
-            const d = new Date(v);
-            return isNaN(d.getTime()) ? v : d.toLocaleString('ru-RU');
-        }
-        return String(v);
-    }
-    function prettyKey(k) {
-        return String(k).replace(/_/g, ' ');
-    }
-
-    // Строит узлы для PrimeVue TreeTable из произвольного JSON-значения (используется для
-    // результата /server — там естественно вложенная структура: биржи/символы/индикаторы/
-    // анализы, у каждого индикатора и анализа — свой список глубин и т.д.).
-    function buildTreeNodes(value, keyPrefix) {
-        if (Array.isArray(value)) {
-            return value.map((item, i) => {
-                const key = keyPrefix + '-' + i;
-                if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
-                    const label = item.name ?? item.unit ?? ('#' + (i + 1));
-                    return { key, data: { field: String(label), value: '' }, children: buildTreeNodes(item, key) };
-                }
-                return { key, data: { field: '#' + (i + 1), value: formatScalar(item) } };
-            });
-        }
-        if (value !== null && typeof value === 'object') {
-            return Object.keys(value).map(k => {
-                const key = keyPrefix + '-' + k;
-                const v = value[k];
-                if (v !== null && typeof v === 'object') {
-                    const count = Array.isArray(v) ? v.length : Object.keys(v).length;
-                    return { key, data: { field: prettyKey(k), value: '[' + count + ']' }, children: buildTreeNodes(v, key) };
-                }
-                return { key, data: { field: prettyKey(k), value: formatScalar(v) } };
-            });
-        }
-        return [];
-    }
-
-    // График исторических свечей (PrimeVue Chart / Chart.js): ось X — start_time, значение — close_price.
-    function buildChartData(rows) {
-        return {
-            labels: rows.map(r => new Date(r.start_time).toLocaleString('ru-RU')),
-            datasets: [{
-                label: 'Цена закрытия',
-                data: rows.map(r => r.close_price),
-                borderColor: '#2f5bea',
-                backgroundColor: 'rgba(47,91,234,0.1)',
-                fill: true,
-                tension: 0.25,
-                pointRadius: 0,
-            }],
-        };
-    }
-    const CHART_OPTIONS = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-
-    // Порог, начиная с которого включаем постраничный вывод DataTable — для больших
-    // результатов (например, 100 свечей) удобнее листать страницы, чем скроллить один блок.
-    const TABLE_PAGE_THRESHOLD = 10;
-    function tableProps(rows) {
-        const base = { value: rows, size: 'small', stripedRows: true };
-        return rows.length > TABLE_PAGE_THRESHOLD
-            ? Object.assign(base, { paginator: true, rows: 10, rowsPerPageOptions: [10, 25, 50], scrollable: true, scrollHeight: '360px' })
-            : Object.assign(base, { scrollable: true, scrollHeight: '280px' });
-    }
-
-    // Презентабельный рекурсивный вывод произвольного JSON-значения. Без шаблона —
-    // render()/h(), любой массив (объектов или простых значений) рендерится через
-    // PrimeVue DataTable/Column, чтобы большие результаты были листаемыми, а не одним
-    // длинным скроллом.
-    const DataView = {
-        props: ['value'],
-        render() {
-            const v = this.value;
-            const isArray = Array.isArray(v);
-            const isArrayOfObjects = isArray && v.length > 0 && v.every(x => x && typeof x === 'object' && !Array.isArray(x));
-            if (isArrayOfObjects) {
-                const columns = [];
-                v.forEach(row => Object.keys(row).forEach(k => { if (!columns.includes(k)) columns.push(k); }));
-                return h(DataTable, tableProps(v), {
-                    default: () => columns.map(k => h(Column, { key: k, field: k, header: prettyKey(k) }, {
-                        body: (slotProps) => h(DataView, { value: slotProps.data[k] }),
-                    })),
-                });
-            }
-            if (isArray) {
-                const wrapped = v.map(item => ({ value: item }));
-                return h(DataTable, tableProps(wrapped), {
-                    default: () => h(Column, { field: 'value', header: 'Значение' }, {
-                        body: (slotProps) => h(DataView, { value: slotProps.data.value }),
-                    }),
-                });
-            }
-            if (v !== null && typeof v === 'object') {
-                const rows = [];
-                Object.keys(v).forEach(k => {
-                    rows.push(h('dt', { key: 'dt-' + k }, prettyKey(k)));
-                    rows.push(h('dd', { key: 'dd-' + k }, [h(DataView, { value: v[k] })]));
-                });
-                return h('dl', { class: 'dv-kv' }, rows);
-            }
-            let cls = '';
-            if (typeof v === 'number') cls = v > 0 ? 'dv-pos' : v < 0 ? 'dv-neg' : '';
-            if (typeof v === 'boolean') cls = v ? 'dv-bool-true' : 'dv-bool-false';
-            return h('span', { class: cls }, formatScalar(v));
-        },
-    };
-
-    const rawEndpoints = [
-        endpoint({
-            key: 'server', tag: 'Server', method: 'GET', path: '/api/v1/server',
-            desc: 'Информация о сервере: поддерживаемые биржи, символы, индикаторы, анализы.',
-            fields: [],
-        }),
-        endpoint({
-            key: 'prices-exchange', tag: 'Цена', method: 'GET', path: '/api/v1/prices/exchange/{exchange}',
-            desc: 'Все последние цены по бирже.',
-            fields: [field('exchange', { optionsFn: optExchanges })],
-        }),
-        endpoint({
-            key: 'prices-symbol', tag: 'Цена', method: 'GET', path: '/api/v1/prices/symbol/{symbol}',
-            desc: 'Последние цены по символу со всех бирж.',
-            fields: [field('symbol', { optionsFn: optSymbols })],
-        }),
-        endpoint({
-            key: 'price', tag: 'Цена', method: 'GET', path: '/api/v1/price/{exchange}/{symbol}',
-            desc: 'Последняя цена по бирже и символу.',
-            fields: [field('exchange', { optionsFn: optExchanges }), field('symbol', { optionsFn: optSymbols })],
-        }),
-        endpoint({
-            key: 'candlestick', tag: 'Свечи', method: 'GET', path: '/api/v1/candlestick/{exchange}/{symbol}/{unit}/{interval}',
-            desc: 'Исторические свечи (OHLCV) по бирже/символу/таймфрейму.',
-            fields: [
-                field('exchange', { optionsFn: optExchanges }),
-                field('symbol', { optionsFn: optSymbols }),
-                field('unit', { optionsFn: optUnits }),
-                field('interval', { optionsFn: optIntervalsForUnit }),
-            ],
-        }),
-        endpoint({
-            key: 'candlestick-chart', tag: 'Свечи', method: 'GET', path: '/api/v1/candlestick/{exchange}/{symbol}/{unit}/{interval}',
-            desc: 'Исторические свечи — график цены закрытия.',
-            chart: true,
-            fields: [
-                field('exchange', { optionsFn: optExchanges }),
-                field('symbol', { optionsFn: optSymbols }),
-                field('unit', { optionsFn: optUnits }),
-                field('interval', { optionsFn: optIntervalsForUnit }),
-            ],
-        }),
-        endpoint({
-            key: 'indicator', tag: 'Индикаторы', method: 'GET', path: '/api/v1/indicator/{exchange}/{symbol}/{unit}/{interval}/{name}/{depth}',
-            desc: 'Значение технического индикатора по свечам.',
-            fields: [
-                field('exchange', { optionsFn: optExchanges }),
-                field('symbol', { optionsFn: optSymbols }),
-                field('unit', { optionsFn: optUnits }),
-                field('interval', { optionsFn: optIntervalsForUnit }),
-                field('name', { optionsFn: optIndicatorNames }),
-                field('depth', { optionsFn: optIndicatorDepth }),
-            ],
-        }),
-        endpoint({
-            key: 'candle-indicator', tag: 'Candle Indicator', method: 'GET', path: '/api/v1/candle-indicator/{exchange}/{symbol}/{unit}/{interval}/{name}',
-            desc: 'Индикатор, преобразующий саму свечу (например, Heiken Ashi).',
-            fields: [
-                field('exchange', { optionsFn: optExchanges }),
-                field('symbol', { optionsFn: optSymbols }),
-                field('unit', { optionsFn: optUnits }),
-                field('interval', { optionsFn: optIntervalsForUnit }),
-                field('name', { default: 'HeikenAshi', options: ['HeikenAshi'] }),
-            ],
-        }),
-        endpoint({
-            key: 'exchange', tag: 'Биржа', method: 'GET', path: '/api/v1/exchange/{exchange}/{symbol}',
-            desc: 'Информация о символе на бирже (funding rate и т.д.).',
-            fields: [field('exchange', { optionsFn: optExchanges }), field('symbol', { optionsFn: optSymbols })],
-        }),
-        endpoint({
-            key: 'analysis', tag: 'Анализ', method: 'GET', path: '/api/v1/analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth}',
-            desc: 'Расчётные аналитические показатели (тренд, RSI, MACD, стохастик и т.д.).',
-            fields: [
-                field('exchange', { optionsFn: optExchanges }),
-                field('symbol', { optionsFn: optSymbols }),
-                field('unit', { optionsFn: optUnits }),
-                field('interval', { optionsFn: optIntervalsForUnit }),
-                field('name', { optionsFn: optAnalysisNames }),
-                field('indicator_depth', { optionsFn: optAnalysisIndicatorDepth }),
-                field('depth', { optionsFn: optAnalysisDepth }),
-            ],
-        }),
-        endpoint({
-            key: 'symbols', tag: 'Символы', method: 'GET', path: '/api/v1/symbols/{exchange}/{category}',
-            desc: 'Список символов биржи по категории.',
-            fields: [field('exchange', { optionsFn: optExchanges }), field('category', { default: 'spot', options: ['spot', 'future'] })],
-        }),
-        endpoint({
-            key: 'avg-entry-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/avg-entry-price',
-            desc: 'Средняя цена входа после докупки по объёму.',
-            fields: [
-                field('entry_volume', { default: 1, input: 'number' }),
-                field('entry_price', { default: 50000, input: 'number' }),
-                field('new_volume', { default: 1, input: 'number' }),
-                field('new_price', { default: 45000, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'avg-entry-price-by-sum', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/avg-entry-price-by-sum',
-            desc: 'Средняя цена входа после докупки на сумму залога.',
-            fields: [
-                field('entry_volume', { default: 1, input: 'number' }),
-                field('entry_price', { default: 50000, input: 'number' }),
-                field('sum', { default: 1000, input: 'number' }),
-                field('leverage', { default: 10, input: 'number' }),
-                field('new_price', { default: 45000, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'volume-from-margin', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/volume-from-margin',
-            desc: 'Объём позиции из залога и плеча.',
-            fields: [
-                field('margin', { default: 1000, input: 'number' }),
-                field('leverage', { default: 10, input: 'number' }),
-                field('price', { default: 50000, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'liquidation-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/liquidation-price',
-            desc: 'Цена ликвидации изолированной позиции.',
-            fields: [
-                field('side', { default: 'long', options: ['long', 'short'] }),
-                field('volume', { default: 1, input: 'number' }),
-                field('entry_price', { default: 50000, input: 'number' }),
-                field('margin', { default: 1000, input: 'number' }),
-                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'unrealized-pnl', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/unrealized-pnl',
-            desc: 'Нереализованный PnL.',
-            fields: [
-                field('side', { default: 'long', options: ['long', 'short'] }),
-                field('volume', { default: 1, input: 'number' }),
-                field('entry_price', { default: 50000, input: 'number' }),
-                field('mark_price', { default: 52000, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'distance-to-liquidation', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/distance-to-liquidation',
-            desc: 'Запас до ликвидации в процентах.',
-            fields: [
-                field('side', { default: 'long', options: ['long', 'short'] }),
-                field('mark_price', { default: 52000, input: 'number' }),
-                field('liquidation_price', { default: 45000, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'simulate-add-on', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/simulate-add-on',
-            desc: 'Симуляция докупки (вход, ликвидация, риски).',
-            fields: [
-                field('position.side', { default: 'long', options: ['long', 'short'] }),
-                field('position.volume', { default: 1, input: 'number' }),
-                field('position.entry_price', { default: 50000, input: 'number' }),
-                field('position.margin', { default: 1000, input: 'number' }),
-                field('position.leverage', { default: 10, input: 'number' }),
-                field('add_on.price', { default: 45000, input: 'number' }),
-                field('add_on.volume', { default: 0, input: 'number' }),
-                field('add_on.margin', { default: 500, input: 'number' }),
-                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'risk-at-price', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/risk-at-price',
-            desc: 'Снимок риска позиции при рыночной цене.',
-            fields: [
-                field('position.side', { default: 'long', options: ['long', 'short'] }),
-                field('position.volume', { default: 1, input: 'number' }),
-                field('position.entry_price', { default: 50000, input: 'number' }),
-                field('position.margin', { default: 1000, input: 'number' }),
-                field('position.leverage', { default: 10, input: 'number' }),
-                field('mark_price', { default: 52000, input: 'number' }),
-                field('maintenance_margin_rate', { default: 0.005, input: 'number' }),
-            ],
-        }),
-        endpoint({
-            key: 'spot-pnl', tag: 'Калькулятор', method: 'POST', path: '/api/v1/calculator/trading/spot-pnl',
-            desc: 'PnL спотовой позиции в значении и в процентах.',
-            fields: [
-                field('volume', { default: 1, input: 'number' }),
-                field('entry_price', { default: 50000, input: 'number' }),
-                field('mark_price', { default: 55000, input: 'number' }),
-            ],
-        }),
-    ];
-
-    const tags = ['Server', 'Цена', 'Свечи', 'Индикаторы', 'Candle Indicator', 'Биржа', 'Анализ', 'Символы', 'Калькулятор'];
-
-    const ConsoleRoot = {
-        setup() {
-            const endpoints = reactive(rawEndpoints);
-            const activeKey = ref(null);
-            const dialogVisible = ref(false);
-            const serverData = ref(null);
-            const result = reactive({ loading: false, error: false, status: '', data: null, raw: '', showRaw: false });
-
-            const active = computed(() => endpoints.find(e => e.key === activeKey.value) || null);
-            // Модель PrimeVue MegaMenu, ровно два уровня:
-            // 1) пункт верхнего уровня — tag эндпоинта из openapi (категория);
-            // 2) кликабельные пункты внутри — summary эндпоинта из openapi.
-            // PrimeVue требует, чтобы кликабельные items лежали внутри группы (иначе они
-            // рендерятся некликабельными заголовками) — группа здесь безымянная (без label),
-            // чтобы не появлялся лишний третий уровень/заголовок.
-            const megaMenuModel = computed(() => tags.map(tag => ({
-                label: tag,
-                items: [
-                    [
-                        { items: byTag(tag).map(ep => ({ label: ep.desc, command: () => open(ep.key) })) },
-                    ],
-                ],
-            })));
-
-            function byTag(tag) {
-                return endpoints.filter(e => e.tag === tag);
-            }
-            function resolveOptions(ep, f) {
-                if (f.optionsFn) return f.optionsFn(ep.values, serverData.value) || [];
-                return f.options || [];
-            }
-            // Приводит значения зависимых полей (interval/depth/indicator_depth) к валидным
-            // для текущих unit/name, используя справочник из /api/v1/server.
-            function refreshEndpoint(ep) {
-                for (const f of ep.fields) {
-                    if (!f.optionsFn) continue;
-                    const opts = resolveOptions(ep, f);
-                    if (!opts.includes(ep.values[f.name])) {
-                        ep.values[f.name] = opts.length ? opts[0] : '';
-                    }
-                }
-            }
-            function open(key) {
-                const ep = endpoints.find(e => e.key === key);
-                if (!ep) return;
-                activeKey.value = key;
-                dialogVisible.value = true;
-                result.loading = false;
-                result.error = false;
-                result.status = '';
-                result.data = null;
-                result.raw = '';
-                result.showRaw = false;
-                refreshEndpoint(ep);
-            }
-            function buildUrl(ep) {
-                let url = ep.path;
-                for (const f of ep.fields) {
-                    url = url.split('{' + f.name + '}').join(encodeURIComponent(ep.values[f.name] ?? ''));
-                }
-                return url;
-            }
-            function buildBody(ep) {
-                const obj = {};
-                for (const f of ep.fields) {
-                    const raw = ep.values[f.name];
-                    if (raw === '' || raw === null || raw === undefined) continue;
-                    const val = f.input === 'number' ? Number(raw) : raw;
-                    const parts = f.name.split('.');
-                    let cur = obj;
-                    parts.forEach((p, i) => {
-                        if (i === parts.length - 1) cur[p] = val;
-                        else cur = (cur[p] = cur[p] || {});
-                    });
-                }
-                return obj;
-            }
-            async function run() {
-                const ep = active.value;
-                if (!ep) return;
-                result.loading = true;
-                result.error = false;
-                result.data = null;
-                result.raw = '';
-                result.showRaw = false;
-                try {
-                    const resp = ep.method === 'POST'
-                        ? await fetch(ep.path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildBody(ep)) })
-                        : await fetch(buildUrl(ep));
-                    const text = await resp.text();
-                    let data = null;
-                    try { data = JSON.parse(text); } catch (e) {}
-                    result.status = resp.status + ' ' + resp.statusText;
-                    result.error = !resp.ok;
-                    result.data = data;
-                    result.raw = data !== null ? JSON.stringify(data, null, 2) : text;
-                } catch (e) {
-                    result.status = 'Ошибка сети';
-                    result.error = true;
-                    result.raw = String(e);
-                } finally {
-                    result.loading = false;
-                }
-            }
-
-            window.addEventListener('open-endpoint', (e) => open(e.detail));
-
-            onMounted(async () => {
-                try {
-                    const resp = await fetch('/api/v1/server');
-                    if (resp.ok) {
-                        serverData.value = await resp.json();
-                        endpoints.forEach(refreshEndpoint);
-                    }
-                } catch (e) {}
-            });
-
-            function renderDialogBody() {
-                const ep = active.value;
-                if (!ep) return [];
-                const children = [h('div', { class: 'dialog-path' }, ep.path)];
-
-                if (ep.fields.length) {
-                    children.push(h('form', { class: 'params', onSubmit: e => e.preventDefault() },
-                        ep.fields.map(f => h('label', { key: f.name }, [
-                            f.name,
-                            (f.options || f.optionsFn)
-                                ? h(Dropdown, {
-                                    modelValue: ep.values[f.name],
-                                    'onUpdate:modelValue': v => { ep.values[f.name] = v; },
-                                    options: resolveOptions(ep, f),
-                                    appendTo: 'self',
-                                    onChange: () => refreshEndpoint(ep),
-                                })
-                                : h(InputNumber, {
-                                    modelValue: ep.values[f.name],
-                                    'onUpdate:modelValue': v => { ep.values[f.name] = v; },
-                                    useGrouping: false,
-                                    minFractionDigits: 0,
-                                    maxFractionDigits: 8,
-                                }),
-                        ]))
-                    ));
-                }
-
-                if (result.loading || result.status) {
-                    children.push(h('div', { class: 'result-panel' }, [
-                        h('div', { class: 'result-head' }, [
-                            h('span', { class: ['status-line', result.error ? 'err' : 'ok'] }, result.loading ? 'Выполняется…' : result.status),
-                            (!result.loading && result.data !== null)
-                                ? h(Button, {
-                                    class: 'p-button-text p-button-sm',
-                                    label: result.showRaw ? 'Наглядно' : 'Как JSON',
-                                    onClick: () => { result.showRaw = !result.showRaw; },
-                                })
-                                : null,
-                        ]),
-                        h('div', { class: 'result-body' },
-                            result.loading
-                                ? h('div', { class: 'loading' }, 'Загрузка…')
-                                : (result.data === null || result.showRaw)
-                                    ? h('pre', { class: 'raw' }, result.raw)
-                                    : (ep.chart && Array.isArray(result.data) && result.data.length > 0)
-                                        ? h('div', { style: 'height:420px;' }, [
-                                            h(Chart, { type: 'line', data: buildChartData(result.data), options: CHART_OPTIONS }),
-                                        ])
-                                        : (ep.key === 'server'
-                                            ? h(TreeTable, { value: buildTreeNodes(result.data, 'root'), size: 'small' }, {
-                                                default: () => [
-                                                    h(Column, { field: 'field', header: 'Поле', expander: true }),
-                                                    h(Column, { field: 'value', header: 'Значение' }),
-                                                ],
-                                            })
-                                            : h(DataView, { value: result.data }))
-                        ),
-                    ]));
-                }
-                return children;
-            }
-
-            return () => h(Fragment, [
-                h(MegaMenu, {
-                    model: megaMenuModel.value,
-                }),
-                h(Dialog, {
-                    visible: dialogVisible.value,
-                    'onUpdate:visible': v => { dialogVisible.value = v; },
-                    modal: true,
-                    style: { width: '90vw', minHeight: '30vh', maxHeight: '95vh' },
-                }, {
-                    header: () => h('div', { style: 'display:flex;align-items:center;gap:10px;' }, [
-                        h(Tag, {
-                            value: active.value ? active.value.method : '',
-                            severity: active.value && active.value.method === 'GET' ? 'info' : 'success',
-                        }),
-                        h('span', { style: 'font-weight:700;font-size:15.5px;' }, active.value ? active.value.desc : ''),
-                    ]),
-                    default: renderDialogBody,
-                    footer: () => h(Button, { label: 'Выполнить', onClick: run, loading: result.loading }),
-                }),
-            ]);
-        },
-    };
-
-    const app = createApp(ConsoleRoot);
-    app.use(PrimeVue);
-    app.mount('#picker-mount');
-</script>
-</body></html>
+<script type="module" src="/static/js/contact.js"></script>
+</body>
+</html>

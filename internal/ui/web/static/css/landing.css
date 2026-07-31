@@ -1,0 +1,237 @@
+/*
+    Landing page styles (index.html): the hero with its illustration, the key value
+    strip, the feature cards, "how it works", the frequent questions and the closing
+    call to action.
+
+    The page is presentational: not a single PrimeVue component and not a single
+    request form — everything interactive lives on /tools. The markup is static, so
+    there are no loading states here either.
+*/
+
+/* hero */
+.hero {
+    background: radial-gradient(1200px 460px at 12% -15%, #4f7cff 0%, transparent 62%),
+                linear-gradient(135deg, #101a33, #1a2650 55%, #142042);
+    color: #fff;
+    padding: 78px 24px 74px;
+    overflow: hidden;
+}
+.hero-inner {
+    max-width: var(--shell);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: center;
+    gap: 56px;
+}
+.hero .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #a8bcff;
+    background: rgba(79, 124, 255, .14);
+    border: 1px solid rgba(120, 158, 255, .3);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+}
+.hero h1 {
+    font-size: 42px;
+    line-height: 1.12;
+    margin: 0 0 18px;
+    font-weight: 800;
+    letter-spacing: -0.028em;
+}
+.hero p.subtitle { font-size: 17px; color: #c7d0ea; margin: 0 0 28px; max-width: 550px; }
+.hero p.subtitle strong { color: #fff; }
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.hero-note { font-size: 13px; color: #93a2cf; margin: 0 0 32px; }
+
+.hero-media { position: relative; }
+.hero-media img {
+    border-radius: 16px;
+    border: 1px solid rgba(140, 170, 255, .22);
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .65);
+}
+.hero-media::after {
+    content: "";
+    position: absolute;
+    inset: -14% -8% -22% -8%;
+    background: radial-gradient(closest-side, rgba(79, 124, 255, .35), transparent 72%);
+    z-index: -1;
+    filter: blur(12px);
+}
+
+/* The trust strip: how many exchanges and which ones. The names are set as text
+   rather than logos — recognition is enough, and nobody raises questions about
+   somebody else's trademarks. */
+.trust { border-top: 1px solid rgba(140, 170, 255, .18); padding-top: 22px; }
+.trust-label { display: block; font-size: 13px; color: #b7c1e0; margin-bottom: 12px; }
+.trust-label b { color: #fff; font-size: 17px; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.chips li {
+    font-size: 13px;
+    font-weight: 600;
+    color: #dbe3fb;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(160, 185, 255, .2);
+    padding: 6px 13px;
+    border-radius: 999px;
+}
+
+/* The key value strip right below the hero — it answers "why do I need this". */
+.value-bar { background: var(--card); border-bottom: 1px solid var(--border); }
+.value-inner {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 26px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+}
+.value { display: flex; gap: 14px; align-items: flex-start; }
+.value-icon {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+.value strong { display: block; font-size: 14.5px; }
+.value span { font-size: 13px; color: var(--muted); }
+
+/* sections */
+.shell { max-width: var(--shell); margin: 0 auto; padding: 0 24px; }
+.section { padding: 64px 0 0; }
+.section h2 { font-size: 25px; margin: 0 0 8px; letter-spacing: -0.022em; }
+.section-lead { color: var(--muted); font-size: 14.5px; margin: 0 0 28px; max-width: 640px; }
+
+/* features */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+.feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 38px -20px rgba(19, 26, 42, .4);
+    border-color: #c9d4f7;
+}
+.feature-card .thumb { background: var(--accent-soft); border-bottom: 1px solid var(--border); }
+.feature-card .thumb img { aspect-ratio: 3 / 2; object-fit: cover; }
+.feature-card .body { padding: 20px; display: flex; flex-direction: column; gap: 9px; flex-grow: 1; }
+.feature-card h3 { margin: 0; font-size: 16.5px; }
+.feature-card p { margin: 0; color: var(--muted); font-size: 13.5px; flex-grow: 1; }
+.card-link {
+    align-self: flex-start;
+    font-weight: 600;
+    font-size: 13.5px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.card-link span { transition: transform .16s ease; }
+.feature-card:hover .card-link span { transform: translateX(3px); }
+
+/* how it works */
+.showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 48px;
+    align-items: center;
+}
+.steps { display: flex; flex-direction: column; gap: 22px; margin: 0; padding: 0; list-style: none; }
+.step { display: flex; gap: 14px; }
+.step .n {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.step strong { font-size: 15px; }
+.step p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+.showcase-media img {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 22px 50px -26px rgba(19, 26, 42, .5);
+}
+
+/* The questions use native details elements: they open without scripts, and the
+   answers stay in the markup — visible to search engines and assistants alike. */
+.faq { display: flex; flex-direction: column; gap: 10px; }
+.faq details {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 18px;
+    transition: border-color .16s ease;
+}
+.faq details[open] { border-color: #c9d4f7; }
+.faq summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 15px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+    content: "+";
+    color: var(--accent);
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1;
+    flex: none;
+}
+.faq details[open] summary::after { content: "−"; }
+.faq details p { margin: 0 0 16px; color: var(--muted); font-size: 14px; max-width: 760px; }
+
+/* final call-to-action */
+.cta-band {
+    margin: 68px 0 8px;
+    background: linear-gradient(135deg, #16224a, #24356e);
+    border-radius: 20px;
+    padding: 44px 40px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    flex-wrap: wrap;
+}
+.cta-band h2 { margin: 0 0 6px; font-size: 23px; letter-spacing: -0.02em; }
+.cta-band p { margin: 0; color: #c2cbe8; font-size: 14.5px; max-width: 560px; }
+
+@media (max-width: 940px) {
+    .hero { padding: 52px 24px; }
+    .hero h1 { font-size: 31px; }
+    .hero-inner, .showcase { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+    .hero-media { order: -1; }
+    .cta-band { padding: 32px 26px; }
+}

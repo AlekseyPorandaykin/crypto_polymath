@@ -1,0 +1,231 @@
+/*
+    Styles shared by every page: palette, base typography, the header with its
+    navigation, buttons and the footer. The landing page (index.html) and the tools
+    page (tools.html) attach this file first and their own one after it.
+*/
+
+:root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e3e7ee;
+    --text: #131a2a;
+    --muted: #667085;
+    --accent: #2f5bea;
+    --accent-dark: #1d3fb0;
+    --accent-soft: #eaefff;
+    --ok: #17915a;
+    --err: #d93636;
+    --shell: 1180px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+a { color: var(--accent); }
+
+/* height: auto is mandatory here: the images carry width/height attributes (without
+   them the browser reflows the layout while loading), and without resetting the
+   height it stays intrinsic and the image gets stretched vertically. */
+img { max-width: 100%; height: auto; display: block; }
+
+/* header */
+header {
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+.header-inner {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 17px;
+    white-space: nowrap;
+    color: var(--text);
+    text-decoration: none;
+}
+/* The mark size is set both in the attributes and here: the attributes reserve the
+   space until the file loads, and this rule overrides the global height: auto. */
+.brand img { width: 28px; height: 28px; flex: none; }
+.status-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* Navigation on the right of the header. The button leading to the tools page is
+   the main call to action, hence its visual emphasis. */
+.nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.nav-link {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+.nav-link:hover { color: var(--text); background: #f0f3f9; }
+
+/* buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s ease, color .15s ease;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost { background: rgba(255, 255, 255, .08); color: #fff; border: 1px solid rgba(255, 255, 255, .28); }
+.btn-ghost:hover { background: rgba(255, 255, 255, .18); }
+.btn-outline { background: transparent; color: var(--accent); border: 1px solid #c9d4f7; }
+.btn-outline:hover { background: var(--accent-soft); }
+.btn-lg { font-size: 15px; padding: 13px 24px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* A button that looks like a link: the contact form is opened by a script, and an
+   <a href="#"> would leave a dead link in the markup for anyone with scripts off. */
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* The mail link replaces the button when scripts are disabled — see the noscript
+   block in index.html. Hidden by default so the two never show up together. */
+.contact-fallback { display: none; }
+
+/* The contact form dialog. A native <dialog> is centred by the browser, so all that
+   is left is the look: the width, the backdrop and the fields. */
+.modal {
+    width: min(520px, calc(100vw - 32px));
+    padding: 0;
+    border: none;
+    border-radius: 16px;
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 24px 60px rgba(19, 26, 42, .22);
+}
+.modal::backdrop { background: rgba(19, 26, 42, .55); }
+.contact-form { display: flex; flex-direction: column; gap: 14px; padding: 24px; }
+.contact-form h2 { margin: 0; font-size: 20px; }
+.modal-lead { margin: -6px 0 0; font-size: 13.5px; color: var(--muted); }
+.contact-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+}
+.contact-form input,
+.contact-form textarea {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #fbfcfe;
+}
+.contact-form input:focus,
+.contact-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--card);
+}
+/* Vertical only: a textarea widened by hand breaks out of the dialog. */
+.contact-form textarea { resize: vertical; min-height: 110px; }
+
+.modal-status { margin: 0; font-size: 13px; font-weight: 600; }
+.modal-status.ok { color: var(--ok); }
+.modal-status.err { color: var(--err); }
+/* Cancel first, Send last: the confirming action sits where the eye stops. */
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+footer {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 26px 24px 44px;
+    color: var(--muted);
+    font-size: 13px;
+}
+.footer-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* The service name always comes with the mark — in the header and here alike. In
+   the footer the mark is smaller: the line is set in 13 pixels, and a 28 pixel mark
+   would pull all the attention onto itself. */
+.footer-brand { display: inline-flex; align-items: center; gap: 8px; }
+.footer-brand img { width: 20px; height: 20px; flex: none; }
+footer .sep { color: #c3cad8; }
+footer .spacer { margin-left: auto; }
+
+/* The developer credit: who built the service. It sits on its own backdrop instead
+   of being separated by a line: AlmaMaro tech is the name of another company, and
+   against the plain footer background the line read as a continuation of the
+   service navigation. The backdrop is cooler than the page background but darker
+   than the white cards: the block has to stand apart without stepping forward —
+   these are imprint details. The mark carries alt="" because the company name is
+   spelled out next to it: otherwise a screen reader would announce it twice. */
+.credit {
+    display: flex;
+    /* Aligned to the top rather than the centre: on a narrow screen the description
+       wraps onto three lines, and a centred mark would end up opposite the middle
+       of the text. */
+    align-items: flex-start;
+    gap: 13px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: #ebeef4;
+    border-radius: 12px;
+}
+.credit img { width: 36px; height: 36px; flex: none; }
+.credit-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.credit-title { font-size: 13.5px; color: var(--text); }
+.credit-title strong { font-weight: 700; letter-spacing: -0.01em; }
+/* "tech" is part of the logo, so it is set lighter and tight against the name. */
+.credit-tech { font-weight: 600; color: var(--muted); margin-left: 3px; }
+.credit-desc { font-size: 12px; }
+
+@media (max-width: 720px) {
+    .status-text { display: none; }
+    .nav-link { padding: 8px; }
+}
+
+/* On a phone the navigation does not fit into one line: the service name plus four
+   links are wider than the screen, and the page ended up scrolling horizontally.
+   So in a narrow window the header moves the navigation onto a second line — that
+   way every link stays visible, including the button leading to the tools. */
+@media (max-width: 560px) {
+    .header-inner { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+    .nav { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+    footer { padding: 22px 16px 36px; }
+}

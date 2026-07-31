@@ -1,0 +1,35 @@
+---
+description: Project context lives in .ai/ — read it before writing code and log the change afterwards
+alwaysApply: true
+---
+
+# Project context
+
+The context and the rules for this project are in `.ai/`, shared with Codex and Claude Code
+through `AGENTS.md` and `CLAUDE.md`. Do not keep a second copy of a rule anywhere else.
+
+Read before non-trivial work:
+
+- `.ai/project.md` — what the service is and where its boundaries are.
+- `.ai/structure.md` — the repository map, layering, where new code belongs.
+- `.ai/conventions.md` — the rules of this codebase.
+- `.ai/journal.md` — the last few entries, for the current state.
+
+Architecture in depth (data flow, queues, the calculation cascade, the schema):
+`docs/overview.md`.
+
+# Log the change
+
+When a task is finished, append an entry to `.ai/journal.md` before reporting back, using
+the template at the top of that file. Record the decision and what was rejected, not the
+keystrokes — a diff already shows which lines moved.
+
+Write down anything about the codebase that cost you time: a hanging test package, stale
+generated code, a surprising invariant. That is the part the next assistant cannot recover
+from the diff.
+
+# Language
+
+Go code and tests are commented in Russian. The API contract and everything under
+`internal/ui/web/static` are English, comments included — three tests enforce that split.
+Comments explain why, never what, and never the change you just made.

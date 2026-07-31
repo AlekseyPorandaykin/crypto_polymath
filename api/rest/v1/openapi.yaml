@@ -1,17 +1,58 @@
 openapi: 3.0.3
 info:
   title: Crypto Polymath REST API
-  description: Crypto Polymath REST api for external services.
+  # The description is rendered as markdown by the documentation page, so the
+  # section about rate limits lives here rather than in a comment: a client reads
+  # the contract, not this file.
+  description: |
+    Crypto Polymath REST api for external services.
+
+    ## Rate limits
+
+    Every endpoint accepts the optional `X-Token` request header. The token
+    identifies the caller and affects nothing but how often requests may be sent:
+
+    | Request | Limit |
+    | --- | --- |
+    | without `X-Token` | 10 requests per minute |
+    | with `X-Token` | depends on the pricing plan of the token |
+
+    The anonymous quota may be spent at once: ten requests in a row are allowed,
+    after which the quota refills by one request every six seconds.
+
+    Anonymous requests are counted per client IP address, and one counter is
+    shared by all endpoints: walking different paths does not reset it. Once the
+    limit is exceeded the API answers `429 Too Many Requests` and sets the
+    `Retry-After` header to the number of seconds to wait.
+
+    A token is issued together with a pricing plan, and the plan defines its
+    quota. Handle `429` in any case: the same answer is returned when a plan
+    quota runs out.
   version: 1.0.0
   contact:
     name: Alexey Porandaikin
     email: porandaikinaleksei@gmail.com
+  # The service mark next to the name on the documentation page: the x-logo
+  # extension is understood by Redoc, which renders /docs/api. Code generators
+  # ignore the field. The link is relative because the contract and the mark are
+  # served by the same server.
+  x-logo:
+    url: /static/img/icon.svg
+    altText: Crypto Polymath
 
 servers:
   - url: localhost/api/v1
     description: Local server for development
   - url: http://www.cryptopolymath.org/api/v1
     description: Production server
+
+# The token is optional, and OpenAPI has only one way to say that: the empty
+# requirement in the list permits an anonymous call, the second one permits a call
+# with the header. Without the empty entry, client generators would treat the
+# token as mandatory.
+security:
+  - { }
+  - TokenHeader: [ ]
 
 paths:
   /server:
@@ -26,6 +67,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServerInfoResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -54,6 +101,12 @@ paths:
               examples:
                 normal:
                   $ref: '#/components/examples/PricesResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -82,6 +135,12 @@ paths:
               examples:
                 normal:
                   $ref: '#/components/examples/PricesResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -116,6 +175,12 @@ paths:
               examples:
                 normal:
                   $ref: '#/components/examples/PriceResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -165,6 +230,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CandlesticksResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -244,6 +315,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IndicatorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -301,6 +378,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CandleIndicatorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -334,6 +417,12 @@ paths:
                 $ref: '#/components/schemas/SymbolInfoResponse'
         404:
           description: not found symbol
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -432,6 +521,12 @@ paths:
                 $ref: '#/components/schemas/AnalysisResponse'
         404:
           description: not found symbol
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -468,6 +563,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/SymbolInfoResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: error response
           content:
@@ -478,7 +579,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Средняя цена входа после докупки по объёму
+      summary: Average entry price after adding volume
       requestBody:
         required: true
         content:
@@ -487,13 +588,19 @@ paths:
               $ref: '#/components/schemas/TradingAvgEntryPriceRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingAvgEntryPriceResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -508,7 +615,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Средняя цена входа после докупки на сумму залога
+      summary: Average entry price after adding by margin amount
       requestBody:
         required: true
         content:
@@ -517,13 +624,19 @@ paths:
               $ref: '#/components/schemas/TradingAvgEntryPriceBySumRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingAvgEntryPriceResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -538,7 +651,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Объём позиции из залога и плеча
+      summary: Position size from margin and leverage
       requestBody:
         required: true
         content:
@@ -547,13 +660,19 @@ paths:
               $ref: '#/components/schemas/TradingVolumeFromMarginRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingVolumeResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -568,7 +687,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Цена ликвидации изолированной позиции
+      summary: Liquidation price of an isolated position
       requestBody:
         required: true
         content:
@@ -577,13 +696,19 @@ paths:
               $ref: '#/components/schemas/TradingLiquidationPriceRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingLiquidationPriceResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -598,7 +723,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Нереализованный PnL
+      summary: Unrealized PnL
       requestBody:
         required: true
         content:
@@ -607,13 +732,19 @@ paths:
               $ref: '#/components/schemas/TradingUnrealizedPnLRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingUnrealizedPnLResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -628,7 +759,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Запас до ликвидации в процентах
+      summary: Distance to liquidation in percent
       requestBody:
         required: true
         content:
@@ -637,13 +768,19 @@ paths:
               $ref: '#/components/schemas/TradingDistanceToLiquidationRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingDistanceToLiquidationResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -658,7 +795,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Симуляция докупки (вход, ликвидация, риски)
+      summary: Add-on simulation (entry, liquidation, risk)
       requestBody:
         required: true
         content:
@@ -667,13 +804,19 @@ paths:
               $ref: '#/components/schemas/TradingSimulateAddOnRequest'
       responses:
         200:
-          description: Результат симуляции
+          description: simulation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingAddOnResultResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -688,7 +831,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: Снимок риска позиции при рыночной цене
+      summary: Position risk snapshot at a market price
       requestBody:
         required: true
         content:
@@ -697,13 +840,66 @@ paths:
               $ref: '#/components/schemas/TradingRiskAtPriceRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingRiskSnapshotResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  # The only endpoint that accepts something from a person rather than returning
+  # market data: the contact form on the landing page posts here. It answers 202
+  # rather than 200 on purpose — the message is accepted for delivery, and the
+  # answer says nothing about when the team reads it.
+  /contact:
+    post:
+      tags:
+        - contact
+      summary: Send a message to the team
+      description: |
+        Accepts a message from the contact form: the sender address, a subject and
+        the text. Delivery is asynchronous, so a successful answer means the message
+        was accepted, not that it has already been read.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactMessageRequest'
+            examples:
+              normal:
+                $ref: '#/components/examples/ContactMessageRequest'
+      responses:
+        202:
+          description: message accepted for delivery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactMessageResponse'
+        400:
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -718,7 +914,7 @@ paths:
     post:
       tags:
         - calculator
-      summary: PnL спотовой позиции в значении и в процентах
+      summary: Spot position PnL in value and percent
       requestBody:
         required: true
         content:
@@ -727,13 +923,19 @@ paths:
               $ref: '#/components/schemas/TradingSpotPnLRequest'
       responses:
         200:
-          description: Результат расчёта
+          description: calculation result
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TradingSpotPnLResponse'
         400:
-          description: Некорректные параметры
+          description: invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        429:
+          description: too many requests, rate limit exceeded (10 requests per minute without X-Token, plan quota with it)
           content:
             application/json:
               schema:
@@ -745,6 +947,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
+  securitySchemes:
+    # The scheme describes frequency rather than access rights: the data is the
+    # same with and without a token, only the allowed number of requests differs.
+    TokenHeader:
+      type: apiKey
+      in: header
+      name: X-Token
+      description: |
+        Token identifying the caller, issued together with a pricing plan.
+        Anonymous requests are limited to 10 requests per minute per IP address;
+        for requests carrying this header the limit depends on the pricing plan
+        of the token.
   schemas:
     AnalysisResponse:
       type: array
@@ -864,6 +1078,35 @@ components:
       properties:
         message:
           type: string
+    # The length limits are part of the contract rather than a server detail: a
+    # client has to be able to stop a message that will be rejected before sending
+    # it, and the browser form uses the same numbers in its maxlength attributes.
+    ContactMessageRequest:
+      type: object
+      required: [ email, subject, message ]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Address to reply to
+        subject:
+          type: string
+          minLength: 3
+          maxLength: 150
+          description: What the message is about
+        message:
+          type: string
+          minLength: 10
+          maxLength: 5000
+          description: Message text
+    ContactMessageResponse:
+      type: object
+      required: [ message ]
+      properties:
+        message:
+          type: string
+          description: Confirmation that the message was accepted for delivery
     CandlesticksResponse:
       type: array
       items:
@@ -994,7 +1237,7 @@ components:
     TradingSide:
       type: string
       enum: [ long, short ]
-      description: Направление позиции
+      description: Position side
     TradingPosition:
       type: object
       required: [ side, volume, entry_price, margin, leverage ]
@@ -1003,29 +1246,29 @@ components:
           $ref: '#/components/schemas/TradingSide'
         volume:
           type: number
-          description: Объём в базовом активе
+          description: Volume in the base asset
         entry_price:
           type: number
-          description: Средняя цена входа (USDT)
+          description: Average entry price (USDT)
         margin:
           type: number
-          description: Залог (USDT)
+          description: Margin (USDT)
         leverage:
           type: number
-          description: Плечо
+          description: Leverage
     TradingAddOn:
       type: object
       required: [ price ]
       properties:
         price:
           type: number
-          description: Цена докупки (USDT)
+          description: Add-on price (USDT)
         volume:
           type: number
-          description: Доп. объём; если 0 — считается из margin
+          description: Add-on volume; if 0, it is derived from margin
         margin:
           type: number
-          description: Доп. залог (USDT)
+          description: Add-on margin (USDT)
     TradingAvgEntryPriceRequest:
       type: object
       required: [ entry_volume, entry_price, new_volume, new_price ]
@@ -1048,7 +1291,7 @@ components:
           type: number
         sum:
           type: number
-          description: Сумма залога докупки (USDT)
+          description: Add-on margin amount (USDT)
         leverage:
           type: number
         new_price:
@@ -1105,13 +1348,13 @@ components:
           $ref: '#/components/schemas/TradingSide'
         volume:
           type: number
-          description: Объём позиции; если не задан — используется margin × leverage / entry_price
+          description: Position size; if omitted, margin × leverage / entry_price is used
         margin:
           type: number
-          description: Залог (USDT); используется при volume = 0
+          description: Margin (USDT); used when volume = 0
         leverage:
           type: number
-          description: Плечо для расчёта объёма из margin
+          description: Leverage used to derive the size from margin
         entry_price:
           type: number
         mark_price:
@@ -1252,23 +1495,23 @@ components:
       properties:
         volume:
           type: number
-          description: Объём в базовом активе
+          description: Volume in the base asset
         entry_price:
           type: number
-          description: Средняя цена входа (USDT)
+          description: Average entry price (USDT)
         mark_price:
           type: number
-          description: Текущая рыночная цена (USDT)
+          description: Current market price (USDT)
     TradingSpotPnLResponse:
       type: object
       required: [ value, percent ]
       properties:
         value:
           type: number
-          description: PnL в валюте котировки (USDT)
+          description: PnL in the quote currency (USDT)
         percent:
           type: number
-          description: PnL в процентах от цены входа
+          description: PnL as a percentage of the entry price
   examples:
     PriceResponse:
       value:
@@ -1283,3 +1526,8 @@ components:
         - symbol: ETHUSDT
           exchange: CoinExchange
           value: 2001.25
+    ContactMessageRequest:
+      value:
+        email: trader@example.com
+        subject: Access to historical candlesticks
+        message: I need candlesticks deeper than the last 100 bars. Is a longer history available through the API?

@@ -30,23 +30,27 @@ const (
 	HeikenAshiIndicator = "HeikenAshi"
 )
 
+// IndicatorDescriptions — пояснения к индикаторам для внешнего мира: они уходят
+// в ответ GET /api/v1/server и оттуда попадают в документацию и на страницу
+// инструментов. Поэтому текст здесь на английском, как и весь интерфейс, а не на
+// языке комментариев в коде.
 var IndicatorDescriptions = map[string]string{
-	TrendIndicator:                   "Тренд",
-	MAIndicator:                      "Простая скользящей средней (MA)",
-	EMAIndicator:                     "Экспоненциальной скользящей средней (EMA)",
-	TypeCandleIndicator:              "Направление свечи(1 - зеленая, -1 - красная)",
-	VolatilityCandlePercentIndicator: "Процент изменчивости свечи(определяет изменение высоты свечи в процентах)",
-	PriceChanges:                     "Изменение цены. Определяем как изменялась цена последние n-шагов",
-	StochasticMainLine:               "Стохастический осциллятор (основная линия)",
-	TrendByMAIndicator:               "Тренд на основе MA",
-	TrendByEMAIndicator:              "Тренд на основе EMA",
-	RatioCandleToMAIndicator:         "Отношение свечи к MA. Для определения положения цены свечи к MA.",
-	RatioCandleToEMAIndicator:        "Отношение свечи к EMA. Для определения положения цены свечи к EMA.",
-	RSIIndicator:                     "Relative Strength Index. Можно определить моменты, когда цена актива выросла или упала слишком сильно",
-	MACDMainLineIndicator:            "MACD (основная линия)",
-	MACDSignalLineIndicator:          "MACD (сигнальная линия)",
-	MACDSHistogramIndicator:          "MACD (гистограмма)",
-	StochasticSignalLine:             "Стохастический осциллятор (сигнальная линия)",
+	TrendIndicator:                   "Trend",
+	MAIndicator:                      "Simple moving average (MA)",
+	EMAIndicator:                     "Exponential moving average (EMA)",
+	TypeCandleIndicator:              "Candle direction (1 - green, -1 - red)",
+	VolatilityCandlePercentIndicator: "Candle volatility percent (how much the candle height changed, in percent)",
+	PriceChanges:                     "Price change. Shows how the price moved over the last n steps",
+	StochasticMainLine:               "Stochastic oscillator (main line)",
+	TrendByMAIndicator:               "Trend based on MA",
+	TrendByEMAIndicator:              "Trend based on EMA",
+	RatioCandleToMAIndicator:         "Candle to MA ratio. Tells where the candle price sits relative to MA.",
+	RatioCandleToEMAIndicator:        "Candle to EMA ratio. Tells where the candle price sits relative to EMA.",
+	RSIIndicator:                     "Relative Strength Index. Spots the moments when the asset price has risen or fallen too far",
+	MACDMainLineIndicator:            "MACD (main line)",
+	MACDSignalLineIndicator:          "MACD (signal line)",
+	MACDSHistogramIndicator:          "MACD (histogram)",
+	StochasticSignalLine:             "Stochastic oscillator (signal line)",
 }
 
 const (

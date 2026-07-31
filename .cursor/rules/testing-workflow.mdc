@@ -1,45 +1,35 @@
 ---
-description: После любых изменений в коде — запускать BDD тесты, обновлять тесты и документацию
+description: After any change to code — run the BDD suite, then update the tests around what changed
 alwaysApply: true
 ---
 
-# Правила после внесения изменений в код
-
-## 1. Запуск BDD-тестов после изменений
-
-После завершения всех правок кода **обязательно** запускать BDD-тесты:
+# Run BDD after every change
 
 ```bash
 go test -count=1 ./tests/bdd/...
 ```
 
-Если тесты не проходят — **немедленно уведомить** пользователя о конфликтах, указав:
-- Какой сценарий упал
-- Какое ожидание нарушено
-- Предложить варианты исправления (обновить тест или исправить код)
+If it fails, **report the conflict** instead of adapting the test to the new behaviour: name
+the scenario, the violated expectation, and offer the choice between fixing the code and
+updating the test.
 
-## 2. Обновление тестов после успешных правок
+# Then extend the tests
 
-После успешного прохождения BDD и внесения новой логики:
-- Обновить или добавить BDD-сценарии в `.feature` файлы для новой функциональности
-- Обновить unit-тесты в соответствующих `_test.go` файлах
-- Обновить fuzz-тесты если изменились инварианты
-- Обновить golden-файлы если изменился формат вывода (`-update`)
+- new behaviour in `core/` → a scenario in `tests/bdd/features/` plus unit tests;
+- changed invariants → update the fuzz tests in `core/trading`;
+- changed output format → `make test-golden-update`;
+- changed contract, pages or assets → extend `api/rest/v1/spec_test.go` or
+  `internal/ui/web/pages_test.go`.
 
-## 3. Документация и описания в тестах
+Every test file carries a doc-comment saying why those tests exist and which mistake they
+catch. Feature files (`# language: ru`) carry Russian comments on each `Правило:` block
+explaining the business idea. Failure messages state the consequence, not just the mismatch.
 
-Каждый тестовый файл **обязательно** должен содержать:
-- Doc-comment пакета/файла с описанием: зачем эти тесты, какую проблему решают
-- Для BDD `.feature` файлов: комментарии на русском языке к каждому `Правило:` блоку, объясняющие бизнес-идею
-- Для step definitions: комментарии к `init*Scenario` и `Test*Features` функциям
+# Pitfalls
 
-## 4. Структура BDD
+- `go test ./internal/ui/...` can hang — tests under `internal/ui/daemon` reach the network.
+  Run the packages you need instead.
+- `go vet ./...` reports pre-existing `unreachable code` in
+  `internal/ui/daemon/candlesticks_consumer/app.go`.
 
-Feature-файлы расположены в `tests/bdd/features/`. Формат — русский Gherkin (`# language: ru`).
-Step definitions — в `tests/bdd/*_test.go`.
-
-Покрытие BDD должно соответствовать пакетам `core/`:
-- `core/trading` → trading.feature, simulate_addon.feature, stop_loss.feature
-- `core/indicator/calculator` → indicators.feature
-- `core/candle_indicator` → heiken_ashi.feature
-- `core/analysis` → analysis.feature
+Full reasoning and the BDD-to-package mapping: `.ai/conventions.md`.

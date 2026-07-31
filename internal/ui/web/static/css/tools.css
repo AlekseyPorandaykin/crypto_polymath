@@ -1,0 +1,183 @@
+/*
+    Tools page styles (tools.html). The bulk of the layout is handled by the PrimeVue
+    components (TabView / Listbox / Card / DataTable); what is left here is the
+    "function list plus workspace" grid, the parameter form and the result panel:
+    presentable rendering of arbitrary JSON (.dv-*), the chart below the table
+    (.result-chart) and the price comparison across exchanges (.price-*).
+*/
+
+.tools-shell {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 22px 24px 48px;
+}
+.tools-intro { margin: 0 0 18px; color: var(--muted); font-size: 13.5px; }
+/* The limit rule is a footnote to the hint above: smaller and offset from the status
+   badge so that the two do not compete for attention at first glance. */
+.tools-limits { margin: 6px 0 0; font-size: 12.5px; }
+
+/* The function list on the left, the parameters and result on the right. */
+.tools-grid {
+    display: grid;
+    grid-template-columns: 296px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+.tools-grid .p-listbox { width: 100%; }
+.tools-grid .p-listbox-list-wrapper { max-height: 62vh; }
+
+.fn-empty {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 44px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13.5px;
+    background: var(--card);
+}
+
+.fn-title { font-weight: 700; font-size: 16px; margin: 0; }
+.fn-desc { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
+
+form.params { display: flex; flex-wrap: wrap; gap: 14px; margin: 4px 0 0; }
+form.params label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1 1 158px;
+}
+form.params .p-dropdown,
+form.params .p-inputnumber,
+form.params .p-selectbutton { width: 100%; }
+form.params .p-inputnumber-input { font-size: 13px; width: 100%; }
+form.params .p-selectbutton .p-button { flex: 1 1 0; padding: 7px 10px; font-size: 12.5px; }
+
+.run-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+
+.result-panel {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fbfcfe;
+    overflow: hidden;
+}
+.result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #f1f4f9;
+}
+.status-line { font-size: 12.5px; font-weight: 700; }
+.status-line.ok { color: var(--ok); }
+.status-line.err { color: var(--err); }
+/* The panel height is unrestricted: a chart follows the table, and tucking it into
+   an inner scroll area would mean nobody ever scrolls down to it. The tables limit
+   themselves (see tableProps), and the page scrolls as usual. */
+.result-body { padding: 14px; }
+.result-body pre.raw {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text);
+    max-height: 60vh;
+    overflow: auto;
+}
+.result-skeleton { display: flex; flex-direction: column; gap: 9px; }
+
+/* The chart below the result table. */
+.result-chart { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+.result-chart h4 {
+    margin: 0 0 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+/* The PrimeVue wrapper needs an explicit height: Chart.js stretches the canvas to
+   its parent, and .p-chart has no height of its own — without this rule the chart is
+   drawn at the default 150px and leaves empty space at the bottom of the block. */
+.chart-box { height: 300px; }
+.chart-box .p-chart { height: 100%; }
+
+.chart-legend { display: flex; gap: 16px; margin: -4px 0 12px; font-size: 12px; color: var(--muted); }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend span::before { content: ""; width: 10px; height: 10px; border-radius: 50%; }
+.chart-legend .legend-min::before { background: var(--ok); }
+.chart-legend .legend-max::before { background: var(--err); }
+/* The median is a dashed line on the chart, so the legend shows a line, not a dot. */
+.chart-legend .legend-median::before {
+    width: 16px;
+    height: 0;
+    border-radius: 0;
+    border-top: 2px dashed #98a2b3;
+}
+
+/* Comparing a symbol price across exchanges: summary, table, chart. */
+.price-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.price-stat {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.price-stat-label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.price-stat-value { font-size: 17px; font-weight: 700; }
+.price-stat-note {
+    font-size: 11.5px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* The same colours as the chart dots, so the summary and the chart read as one. */
+.price-stat-min { border-left-color: var(--ok); }
+.price-stat-min .price-stat-value { color: var(--ok); }
+.price-stat-max { border-left-color: var(--err); }
+.price-stat-max .price-stat-value { color: var(--err); }
+.price-stat-median { border-left-color: var(--accent); }
+
+.prices-view .p-datatable tr.row-min > td { background: rgba(23, 145, 90, .08); }
+.prices-view .p-datatable tr.row-max > td { background: rgba(217, 54, 54, .08); }
+.price-cell { display: inline-flex; align-items: center; gap: 8px; }
+.price-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+}
+.price-badge.min { background: rgba(23, 145, 90, .14); color: var(--ok); }
+.price-badge.max { background: rgba(217, 54, 54, .14); color: var(--err); }
+
+/* Presentable rendering of non-tabular values; arrays of objects go to DataTable. */
+.dv-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 16px; margin: 0; font-size: 13px; }
+.dv-kv dt { color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 1px; }
+.dv-kv dd { margin: 0; font-weight: 500; min-width: 0; }
+.dv-pos { color: var(--ok); font-weight: 600; }
+.dv-neg { color: var(--err); font-weight: 600; }
+.dv-bool-true { color: var(--ok); }
+.dv-bool-false { color: var(--err); }
+
+@media (max-width: 980px) {
+    .tools-grid { grid-template-columns: minmax(0, 1fr); }
+    .tools-grid .p-listbox-list-wrapper { max-height: 260px; }
+}

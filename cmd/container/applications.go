@@ -140,6 +140,11 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		serverHttp = http_server.NewServer()
 		serverHttp.AddMiddleware(echoprometheus.NewMiddleware("http_server"))
 		serverHttp.WithIndexHtmlResponse(string(web.IndexPage))
+		pages, err := web.NewPages()
+		if err != nil {
+			return err
+		}
+		serverHttp.RegistrationPage(pages)
 		handlerHttp := impl.NewHandler(
 			priceService,
 			candlestickService,
@@ -151,7 +156,11 @@ func (c *Container) CreateApiServer() (*http_server.Server, error) {
 		)
 
 		http_server.WithLogger(asZapLogger(log))
-		spec.RegisterHandlers(serverHttp.ApiGroup("/v1"), handlerHttp)
+		// Лимит вешаем на группу целиком, а не на отдельные адреса: он считается
+		// по IP и должен покрывать все методы v1, включая те, что появятся позже.
+		apiV1 := serverHttp.ApiGroup("/v1")
+		apiV1.Use(impl.RateLimit())
+		spec.RegisterHandlers(apiV1, handlerHttp)
 		return nil
 	})
 	if err != nil {

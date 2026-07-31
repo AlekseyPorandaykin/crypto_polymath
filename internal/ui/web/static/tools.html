@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools — Crypto Polymath</title>
+    <meta name="description" content="Crypto Polymath market data and trader calculators: prices, candlesticks, indicators, analytics and position risk.">
+    <meta name="robots" content="noindex">
+
+    <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/icon-32.png">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+
+    <!-- PrimeVue 3: theme, base component styles and icons. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3.53.1/resources/themes/lara-light-blue/theme.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primevue@3.53.1/resources/primevue.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@6.0.1/primeicons.css">
+
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/tools.css">
+
+    <!--
+        The versions are pinned on purpose: "vue" and PrimeVue must resolve to the
+        same instance of the Vue runtime, otherwise provide/inject inside PrimeVue
+        (configuration, locales) stops working. Both URLs below collapse to the
+        single esm.sh module /vue@3.5.39/es2022/vue.mjs, so the version has to be
+        changed in both places at once.
+
+        This is the runtime build without a template compiler — the page layout is
+        described through render()/h() in /static/js/tools.js.
+    -->
+    <script type="importmap">
+    {
+        "imports": {
+            "vue": "https://esm.sh/vue@3.5.39",
+            "primevue/config": "https://esm.sh/primevue@3.53.1/config?deps=vue@3.5.39",
+            "primevue/button": "https://esm.sh/primevue@3.53.1/button?deps=vue@3.5.39",
+            "primevue/card": "https://esm.sh/primevue@3.53.1/card?deps=vue@3.5.39",
+            "primevue/chart": "https://esm.sh/primevue@3.53.1/chart?deps=vue@3.5.39",
+            "primevue/column": "https://esm.sh/primevue@3.53.1/column?deps=vue@3.5.39",
+            "primevue/datatable": "https://esm.sh/primevue@3.53.1/datatable?deps=vue@3.5.39",
+            "primevue/dropdown": "https://esm.sh/primevue@3.53.1/dropdown?deps=vue@3.5.39",
+            "primevue/inputnumber": "https://esm.sh/primevue@3.53.1/inputnumber?deps=vue@3.5.39",
+            "primevue/listbox": "https://esm.sh/primevue@3.53.1/listbox?deps=vue@3.5.39",
+            "primevue/message": "https://esm.sh/primevue@3.53.1/message?deps=vue@3.5.39",
+            "primevue/selectbutton": "https://esm.sh/primevue@3.53.1/selectbutton?deps=vue@3.5.39",
+            "primevue/skeleton": "https://esm.sh/primevue@3.53.1/skeleton?deps=vue@3.5.39",
+            "primevue/tabpanel": "https://esm.sh/primevue@3.53.1/tabpanel?deps=vue@3.5.39",
+            "primevue/tabview": "https://esm.sh/primevue@3.53.1/tabview?deps=vue@3.5.39",
+            "primevue/tag": "https://esm.sh/primevue@3.53.1/tag?deps=vue@3.5.39",
+            "primevue/treetable": "https://esm.sh/primevue@3.53.1/treetable?deps=vue@3.5.39"
+        }
+    }
+    </script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a class="brand" href="/">
+            <img src="/static/img/icon.svg" width="28" height="28" alt="">
+            Crypto <span style="color:var(--accent)">Polymath</span>
+        </a>
+        <span class="status-text">Tools</span>
+        <nav class="nav">
+            <a class="nav-link" href="/docs/api">API</a>
+            <a class="btn btn-outline" href="/">Home</a>
+        </nav>
+    </div>
+</header>
+
+<div id="tools-app"></div>
+
+<script type="module" src="/static/js/tools.js"></script>
+</body>
+</html>

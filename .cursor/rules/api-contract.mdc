@@ -1,0 +1,33 @@
+---
+description: The REST API is contract-first — edit openapi.yaml, regenerate, then implement
+globs: api/rest/v1/openapi.yaml,internal/ui/api/v1/**
+alwaysApply: false
+---
+
+# Contract first
+
+`api/rest/v1/openapi.yaml` is the source of truth. The order is always: edit the contract →
+regenerate → implement the handler.
+
+```bash
+cd internal/ui/api/v1/spec
+oapi-codegen -old-config-style -package spec -generate types,skip-prune -o types.gen.go ../../../../../api/rest/v1/openapi.yaml
+oapi-codegen -old-config-style -package spec -generate server  -o server.gen.go ../../../../../api/rest/v1/openapi.yaml
+```
+
+Use the generator version that matches the header of the existing `*.gen.go` files (v2.5.0);
+the `go install ...@v2.4.0` line in `generator.go` is stale.
+
+- Never hand-edit `internal/ui/api/v1/spec/*.gen.go`.
+- Regeneration can surface drift accumulated earlier — optional contract fields become
+  pointers. Fix the handler; do not bend the contract back to match old generated code.
+- Every operation must document a `429` response; a test counts them.
+- Contract text, descriptions and YAML comments are English.
+
+# Tokens and limits
+
+Anonymous callers get 10 requests per minute per IP; callers with `X-Token` get their plan
+quota. The token is not validated yet, and that stays inside the handler package: a test
+keeps wording like "not validated" or "arbitrary string" out of the contract.
+
+Details: `.ai/conventions.md`.

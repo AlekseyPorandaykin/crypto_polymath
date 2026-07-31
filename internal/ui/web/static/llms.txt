@@ -1,0 +1,47 @@
+# Crypto Polymath
+
+> Crypto market analytics platform. It collects prices, historical candlesticks and technical indicators from six major exchanges, normalises them into a single format and adds trader calculators for position risk. Runs in the browser with no sign-up, no exchange API keys and no installation.
+
+Supported exchanges: Binance, Bybit, OKX, Kraken, KuCoin, Gate.io. Data from every venue is normalised to the same shape, so values can be compared directly.
+
+Interface language: English. Available worldwide. Free of charge.
+
+## What the platform does
+
+- Crypto prices: the latest price for an exchange and symbol pair, every price on one exchange, or one symbol across all exchanges — with a summary of the minimum, median and maximum price and the spread in percent.
+- Historical candlesticks (OHLCV) on timeframes from minutes to months — as a table of values with a closing price chart.
+- Heiken Ashi smoothed candlesticks for reading price movement without market noise.
+- Technical indicators calculated from candlesticks: moving averages, RSI, MACD, stochastic.
+- Trend analytics with a configurable lookback depth.
+- Reference data: the symbol list of an exchange by category (spot, futures) and symbol details, including funding rate and next funding time.
+
+## Trader calculators
+
+- Average entry price when averaging by volume or by margin amount, taking leverage into account.
+- Position size from margin and leverage at a given price.
+- Liquidation price of an isolated position.
+- Distance to liquidation as a percentage of the current price.
+- Unrealized PnL of an open position and spot PnL, both in value and in percent.
+- Add-on simulation: what happens to entry price, liquidation and risk after averaging down.
+- Position risk snapshot at a given market price.
+
+## Pages
+
+- [Home](https://cryptopolymath.org/): feature overview and answers to frequent questions.
+- [Tools](https://cryptopolymath.org/tools): the working page with two sections — market data and calculators. A specific function opens directly through the `?fn=` parameter, for example `https://cryptopolymath.org/tools?fn=risk-at-price`.
+- [REST API documentation](https://cryptopolymath.org/docs/api): methods, parameters and responses.
+- [OpenAPI contract](https://cryptopolymath.org/docs/api/openapi.yaml): machine-readable specification in YAML.
+
+## Programmatic access
+
+Every function is available through a REST API with a single contract: the same request works for any supported exchange. The base path is `/api/v1`.
+
+Rate limits: 10 requests per minute per IP address without authentication. Pass an `X-Token` header to use the quota of the pricing plan the token was issued with. Requests over the limit are answered with HTTP 429 and a `Retry-After` header.
+
+## Getting in touch
+
+The home page carries a contact form: an email address to reply to, a subject and the message. It posts to `POST /api/v1/contact`, which is the documented way to ask about the data, the API or a missing feature.
+
+## Limitations
+
+The platform provides data and calculations. It is not investment advice, it does not execute trades and it never asks for access to a user's exchange account.

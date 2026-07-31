@@ -1,0 +1,38 @@
+---
+description: Rules for the embedded web interface — English only, static landing page, no build step
+globs: internal/ui/web/**
+alwaysApply: false
+---
+
+# English only
+
+Everything under `internal/ui/web/static` is English — markup, UI strings and comments in
+CSS and JS. `TestStaticFilesAreEnglish` scans the whole embedded tree for Cyrillic.
+
+# The landing page stays static
+
+`index.html` carries exactly one script: `static/js/contact.js`, for the contact dialog.
+Everything else is static markup, because search and AI crawlers usually do not execute
+JavaScript — content built by a script does not exist for them.
+`TestLandingScriptsAreLimitedToContactForm` guards this.
+
+# No build step
+
+- Vue and PrimeVue load as ES modules through an `importmap` on the tools page. The version
+  is pinned in two places and both must match, or `provide/inject` inside PrimeVue breaks
+  silently.
+- PrimeVue runs against the runtime build without a template compiler: components are
+  written with `render()`/`h()`, not string templates.
+- Numbers and dates go through `static/js/format.js` — `en-US` numbers, `en-GB` dates with a
+  spelled-out month. Do not introduce a second convention.
+- Colours come from the CSS variables in `static/css/app.css`; charts repeat the same palette
+  by value, since Chart.js cannot read CSS variables.
+
+# Tested invariants
+
+Paths inside embedded files are strings: a typo compiles and only breaks in the browser.
+`pages_test.go` checks that every `/static/...` reference exists, that the canonical host is
+consistent, that `/tools` stays `noindex`, that structured data matches the visible text and
+that form limits equal the contract's. Extend those tests when adding a page or an asset.
+
+Details: `.ai/conventions.md`.

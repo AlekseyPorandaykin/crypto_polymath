@@ -58,7 +58,6 @@ func NewServer() *Server {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Recover(), middleware.CORS())
-	e.File("/favicon.ico", "pkg/server/http/static/favicon.png")
 	s := &Server{
 		e:         e,
 		apiGroup:  e.Group("/api"),

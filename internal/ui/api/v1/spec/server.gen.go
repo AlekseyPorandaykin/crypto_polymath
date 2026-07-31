@@ -16,31 +16,31 @@ type ServerInterface interface {
 	// Last analysis
 	// (GET /analysis/{exchange}/{symbol}/{unit}/{interval}/{name}/{indicator_depth}/{depth})
 	GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx echo.Context, exchange string, symbol string, unit GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsUnit, interval int, name GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsName, indicatorDepth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsIndicatorDepth, depth GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepthParamsDepth) error
-	// Средняя цена входа после докупки по объёму
+	// Average entry price after adding volume
 	// (POST /calculator/trading/avg-entry-price)
 	PostCalculatorTradingAvgEntryPrice(ctx echo.Context) error
-	// Средняя цена входа после докупки на сумму залога
+	// Average entry price after adding by margin amount
 	// (POST /calculator/trading/avg-entry-price-by-sum)
 	PostCalculatorTradingAvgEntryPriceBySum(ctx echo.Context) error
-	// Запас до ликвидации в процентах
+	// Distance to liquidation in percent
 	// (POST /calculator/trading/distance-to-liquidation)
 	PostCalculatorTradingDistanceToLiquidation(ctx echo.Context) error
-	// Цена ликвидации изолированной позиции
+	// Liquidation price of an isolated position
 	// (POST /calculator/trading/liquidation-price)
 	PostCalculatorTradingLiquidationPrice(ctx echo.Context) error
-	// Снимок риска позиции при рыночной цене
+	// Position risk snapshot at a market price
 	// (POST /calculator/trading/risk-at-price)
 	PostCalculatorTradingRiskAtPrice(ctx echo.Context) error
-	// Симуляция докупки (вход, ликвидация, риски)
+	// Add-on simulation (entry, liquidation, risk)
 	// (POST /calculator/trading/simulate-add-on)
 	PostCalculatorTradingSimulateAddOn(ctx echo.Context) error
-	// PnL спотовой позиции в значении и в процентах
+	// Spot position PnL in value and percent
 	// (POST /calculator/trading/spot-pnl)
 	PostCalculatorTradingSpotPnl(ctx echo.Context) error
-	// Нереализованный PnL
+	// Unrealized PnL
 	// (POST /calculator/trading/unrealized-pnl)
 	PostCalculatorTradingUnrealizedPnl(ctx echo.Context) error
-	// Объём позиции из залога и плеча
+	// Position size from margin and leverage
 	// (POST /calculator/trading/volume-from-margin)
 	PostCalculatorTradingVolumeFromMargin(ctx echo.Context) error
 	// Last candle-indicators
@@ -49,6 +49,9 @@ type ServerInterface interface {
 	// Last candlesticks
 	// (GET /candlestick/{exchange}/{symbol}/{unit}/{interval})
 	GetCandlestickExchangeSymbolUnitInterval(ctx echo.Context, exchange string, symbol string, unit GetCandlestickExchangeSymbolUnitIntervalParamsUnit, interval string) error
+	// Send a message to the team
+	// (POST /contact)
+	PostContact(ctx echo.Context) error
 	// Symbol info
 	// (GET /exchange/{exchange}/{symbol})
 	GetExchangeExchangeSymbol(ctx echo.Context, exchange string, symbol string) error
@@ -136,6 +139,8 @@ func (w *ServerInterfaceWrapper) GetAnalysisExchangeSymbolUnitIntervalNameIndica
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter depth: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetAnalysisExchangeSymbolUnitIntervalNameIndicatorDepthDepth(ctx, exchange, symbol, unit, interval, name, indicatorDepth, depth)
 	return err
@@ -144,6 +149,8 @@ func (w *ServerInterfaceWrapper) GetAnalysisExchangeSymbolUnitIntervalNameIndica
 // PostCalculatorTradingAvgEntryPrice converts echo context to params.
 func (w *ServerInterfaceWrapper) PostCalculatorTradingAvgEntryPrice(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingAvgEntryPrice(ctx)
@@ -154,6 +161,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingAvgEntryPrice(ctx echo.Con
 func (w *ServerInterfaceWrapper) PostCalculatorTradingAvgEntryPriceBySum(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingAvgEntryPriceBySum(ctx)
 	return err
@@ -162,6 +171,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingAvgEntryPriceBySum(ctx ech
 // PostCalculatorTradingDistanceToLiquidation converts echo context to params.
 func (w *ServerInterfaceWrapper) PostCalculatorTradingDistanceToLiquidation(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingDistanceToLiquidation(ctx)
@@ -172,6 +183,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingDistanceToLiquidation(ctx 
 func (w *ServerInterfaceWrapper) PostCalculatorTradingLiquidationPrice(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingLiquidationPrice(ctx)
 	return err
@@ -180,6 +193,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingLiquidationPrice(ctx echo.
 // PostCalculatorTradingRiskAtPrice converts echo context to params.
 func (w *ServerInterfaceWrapper) PostCalculatorTradingRiskAtPrice(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingRiskAtPrice(ctx)
@@ -190,6 +205,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingRiskAtPrice(ctx echo.Conte
 func (w *ServerInterfaceWrapper) PostCalculatorTradingSimulateAddOn(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingSimulateAddOn(ctx)
 	return err
@@ -198,6 +215,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingSimulateAddOn(ctx echo.Con
 // PostCalculatorTradingSpotPnl converts echo context to params.
 func (w *ServerInterfaceWrapper) PostCalculatorTradingSpotPnl(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingSpotPnl(ctx)
@@ -208,6 +227,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingSpotPnl(ctx echo.Context) 
 func (w *ServerInterfaceWrapper) PostCalculatorTradingUnrealizedPnl(ctx echo.Context) error {
 	var err error
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingUnrealizedPnl(ctx)
 	return err
@@ -216,6 +237,8 @@ func (w *ServerInterfaceWrapper) PostCalculatorTradingUnrealizedPnl(ctx echo.Con
 // PostCalculatorTradingVolumeFromMargin converts echo context to params.
 func (w *ServerInterfaceWrapper) PostCalculatorTradingVolumeFromMargin(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostCalculatorTradingVolumeFromMargin(ctx)
@@ -265,6 +288,8 @@ func (w *ServerInterfaceWrapper) GetCandleIndicatorExchangeSymbolUnitIntervalNam
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter name: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCandleIndicatorExchangeSymbolUnitIntervalName(ctx, exchange, symbol, unit, interval, name)
 	return err
@@ -305,8 +330,21 @@ func (w *ServerInterfaceWrapper) GetCandlestickExchangeSymbolUnitInterval(ctx ec
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter interval: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCandlestickExchangeSymbolUnitInterval(ctx, exchange, symbol, unit, interval)
+	return err
+}
+
+// PostContact converts echo context to params.
+func (w *ServerInterfaceWrapper) PostContact(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostContact(ctx)
 	return err
 }
 
@@ -328,6 +366,8 @@ func (w *ServerInterfaceWrapper) GetExchangeExchangeSymbol(ctx echo.Context) err
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter symbol: %s", err))
 	}
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetExchangeExchangeSymbol(ctx, exchange, symbol)
@@ -385,6 +425,8 @@ func (w *ServerInterfaceWrapper) GetIndicatorExchangeSymbolUnitIntervalNameDepth
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter depth: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetIndicatorExchangeSymbolUnitIntervalNameDepth(ctx, exchange, symbol, unit, interval, name, depth)
 	return err
@@ -409,6 +451,8 @@ func (w *ServerInterfaceWrapper) GetPriceExchangeSymbol(ctx echo.Context) error 
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter symbol: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetPriceExchangeSymbol(ctx, exchange, symbol)
 	return err
@@ -424,6 +468,8 @@ func (w *ServerInterfaceWrapper) GetPricesExchangeExchange(ctx echo.Context) err
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter exchange: %s", err))
 	}
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetPricesExchangeExchange(ctx, exchange)
@@ -441,6 +487,8 @@ func (w *ServerInterfaceWrapper) GetPricesSymbolSymbol(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter symbol: %s", err))
 	}
 
+	ctx.Set(TokenHeaderScopes, []string{})
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetPricesSymbolSymbol(ctx, symbol)
 	return err
@@ -449,6 +497,8 @@ func (w *ServerInterfaceWrapper) GetPricesSymbolSymbol(ctx echo.Context) error {
 // GetServer converts echo context to params.
 func (w *ServerInterfaceWrapper) GetServer(ctx echo.Context) error {
 	var err error
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetServer(ctx)
@@ -473,6 +523,8 @@ func (w *ServerInterfaceWrapper) GetSymbolsExchangeCategory(ctx echo.Context) er
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter category: %s", err))
 	}
+
+	ctx.Set(TokenHeaderScopes, []string{})
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetSymbolsExchangeCategory(ctx, exchange, category)
@@ -519,6 +571,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/calculator/trading/volume-from-margin", wrapper.PostCalculatorTradingVolumeFromMargin)
 	router.GET(baseURL+"/candle-indicator/:exchange/:symbol/:unit/:interval/:name", wrapper.GetCandleIndicatorExchangeSymbolUnitIntervalName)
 	router.GET(baseURL+"/candlestick/:exchange/:symbol/:unit/:interval", wrapper.GetCandlestickExchangeSymbolUnitInterval)
+	router.POST(baseURL+"/contact", wrapper.PostContact)
 	router.GET(baseURL+"/exchange/:exchange/:symbol", wrapper.GetExchangeExchangeSymbol)
 	router.GET(baseURL+"/indicator/:exchange/:symbol/:unit/:interval/:name/:depth", wrapper.GetIndicatorExchangeSymbolUnitIntervalNameDepth)
 	router.GET(baseURL+"/price/:exchange/:symbol", wrapper.GetPriceExchangeSymbol)
