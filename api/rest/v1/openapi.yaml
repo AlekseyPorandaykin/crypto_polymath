@@ -29,9 +29,6 @@ info:
     quota. Handle `429` in any case: the same answer is returned when a plan
     quota runs out.
   version: 1.0.0
-  contact:
-    name: Alexey Porandaikin
-    email: porandaikinaleksei@gmail.com
   # The service mark next to the name on the documentation page: the x-logo
   # extension is understood by Redoc, which renders /docs/api. Code generators
   # ignore the field. The link is relative because the contract and the mark are
