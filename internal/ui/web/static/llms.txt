@@ -27,10 +27,10 @@ Interface language: English. Available worldwide. Free of charge.
 
 ## Pages
 
-- [Home](https://cryptopolymath.org/): feature overview and answers to frequent questions.
-- [Tools](https://cryptopolymath.org/tools): the working page with two sections — market data and calculators. A specific function opens directly through the `?fn=` parameter, for example `https://cryptopolymath.org/tools?fn=risk-at-price`.
-- [REST API documentation](https://cryptopolymath.org/docs/api): methods, parameters and responses.
-- [OpenAPI contract](https://cryptopolymath.org/docs/api/openapi.yaml): machine-readable specification in YAML.
+- [Home](http://localhost/): feature overview and answers to frequent questions.
+- [Tools](http://localhost/tools): the working page with two sections — market data and calculators. A specific function opens directly through the `?fn=` parameter, for example `http://localhost/tools?fn=risk-at-price`.
+- [REST API documentation](http://localhost/docs/api): methods, parameters and responses.
+- [OpenAPI contract](http://localhost/docs/api/openapi.yaml): machine-readable specification in YAML.
 
 ## Programmatic access
 

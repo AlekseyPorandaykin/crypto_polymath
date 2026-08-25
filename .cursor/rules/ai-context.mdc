@@ -1,22 +1,22 @@
 ---
-description: Project context lives in .ai/ — read it before writing code and log the change afterwards
+description: Read .cursor/context.md at session start; full rules live in .ai/
 alwaysApply: true
 ---
 
 # Project context
 
-The context and the rules for this project are in `.ai/`, shared with Codex and Claude Code
-through `AGENTS.md` and `CLAUDE.md`. Do not keep a second copy of a rule anywhere else.
+**At the start of a session and before non-trivial work, read [`.cursor/context.md`](../context.md).**
+It is the Cursor boot map: product shape, layering, hard rules, and where to put new code.
 
-Read before non-trivial work:
+Canonical rules (do not duplicate elsewhere) live in `.ai/`, shared with Codex and Claude
+Code through `AGENTS.md` and `CLAUDE.md`. After the context file, read as needed:
 
-- `.ai/project.md` — what the service is and where its boundaries are.
-- `.ai/structure.md` — the repository map, layering, where new code belongs.
-- `.ai/conventions.md` — the rules of this codebase.
-- `.ai/journal.md` — the last few entries, for the current state.
+- `.ai/project.md` — what the service is and where its boundaries are
+- `.ai/structure.md` — the repository map, layering, where new code belongs
+- `.ai/conventions.md` — the rules of this codebase (read before writing code)
+- `.ai/journal.md` — the last few entries, for the current state
 
-Architecture in depth (data flow, queues, the calculation cascade, the schema):
-`docs/overview.md`.
+Architecture in depth: `docs/overview.md`. Core pipeline DAG: `docs/core-pipeline.md`.
 
 # Log the change
 

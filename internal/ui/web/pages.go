@@ -46,13 +46,13 @@ var llmsFile []byte
 //go:embed static/css static/js static/img
 var assets embed.FS
 
-// SiteURL — канонический адрес сайта без завершающего слеша.
+// SiteURL — канонический origin без завершающего слеша.
 //
-// Он нужен там, где относительная ссылка не работает: в sitemap.xml, в
-// canonical и Open Graph на страницах, в структурированных данных. Значение
-// продублировано в разметке (иначе пришлось бы рендерить статику шаблоном), а
-// TestCanonicalHostIsConsistent следит, чтобы копии не разъехались.
-const SiteURL = "https://cryptopolymath.org"
+// Нужен там, где относительная ссылка не работает: sitemap.xml, canonical,
+// Open Graph, JSON-LD. Публичный хост в учебном проекте не публикуем — только
+// localhost. Значение продублировано в статике (иначе пришлось бы рендерить её
+// шаблоном); TestCanonicalHostIsConsistent следит, чтобы копии не разъехались.
+const SiteURL = "http://localhost"
 
 const (
 	robotsPath  = "/robots.txt"

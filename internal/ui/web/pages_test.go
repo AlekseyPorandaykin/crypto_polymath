@@ -577,10 +577,11 @@ func TestLlmsTxt(t *testing.T) {
 	}
 }
 
-// Канонический домен продублирован в Go и в разметке — расхождение увело бы
-// поисковик на несуществующий адрес, поэтому сверяем копии.
+// Канонический адрес продублирован в Go и в разметке — расхождение увело бы
+// краулер на несуществующий хост, поэтому сверяем копии. Публичный домен в
+// учебных материалах не держим: в SiteURL только локальный origin.
 func TestCanonicalHostIsConsistent(t *testing.T) {
-	hostRe := regexp.MustCompile(`https://[a-z0-9.-]+`)
+	hostRe := regexp.MustCompile(`https?://[a-z0-9.-]+`)
 
 	sources := map[string]string{
 		"index.html": string(IndexPage),
@@ -588,9 +589,12 @@ func TestCanonicalHostIsConsistent(t *testing.T) {
 		"llms.txt":   string(llmsFile),
 	}
 	for name, content := range sources {
+		if strings.Contains(content, "cryptopolymath.org") {
+			t.Errorf("%s всё ещё содержит публичный хост cryptopolymath.org", name)
+		}
 		for _, found := range hostRe.FindAllString(content, -1) {
 			// Внешние адреса (CDN, schema.org) под это правило не попадают.
-			if strings.Contains(found, "cryptopolymath") && found != SiteURL {
+			if strings.HasPrefix(found, SiteURL) && found != SiteURL {
 				t.Errorf("%s ссылается на %q, а канонический адрес — %q", name, found, SiteURL)
 			}
 		}

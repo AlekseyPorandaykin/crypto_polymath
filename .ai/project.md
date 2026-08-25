@@ -10,8 +10,6 @@ normalised into one shape for every exchange, calculations are driven by events 
 by requests, and the public API answers the same way regardless of which venue the numbers
 came from.
 
-Public site: `cryptopolymath.org`.
-
 ## Three processes, one binary
 
 The binary is a cobra CLI (`main.go` → `cmd/`). Each process runs on its own and has its

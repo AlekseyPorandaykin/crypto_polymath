@@ -38,10 +38,8 @@ info:
     altText: Crypto Polymath
 
 servers:
-  - url: localhost/api/v1
+  - url: http://localhost/api/v1
     description: Local server for development
-  - url: http://www.cryptopolymath.org/api/v1
-    description: Production server
 
 # The token is optional, and OpenAPI has only one way to say that: the empty
 # requirement in the list permits an anonymous call, the second one permits a call

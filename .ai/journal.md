@@ -34,6 +34,48 @@ Rules for entries:
 
 ---
 
+## 2026-08-25 — Drop public host and IPs from docs/site
+
+**Task.** Educational framing in README; remove IP addresses and the public host
+`cryptopolymath.org` from documentation and the embedded site.
+**Changed.** `README.md`; `docs/overview.md`; `TODO.md`; `SiteURL` and static pages
+(`index.html`, `docs.html`, `llms.txt`); `api/rest/v1/openapi.yaml` servers;
+`.ai/project.md`; `.cursor/context.md`; `pages_test.go`; deleted untracked `metrics`.
+**Decisions.** Canonical origin is `http://localhost` (sitemap/OG need an absolute
+origin; no public domain). OpenAPI keeps only the local server entry. Brand name
+"Crypto Polymath" and the Go module path stay — only the host was removed.
+**Checks.** `go test -count=1 ./internal/ui/web/...` and `./tests/bdd/...` (pending).
+**Left open.** Untracked `.env` / `.idea` / `script.sh` may still hold hostnames or IPs.
+
+## 2026-08-22 — Cursor boot context
+
+**Task.** Create AI context for Cursor at `.cursor/context.md` and make assistants read it
+when starting work.
+**Changed.** New `.cursor/context.md`; `.cursor/rules/ai-context.mdc` now requires reading
+it first; `.ai/README.md` entry-point table updated.
+**Decisions.** Kept a thin Cursor boot map that points at `.ai/` rather than copying
+`project`/`structure`/`conventions` into `.cursor/` — duplicate rule sets drift within a
+week (same reason the shared `.ai/` folder exists). Always-apply rule wires the read
+obligation so Cursor does not depend on the agent remembering a path.
+**Checks.** Docs-only; no tests run.
+**Left open.** None.
+
+## 2026-08-20 — Core dependencies and pipeline doc
+
+**Task.** Describe which `core/` package depends on which, and how a calculation
+pipeline should be shaped — documentation only, no code changes.
+**Changed.** New `docs/core-pipeline.md`; link from `docs/overview.md`.
+**Decisions.** Documented the as-is import graph (`candle_indicator` and
+`indicator` both hang off `candlestick`; `analysis` hangs off `indicator`;
+`trading` stays out of the market cascade) and a target DAG with stages S0–S3,
+per-key cursors, watermarks between primary and secondary analysis, and separate
+realtime/backfill worker pools. Rejected putting queue/SQL into `core/` or folding
+`trading` into the event pipeline — that would fight the existing layering.
+**Checks.** Cross-checked package imports under `core/` and calculator handlers
+against `docs/overview.md`; no tests run (docs only).
+**Left open.** Implementation of cursors/watermarks; the OOM on prod
+(`daemon serve` ~3.5 GB RSS) is related but not addressed here.
+
 ## 2026-07-31 — AI context folder
 
 **Task.** Collect the project context and development rules into one folder that Cursor,
@@ -90,7 +132,6 @@ enforce the split (`TestStaticFilesAreEnglish`, `TestContractIsEnglish`,
 `TestIndicatorDescriptionsAreEnglish`), each scanning for Cyrillic characters.
 **Checks.** Full test run plus BDD green; pages re-checked in headless Chrome at desktop
 and mobile widths.
-**Left open.** The contract still advertises the production server as
-`http://www.cryptopolymath.org/api/v1` while the canonical site is
-`https://cryptopolymath.org` — left alone because changing it affects generated clients and
-deployment.
+**Left open.** The contract used to advertise a public production host next to the
+canonical site URL; both were removed later (see 2026-08-25) in favour of
+`http://localhost` only.

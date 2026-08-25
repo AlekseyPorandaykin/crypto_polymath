@@ -315,6 +315,8 @@ Calculator **пропускает** минутные свечи и свечи с
 
 Подробные формулы и требования к глубине — в [описание_работы.md](./описание_работы.md) и [индикаторы.md](./индикаторы.md).
 
+Зависимости пакетов `core/` друг от друга и целевой вид расчётного pipeline — в [core-pipeline.md](./core-pipeline.md).
+
 ### Свечные индикаторы (`core/candle_indicator`)
 
 Отдельный тип данных — **синтетические свечи**, хранятся в `candlestick_indicators`:
@@ -385,7 +387,7 @@ HTTP-сервер на Echo, спецификация — OpenAPI 3 (`api/rest/v
 ```text
 # База данных
 DB_CONNECTION_DRIVER=postgres
-DB_CONNECTION_HOST=0.0.0.0
+DB_CONNECTION_HOST=localhost
 DB_CONNECTION_PORT=5433
 DB_CONNECTION_DATABASE=crypto_app
 DB_CONNECTION_SCHEMA=crypto_polymath

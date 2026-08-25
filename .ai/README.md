@@ -9,11 +9,12 @@ Every tool reaches this folder through a thin entry point of its own:
 
 | Tool | Entry point |
 | --- | --- |
-| Cursor | `.cursor/rules/ai-context.mdc` (always applied) |
+| Cursor | `.cursor/context.md` (boot map) + `.cursor/rules/ai-context.mdc` (always applied) |
 | Codex | `AGENTS.md` in the repository root |
 | Claude Code | `CLAUDE.md` in the repository root |
 
-Those files hold no rules themselves. They point here.
+Those files hold no full rule set themselves. They point here. Cursor’s
+`.cursor/context.md` is a short orientation only — detailed rules stay in this folder.
 
 ## Reading order
 
